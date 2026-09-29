@@ -1,0 +1,32 @@
+@startuml 16-estados
+title Máquinas de estado — Ordem e Cliente
+
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+
+state "Ordem" as ORDEM {
+  [*] --> PENDENTE : Ordem.abrir()
+  PENDENTE --> EXECUTADA : conta.debito-aprovado (compra)\ncarteira.acoes-reservadas (venda)
+  PENDENTE --> REJEITADA : conta.debito-recusado (compra)\ncarteira.acoes-insuficientes (venda)
+  EXECUTADA --> [*]
+  REJEITADA --> [*]
+  note right of PENDENTE
+    executar()/rejeitar() fora de
+    PENDENTE lança RegraDeNegocio.
+    Mensagem repetida é ignorada.
+  end note
+}
+
+state "Cliente" as CLIENTE {
+  [*] --> Liberado : Cliente.novo()
+  Liberado : PIN correto / tentativas = 0
+  Liberado : PIN incorreto / tentativas++ (< 3)
+  Liberado --> BloqueadoPorPin : 3º PIN incorreto
+  Liberado --> BloqueadoPeloCliente : bloquear(CLIENTE)
+  Liberado --> BloqueadoPeloGerente : bloquear(GERENTE)
+  BloqueadoPeloCliente --> Liberado : desbloquearPeloCliente()\nou desbloquearPeloGerente()
+  BloqueadoPorPin --> Liberado : desbloquearPeloGerente()
+  BloqueadoPeloGerente --> Liberado : desbloquearPeloGerente()
+  Liberado --> [*] : removido
+}
+@enduml

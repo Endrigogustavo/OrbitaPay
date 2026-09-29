@@ -1,0 +1,62 @@
+@startuml 01-visao-geral
+title OrbitaPay — Visão geral dos componentes
+
+skinparam componentStyle rectangle
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+left to right direction
+
+actor "Cliente" as cliente
+actor "Gerente" as gerente
+
+node "App React Native (Expo)" as app
+
+component "API Gateway\n:8080" as gw <<Spring Boot>>
+
+package "Microserviços (Spring Boot 4 / Java 21)" {
+  component "Clientes\n:8081" as cli
+  component "Contas\n:8082" as con
+  component "Ativos\n:8083" as atv
+  component "Negociação\n:8084" as neg
+  component "Carteira\n:8085" as car
+}
+
+database "orbita_clientes" as dbcli
+database "orbita_contas" as dbcon
+database "orbita_ativos" as dbatv
+database "orbita_negociacao" as dbneg
+database "orbita_carteira" as dbcar
+
+queue "RabbitMQ\nexchange orbita.eventos (topic)" as mq
+
+cliente --> app
+gerente --> app
+app --> gw : HTTP /api/**\nBearer + X-Assinatura
+
+gw --> cli : /api/autenticacao\n/api/clientes
+gw --> con : /api/contas
+gw --> atv : /api/ativos\n/api/bolsas
+gw --> neg : /api/ordens\n/api/ofertas
+gw --> car : /api/carteiras
+
+cli --> dbcli
+con --> dbcon
+atv --> dbatv
+neg --> dbneg
+car --> dbcar
+
+cli ..> mq : publica cliente.*
+atv ..> mq : publica ativo.*\nresponde ativos.consultas
+neg ..> mq : publica ordem.*
+con ..> mq : publica conta.*
+car ..> mq : publica carteira.*
+
+mq ..> con : assina
+mq ..> neg : assina
+mq ..> car : assina
+
+note bottom of mq
+  Serviços NÃO se chamam por HTTP.
+  Toda comunicação entre contextos passa pelo RabbitMQ.
+end note
+@enduml

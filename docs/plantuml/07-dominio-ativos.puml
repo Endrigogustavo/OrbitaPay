@@ -1,0 +1,76 @@
+@startuml 07-dominio-ativos
+title Ativos — Modelo de domínio
+
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "com.orbitapay.ativos.domain.model" {
+  class Ativo <<Aggregate Root>> {
+    + {static} TAMANHO_DO_HISTORICO : int = 40
+    - nome : String
+    - setor : String
+    - bolsa : String
+    - cotacao : BigDecimal
+    - historico : List<BigDecimal>
+    - quantidadeEmitida : long
+    - listadoEm : Instant
+    --
+    + {static} listar(ticker, nome, setor, bolsa, cotacao, qtdEmitida, historicoRetroativo, agora) : Ativo
+    + {static} reconstituir(...) : Ativo
+    + atualizarCadastro(nome, setor, bolsa, cotacao, qtdEmitida)
+    + registrarCotacao(novaCotacao)
+    + abertura() : BigDecimal
+  }
+
+  class Ticker <<Value Object>> {
+    valor : String
+    .. 2 a 8 letras/números, maiúsculo ..
+  }
+
+  class Bolsa <<Value Object>> {
+    codigo : String
+    nome : String
+    cidade : String
+    moeda : String
+    cambio : BigDecimal
+    fuso : String
+    abertura : LocalTime
+    fechamento : LocalTime
+  }
+}
+
+package "com.orbitapay.ativos.domain.event" {
+  interface EventoDeAtivo
+  class AtivoListado
+  class AtivoAtualizado
+  class AtivoRemovido
+  class CotacoesAtualizadas {
+    cotacoes : List<Cotacao>
+  }
+  class DadosDoAtivo
+  EventoDeAtivo <|.. AtivoListado
+  EventoDeAtivo <|.. AtivoAtualizado
+  EventoDeAtivo <|.. AtivoRemovido
+  EventoDeAtivo <|.. CotacoesAtualizadas
+  AtivoListado --> DadosDoAtivo
+  AtivoAtualizado --> DadosDoAtivo
+}
+
+package "com.orbitapay.ativos.application.port.out" {
+  interface SimuladorDeMercado {
+    + proximaCotacao(atual) : Optional<BigDecimal>
+  }
+}
+
+Ativo *-- "1" Ticker : ticker
+Ativo ..> Bolsa : bolsa (código)
+SimuladorDeMercado ..> Ativo : nova cotação\n(a cada 3 s)
+
+note right of Ativo
+  **Dono do dado** "ativo".
+  Negociação e Carteira mantêm
+  projeções próprias (ACL).
+end note
+@enduml

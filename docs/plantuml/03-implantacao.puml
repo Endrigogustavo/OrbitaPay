@@ -1,0 +1,70 @@
+@startuml 03-implantacao
+title OrbitaPay — Implantação (docker compose)
+
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+
+node "Dispositivo do usuário" {
+  artifact "App Expo" as app
+}
+
+node "Host Docker" {
+  node "gateway" as gw <<container>> {
+    artifact "gateway.jar"
+  }
+  note right of gw : única porta exposta: **8080**
+
+  node "rabbitmq:4-management" as mq <<container>>
+  note right of mq : 5672 (AMQP) · 15672 (painel)
+
+  node "clientes-service" as cli <<container>> {
+    artifact "clientes.jar"
+  }
+  node "contas-service" as con <<container>> {
+    artifact "contas.jar"
+  }
+  node "ativos-service" as atv <<container>> {
+    artifact "ativos.jar"
+  }
+  node "negociacao-service" as neg <<container>> {
+    artifact "negociacao.jar"
+  }
+  node "carteira-service" as car <<container>> {
+    artifact "carteira.jar"
+  }
+
+  database "mongo-clientes\n(mongo:8)" as m1
+  database "mongo-contas\n(mongo:8)" as m2
+  database "mongo-ativos\n(mongo:8)" as m3
+  database "mongo-negociacao\n(mongo:8)" as m4
+  database "mongo-carteira\n(mongo:8)" as m5
+}
+
+app --> gw : HTTP :8080
+gw --> cli : :8081
+gw --> con : :8082
+gw --> atv : :8083
+gw --> neg : :8084
+gw --> car : :8085
+
+cli --> m1
+con --> m2
+atv --> m3
+neg --> m4
+car --> m5
+
+cli ..> mq : AMQP
+con ..> mq : AMQP
+atv ..> mq : AMQP
+neg ..> mq : AMQP
+car ..> mq : AMQP
+
+note bottom of neg
+  Ordem de subida (depends_on):
+  1. rabbitmq + mongos
+  2. contas, negociacao, carteira (declaram filas)
+  3. ativos, clientes (publicam dados iniciais)
+  4. gateway
+  Escalável: --scale negociacao-service=2
+end note
+@enduml

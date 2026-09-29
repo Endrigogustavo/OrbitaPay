@@ -1,0 +1,54 @@
+@startuml 13-seq-saga-venda
+title Saga de VENDA de ações (orquestrada pela Negociação)
+
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+autonumber
+
+participant "App" as APP
+participant "Gateway" as GW
+participant "Negociação" as NEG
+queue "RabbitMQ\norbita.eventos" as MQ
+participant "Carteira" as CAR
+participant "Contas" as CON
+
+APP -> GW : POST /api/ordens {ticker, VENDA, qtd}\nBearer + X-Assinatura
+GW -> NEG : repassa com X-Cliente-Id
+NEG -> NEG : Investidor.exigirLiberado()\nativo.exigirNegociavel()
+NEG -> NEG : Ordem.abrir() → PENDENTE
+NEG ->> MQ : ordem.venda-solicitada
+NEG --> APP : 202 Accepted · PENDENTE
+
+MQ ->> CAR : carteira.ordem-venda-solicitada
+group LOCK PESSIMISTA (Carteira por clienteId)
+  CAR -> CAR : reservarParaVenda(ordemId, ticker, qtd)
+end
+
+alt possui ações disponíveis
+  CAR ->> MQ : carteira.acoes-reservadas
+  MQ ->> NEG : negociacao.acoes-reservadas
+  group LOCK no ativo
+    NEG -> NEG : receberVenda(qtd)\ndisponível += qtd
+  end
+  NEG -> NEG : ordem.executar() → EXECUTADA
+  NEG ->> MQ : ordem.executada
+  par
+    MQ ->> CAR : carteira.ordem-executada
+    group LOCK na Carteira
+      CAR -> CAR : liquidarVenda()\nquantidade −= reserva
+    end
+  else
+    MQ ->> CON : contas.ordem-executada
+    group LOCK na Conta
+      CON -> CON : creditarVendaDeAcoes(ordemId, valor)
+    end
+  end
+else ações insuficientes
+  CAR ->> MQ : carteira.acoes-insuficientes {motivo}
+  MQ ->> NEG : negociacao.acoes-insuficientes
+  NEG -> NEG : ordem.rejeitar(motivo) → REJEITADA
+  NEG ->> MQ : ordem.rejeitada
+  MQ ->> CAR : carteira.ordem-rejeitada
+  CAR -> CAR : cancelarReserva() (se houver)
+end
+@enduml

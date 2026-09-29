@@ -1,0 +1,101 @@
+@startuml 08-dominio-negociacao
+title Negociação — Modelo de domínio
+
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "com.orbitapay.negociacao.domain.model" {
+  class Ordem <<Aggregate Root>> {
+    + {static} QUANTIDADE_MAXIMA : int = 9999
+    - id : String
+    - clienteId : String
+    - ticker : String
+    - quantidade : int
+    - precoUnitario : BigDecimal
+    - moeda : String
+    - cambio : BigDecimal
+    - valorTotal : BigDecimal
+    - motivoRejeicao : String
+    - criadaEm : Instant
+    - atualizadaEm : Instant
+    --
+    + {static} abrir(id, clienteId, ativo, tipo, quantidade, agora) : Ordem
+    + {static} validarQuantidade(quantidade)
+    + executar(agora)
+    + rejeitar(motivo, agora)
+    + pendente() : boolean
+    + pertenceA(clienteId) : boolean
+  }
+
+  class AtivoNegociavel <<Aggregate Root>> {
+    - ticker : String
+    - nome : String
+    - bolsa : String
+    - moeda : String
+    - cambio : BigDecimal
+    - cotacao : BigDecimal
+    - quantidadeEmitida : long
+    - quantidadeDisponivel : long
+    - quantidadeReservada : long
+    - negociavel : boolean
+    --
+    + {static} listar(...) : AtivoNegociavel
+    + reservarParaCompra(qtd)
+    + confirmarCompra(qtd)
+    + cancelarReserva(qtd)
+    + receberVenda(qtd)
+    + atualizarCadastro(...)
+    + atualizarCotacao(cotacao)
+    + retirarDeNegociacao()
+    + valorEmReais(qtd) : BigDecimal
+    + exigirNegociavel()
+  }
+
+  class Investidor <<Projeção ACL>> {
+    - clienteId : String
+    - bloqueado : boolean
+    --
+    + alterarSituacao(bloqueado)
+    + exigirLiberado()
+  }
+
+  enum TipoOrdem {
+    COMPRA
+    VENDA
+    --
+    + {static} de(valor) : TipoOrdem
+  }
+
+  enum StatusOrdem {
+    PENDENTE
+    EXECUTADA
+    REJEITADA
+  }
+}
+
+package "com.orbitapay.negociacao.domain.event" {
+  interface EventoDeOrdem
+  class OrdemDeCompraSolicitada
+  class OrdemDeVendaSolicitada
+  class OrdemExecutada
+  class OrdemRejeitada
+  EventoDeOrdem <|.. OrdemDeCompraSolicitada
+  EventoDeOrdem <|.. OrdemDeVendaSolicitada
+  EventoDeOrdem <|.. OrdemExecutada
+  EventoDeOrdem <|.. OrdemRejeitada
+}
+
+Ordem --> "1" TipoOrdem : tipo
+Ordem --> "1" StatusOrdem : status
+Ordem ..> AtivoNegociavel : cotação e câmbio\nno momento da abertura
+Ordem ..> Investidor : clienteId
+
+note right of AtivoNegociavel
+  Livro de oferta protegido por
+  **lock pessimista** (por ticker).
+  Invariante:
+  disponível + reservada ≤ emitida
+end note
+@enduml

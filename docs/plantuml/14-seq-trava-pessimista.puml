@@ -1,0 +1,58 @@
+@startuml 14-seq-trava-pessimista
+title Lock pessimista no MongoDB (TravaPessimistaMongo)
+
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+autonumber
+
+participant "Caso de uso" as UC
+participant "OperacaoComTrava" as OP
+participant "Repositório\n(adapter)" as REP
+participant "TravaPessimistaMongo" as TRAVA
+database "MongoDB" as DB
+
+UC -> OP : executar(chave, operacao)
+OP -> REP : travar(chave)
+REP -> TRAVA : adquirir(tipo, filtro, recurso, dono=UUID)
+
+loop até adquirir ou passar de espera-maxima-ms (10 s)
+  TRAVA -> DB : findAndModify(\n  filtro AND (trava == null OR trava.expiraEm < agora),\n  $set trava = {dono, adquiridaEm, expiraEm = agora + 30 s})
+  alt documento retornado
+    DB --> TRAVA : documento travado
+    note right : LOCK ADQUIRIDO
+  else outra operação detém a trava
+    DB --> TRAVA : null
+    TRAVA -> DB : exists(filtro)?
+    alt documento não existe
+      TRAVA --> REP : null (não encontrado)
+    else timeout
+      TRAVA --> UC : TravaIndisponivelException (HTTP 409)
+    else
+      TRAVA -> TRAVA : backoff exponencial\n(5 ms … 120 ms + jitter)
+    end
+  end
+end
+
+TRAVA --> REP : documento
+REP --> OP : AgregadoTravado
+OP -> OP : operacao.apply(agregado)\n(regra de negócio do domínio)
+
+alt regra OK
+  OP -> REP : salvarELiberar(travado)
+  REP -> TRAVA : substituirELiberar
+  TRAVA -> DB : findAndReplace(filtro AND trava.dono == UUID,\n  novo estado com trava = null)
+  note right
+    Salvar + liberar numa única
+    operação atômica. Se a trava
+    expirou e outro assumiu,
+    a gravação é recusada
+    (evita lost update).
+  end note
+else regra falhou (RuntimeException)
+  OP -> REP : liberar(travado)
+  REP -> TRAVA : liberar
+  TRAVA -> DB : updateFirst(trava.dono == UUID, $unset trava)
+  OP --> UC : relança exceção
+end
+OP --> UC : resultado
+@enduml

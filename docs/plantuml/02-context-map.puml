@@ -1,0 +1,32 @@
+@startuml 02-context-map
+title OrbitaPay — Context Map (DDD)
+
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam rectangle {
+  RoundCorner 12
+}
+
+rectangle "**Clientes**\nIdentidade e Acesso\n<<U · OHS/PL>>" as CLI #E3F2FD
+rectangle "**Ativos**\nCatálogo e Cotações\n<<U · OHS/PL>>" as ATV #E3F2FD
+rectangle "**Negociação**\nOrdens e Oferta\n<<Orquestrador da saga>>" as NEG #FFF3E0
+rectangle "**Contas**\nSaldo e Extrato" as CON #E8F5E9
+rectangle "**Carteira**\nCustódia de ações" as CAR #E8F5E9
+
+CLI --> CON : U → D · cliente.*\nACL: Titular
+CLI --> NEG : U → D · cliente.*\nACL: Investidor
+CLI --> CAR : U → D · cliente.removido
+
+ATV --> NEG : U → D · ativo.* + request/reply\nACL: AtivoNegociavel
+ATV --> CAR : U → D · ativo.* + request/reply\nACL: AtivoCotado
+
+NEG <--> CON : Parceria (saga)\nordem.compra-solicitada ↔ conta.debito-*
+NEG <--> CAR : Parceria (saga)\nordem.venda-solicitada ↔ carteira.acoes-*
+
+legend right
+  **U** = upstream · **D** = downstream
+  **OHS** = Open Host Service
+  **PL** = Published Language
+  **ACL** = Anti-Corruption Layer
+endlegend
+@enduml

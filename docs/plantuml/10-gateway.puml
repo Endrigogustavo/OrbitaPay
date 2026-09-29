@@ -1,0 +1,84 @@
+@startuml 10-gateway
+title Gateway — Controle de acesso (classes)
+
+skinparam shadowing false
+skinparam defaultFontName "Segoe UI"
+skinparam classAttributeIconSize 0
+hide empty members
+
+package "adapter.in.web" {
+  class FiltroDeAcesso <<OncePerRequestFilter>> {
+    + doFilterInternal(req, resp, cadeia)
+  }
+  class RequisicaoComIdentidade <<HttpServletRequestWrapper>> {
+    .. injeta X-Cliente-Id / X-Perfil ..
+  }
+}
+
+package "application" {
+  class ControleDeAcesso {
+    + decidir(metodo, caminho, tokenSessao, tokenAssinatura) : Decisao
+  }
+  class MapaDeAcesso <<utility>> {
+    + {static} nivel(metodo, caminho) : NivelDeAcesso
+  }
+  interface VerificadorDeCredencial <<port out>> {
+    + verificar(token) : Optional<Credencial>
+  }
+}
+
+package "adapter.out" {
+  class HmacVerificadorDeCredencial
+}
+
+package "domain" {
+  class Credencial <<record>> {
+    tipo : TipoDeCredencial
+    sujeito : String
+    perfil : Perfil
+    expiraEm : Instant
+    --
+    + validaEm(instante) : boolean
+    + sessaoDe(perfil) : boolean
+    + assinaturaDe(clienteId) : boolean
+  }
+  interface Decisao <<sealed>>
+  class Liberado <<record>> {
+    clienteId : Optional<String>
+    perfil : Optional<Perfil>
+  }
+  class Recusado <<record>> {
+    status : int
+    codigo : String
+    mensagem : String
+  }
+  enum NivelDeAcesso {
+    PUBLICO
+    PUBLICO_COM_SESSAO_OPCIONAL
+    CLIENTE
+    CLIENTE_COM_ASSINATURA
+    GERENTE
+    NEGADO
+  }
+  enum Perfil {
+    CLIENTE
+    GERENTE
+  }
+  enum TipoDeCredencial {
+    SESSAO
+    ASSINATURA
+  }
+}
+
+FiltroDeAcesso --> ControleDeAcesso
+FiltroDeAcesso ..> RequisicaoComIdentidade : cria se Liberado
+ControleDeAcesso ..> MapaDeAcesso
+ControleDeAcesso --> VerificadorDeCredencial
+VerificadorDeCredencial <|.. HmacVerificadorDeCredencial
+ControleDeAcesso ..> Decisao
+Decisao <|.. Liberado
+Decisao <|.. Recusado
+Credencial --> TipoDeCredencial
+Credencial --> Perfil
+MapaDeAcesso ..> NivelDeAcesso
+@enduml
