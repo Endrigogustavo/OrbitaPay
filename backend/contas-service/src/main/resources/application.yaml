@@ -1,0 +1,51 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: contas-service
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_contas}
+  data:
+    mongodb:
+      auto-index-creation: true
+      representation:
+        big-decimal: decimal128
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 6
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+
+mensageria:
+  exchange: orbita.eventos
+  exchange-morta: orbita.eventos.mortos
+  fila-morta: contas.dlq
+  chave-morta: "contas.#"
+  topicos:
+    debito-aprovado: conta.debito-aprovado
+    debito-recusado: conta.debito-recusado
+  assinaturas:
+    cliente-eventos:
+      fila: contas.cliente-eventos
+      topico: "cliente.#"
+    ordem-compra-solicitada:
+      fila: contas.ordem-compra-solicitada
+      topico: ordem.compra-solicitada
+    ordem-executada:
+      fila: contas.ordem-executada
+      topico: ordem.executada
+
+orbita:
+  trava:
+    espera-maxima-ms: 10000
+    expiracao-ms: 30000
