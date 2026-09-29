@@ -1,0 +1,73 @@
+package com.orbitapay.carteira.application.usecase;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import com.orbitapay.carteira.application.dto.CarteiraValorizada;
+import com.orbitapay.carteira.application.dto.CarteiraValorizada.PosicaoValorizada;
+import com.orbitapay.carteira.application.port.in.ConsultarCarteiraUseCase;
+import com.orbitapay.carteira.application.port.out.AtivoCotadoRepository;
+import com.orbitapay.carteira.application.port.out.CarteiraRepository;
+import com.orbitapay.carteira.application.port.out.CatalogoDeAtivos;
+import com.orbitapay.carteira.domain.model.AtivoCotado;
+import com.orbitapay.carteira.domain.model.Carteira;
+import com.orbitapay.carteira.domain.model.Posicao;
+
+public class ConsultarCarteira implements ConsultarCarteiraUseCase {
+
+    private final CarteiraRepository carteiras;
+    private final AtivoCotadoRepository ativos;
+    private final CatalogoDeAtivos catalogo;
+
+    public ConsultarCarteira(CarteiraRepository carteiras, AtivoCotadoRepository ativos, CatalogoDeAtivos catalogo) {
+        this.carteiras = carteiras;
+        this.ativos = ativos;
+        this.catalogo = catalogo;
+    }
+
+    @Override
+    public CarteiraValorizada doCliente(String clienteId) {
+        List<Posicao> posicoes = carteiras.buscarPorCliente(clienteId).map(Carteira::posicoes).orElse(List.of());
+        Map<String, AtivoCotado> cotados = new HashMap<>(
+                ativos.buscarTodos(posicoes.stream().map(Posicao::ticker).toList()));
+        List<PosicaoValorizada> valorizadas = new ArrayList<>();
+        BigDecimal valorTotal = BigDecimal.ZERO;
+        BigDecimal custoTotal = BigDecimal.ZERO;
+        for (Posicao posicao : posicoes) {
+            if (posicao.quantidade() <= 0) {
+                continue;
+            }
+            AtivoCotado ativo = cotados.computeIfAbsent(posicao.ticker(), this::consultarNoCatalogo);
+            PosicaoValorizada valorizada = valorizar(posicao, ativo);
+            valorizadas.add(valorizada);
+            valorTotal = valorTotal.add(valorizada.valorDeMercado());
+            custoTotal = custoTotal.add(valorizada.custo());
+        }
+        return new CarteiraValorizada(clienteId, valorizadas, valorTotal, custoTotal);
+    }
+
+    private AtivoCotado consultarNoCatalogo(String ticker) {
+        return catalogo.consultar(ticker).map(ativo -> {
+            ativos.salvar(ativo);
+            return ativo;
+        }).orElse(null);
+    }
+
+    private static PosicaoValorizada valorizar(Posicao posicao, AtivoCotado ativo) {
+        BigDecimal quantidade = BigDecimal.valueOf(posicao.quantidade());
+        BigDecimal cotacao = ativo == null ? posicao.precoMedio() : ativo.cotacao();
+        BigDecimal cambio = ativo == null ? BigDecimal.ONE : ativo.cambio();
+        BigDecimal valor = cotacao.multiply(quantidade).multiply(cambio).setScale(2, RoundingMode.HALF_EVEN);
+        BigDecimal custo = posicao.precoMedio().multiply(quantidade).multiply(cambio).setScale(2, RoundingMode.HALF_EVEN);
+        BigDecimal resultado = custo.signum() == 0 ? BigDecimal.ZERO
+                : valor.divide(custo, 6, RoundingMode.HALF_EVEN).subtract(BigDecimal.ONE)
+                        .multiply(BigDecimal.valueOf(100)).setScale(2, RoundingMode.HALF_EVEN);
+        return new PosicaoValorizada(posicao.ticker(), ativo == null ? posicao.ticker() : ativo.nome(),
+                posicao.quantidade(), posicao.quantidadeReservada(), posicao.precoMedio(), cotacao,
+                ativo == null ? null : ativo.moeda(), valor, custo, resultado);
+    }
+}
