@@ -1,0 +1,39 @@
+{
+  "expo": {
+    "name": "Órbita",
+    "slug": "orbita",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "backgroundColor": "#1d2d3d",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.orbita.bank"
+    },
+    "android": {
+      "package": "com.orbita.bank",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "backgroundColor": "#1d2d3d",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      }
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-font",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 170,
+          "backgroundColor": "#1d2d3d"
+        }
+      ]
+    ]
+  }
+}
