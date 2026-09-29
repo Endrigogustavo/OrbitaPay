@@ -1,0 +1,35 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: clientes-service
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_clientes}
+  data:
+    mongodb:
+      auto-index-creation: true
+      representation:
+        big-decimal: decimal128
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+
+mensageria:
+  exchange: orbita.eventos
+  topicos:
+    cliente-cadastrado: cliente.cadastrado
+    cliente-atualizado: cliente.atualizado
+    cliente-situacao-alterada: cliente.situacao-alterada
+    cliente-removido: cliente.removido
+
+orbita:
+  dados-iniciais: ${ORBITA_DADOS_INICIAIS:true}
+  gerente:
+    codigo: ${ORBITA_GERENTE_CODIGO:0000}
+  seguranca:
+    segredo: ${ORBITA_TOKEN_SEGREDO:orbita-segredo-de-desenvolvimento-troque-em-producao}
+    sessao-minutos: 240
+    assinatura-segundos: 120
