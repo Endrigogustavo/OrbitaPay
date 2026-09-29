@@ -1,0 +1,45 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: clientes
+              uri: ${CLIENTES_URL:http://localhost:8081}
+              predicates:
+                - Path=/api/autenticacao/**,/api/clientes,/api/clientes/**
+              filters:
+                - StripPrefix=1
+            - id: contas
+              uri: ${CONTAS_URL:http://localhost:8082}
+              predicates:
+                - Path=/api/contas,/api/contas/**
+              filters:
+                - StripPrefix=1
+            - id: ativos
+              uri: ${ATIVOS_URL:http://localhost:8083}
+              predicates:
+                - Path=/api/ativos,/api/ativos/**,/api/bolsas
+              filters:
+                - StripPrefix=1
+            - id: negociacao
+              uri: ${NEGOCIACAO_URL:http://localhost:8084}
+              predicates:
+                - Path=/api/ordens,/api/ordens/**,/api/ofertas/**
+              filters:
+                - StripPrefix=1
+            - id: carteira
+              uri: ${CARTEIRA_URL:http://localhost:8085}
+              predicates:
+                - Path=/api/carteiras/**
+              filters:
+                - StripPrefix=1
+
+orbita:
+  seguranca:
+    segredo: ${ORBITA_TOKEN_SEGREDO:orbita-segredo-de-desenvolvimento-troque-em-producao}
