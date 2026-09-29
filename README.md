@@ -18,11 +18,24 @@ Ecossistema de **microserviços** para o banco e a corretora Órbita. Cada servi
 
 Cada pasta em `backend/` é um projeto Maven **independente** (Spring Boot 4.0 / Java 21): `pom.xml`, `Dockerfile`, `application.yaml` e banco próprios. Não existe código nem banco compartilhado.
 
+Por dentro, cada serviço segue a separação de um **monolito modular**, com dois módulos Maven:
+
+| Módulo | Conteúdo | Dependências |
+|---|---|---|
+| `domain` | núcleo: `domain` (entidades, value objects, eventos, exceções) e `application` (casos de uso e portas) | **nenhuma**: Java puro, sem Spring, MongoDB, RabbitMQ ou Jackson |
+| `springframework` | aplicação Spring Boot: `adapter` (web, mensageria, persistência), `infrastructure` (configuração, seed) e `application.yaml` | `domain` + starters do Spring |
+
+O `pom.xml` na raiz de cada serviço só agrega os dois módulos e não herda do Spring, então nada do framework chega ao `domain`. Como o `domain` não declara dependências, qualquer `import org.springframework...` nele quebra a compilação.
+
 ```
 OrbitaPay/
 ├── backend/
 │   ├── gateway/
 │   ├── clientes-service/
+│   │   ├── domain/              núcleo em Java puro (pom sem dependências)
+│   │   ├── springframework/     Spring Boot, adapters e configuração
+│   │   ├── pom.xml              agregador dos módulos
+│   │   └── Dockerfile
 │   ├── contas-service/
 │   ├── ativos-service/
 │   ├── negociacao-service/
@@ -53,7 +66,7 @@ docker compose up -d --scale negociacao-service=2 --scale contas-service=2
 
 ### Cada serviço na sua máquina
 
-Suba só a infraestrutura com `docker compose up -d rabbitmq`, mais um MongoDB em `localhost:27017`. Depois, em cada pasta, rode `mvn spring-boot:run` nesta ordem:
+Suba só a infraestrutura com `docker compose up -d rabbitmq`, mais um MongoDB em `localhost:27017`. Depois, em cada pasta, rode `mvn install -DskipTests` e em seguida `mvn -f springframework spring-boot:run`, nesta ordem:
 
 1. `contas-service`, `negociacao-service`, `carteira-service` (consumidores; declaram as filas)
 2. `ativos-service`, `clientes-service` (publicam os dados iniciais)

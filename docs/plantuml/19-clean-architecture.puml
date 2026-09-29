@@ -1,10 +1,12 @@
 @startuml 19-clean-architecture
-title Clean Architecture — exemplo: negociacao-service
+title Clean Architecture / monolito modular — exemplo: negociacao-service
 
 skinparam shadowing false
 skinparam defaultFontName "Segoe UI"
 skinparam classAttributeIconSize 0
 hide empty members
+
+package "módulo springframework" <<Frame>> {
 
 package "infrastructure" #F3E5F5 {
   class CasosDeUsoConfig <<@Configuration>>
@@ -31,6 +33,10 @@ package "adapter" #E3F2FD {
     class RabbitCatalogoDeAtivos
   }
 }
+
+}
+
+package "módulo domain (Java puro)" <<Frame>> {
 
 package "application" #FFF3E0 {
   package "port.in" {
@@ -61,6 +67,8 @@ package "domain" #E8F5E9 {
   class Ordem
   class AtivoNegociavel
   class Investidor
+}
+
 }
 
 OrdemController --> EnviarOrdemUseCase
@@ -102,6 +110,7 @@ CasosDeUsoConfig ..> ConcluirOrdem : instancia
 note bottom of domain
   Dependências sempre para dentro:
   infrastructure → adapter → application → domain.
-  domain e application não dependem de Spring nem de MongoDB.
+  O módulo domain (domain + application) não tem nenhuma
+  dependência no pom: nada de Spring, MongoDB ou RabbitMQ.
 end note
 @enduml

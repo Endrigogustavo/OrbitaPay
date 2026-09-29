@@ -182,20 +182,28 @@ Agregados protegidos:
 
 ## 7. Clean Architecture em cada serviço
 
+Cada serviço é separado como um **monolito modular**, em dois módulos Maven. O pacote Java continua `com.orbitapay.<contexto>`. O que muda é o módulo em que cada camada fica:
+
 ```
-com.orbitapay.<contexto>
-├── domain           entidades, value objects, eventos e exceções (Java puro, sem Spring e sem Mongo)
-├── application
-│   ├── port/in      casos de uso (interfaces de entrada)
-│   ├── port/out     repositórios, publicadores, catálogo (interfaces de saída)
-│   ├── usecase      implementações dos casos de uso (classes puras, sem anotações)
-│   └── dto
-├── adapter
-│   ├── in/web       controllers REST e DTOs HTTP
-│   ├── in/messaging listeners RabbitMQ e mensagens de entrada (ACL)
-│   ├── out/persistence  documentos Mongo, repositórios Spring Data, trava pessimista
-│   └── out/messaging    publicadores e cliente request/reply
-└── infrastructure   @Configuration que monta os casos de uso, topologia Rabbit, seed
+<servico>/
+├── pom.xml                  agregador (sem parent do Spring)
+├── domain/                  NÚCLEO: pom sem nenhuma dependência
+│   └── com.orbitapay.<contexto>
+│       ├── domain           entidades, value objects, eventos e exceções
+│       └── application
+│           ├── port/in      casos de uso (interfaces de entrada)
+│           ├── port/out     repositórios, publicadores, catálogo (interfaces de saída)
+│           ├── usecase      implementações dos casos de uso (classes puras, sem anotações)
+│           └── dto
+└── springframework/         Spring Boot: depende de domain + starters
+    └── com.orbitapay.<contexto>
+        ├── <Contexto>Application
+        ├── adapter
+        │   ├── in/web       controllers REST e DTOs HTTP
+        │   ├── in/messaging listeners RabbitMQ e mensagens de entrada (ACL)
+        │   ├── out/persistence  documentos Mongo, repositórios Spring Data, trava pessimista
+        │   └── out/messaging    publicadores e cliente request/reply
+        └── infrastructure   @Configuration que monta os casos de uso, topologia Rabbit, seed
 ```
 
-As dependências sempre apontam para dentro: `infrastructure → adapter → application → domain`. Os casos de uso são instanciados em `CasosDeUsoConfig`, então o domínio e a aplicação não dependem do Spring.
+As dependências sempre apontam para dentro: `infrastructure → adapter → application → domain`. O módulo `domain` não tem Spring no classpath. Por isso, a regra "nada do Spring no núcleo" é garantida pelo compilador e não só por convenção. Os casos de uso são instanciados em `CasosDeUsoConfig`, no módulo `springframework`.
