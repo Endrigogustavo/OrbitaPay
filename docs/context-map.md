@@ -6,13 +6,13 @@ Este documento descreve os **bounded contexts** do OrbitaPay, como eles se relac
 
 ```mermaid
 flowchart LR
-    APP["App React Native<br/>(Expo)"] -->|HTTP /api/**| GW["API Gateway<br/>:8080"]
+    APP["App React Native<br/>(Expo)"] -->|"HTTP /api/**"| GW["API Gateway<br/>:8080"]
 
-    GW -->|/api/autenticacao, /api/clientes| CLI
-    GW -->|/api/contas| CON
-    GW -->|/api/ativos, /api/bolsas| ATV
-    GW -->|/api/ordens, /api/ofertas| NEG
-    GW -->|/api/carteiras| CAR
+    GW -->|"/api/autenticacao, /api/clientes"| CLI
+    GW -->|"/api/contas"| CON
+    GW -->|"/api/ativos, /api/bolsas"| ATV
+    GW -->|"/api/ordens, /api/ofertas"| NEG
+    GW -->|"/api/carteiras"| CAR
 
     subgraph CLI["Clientes :8081"]
         CLIdb[(orbita_clientes)]
@@ -31,12 +31,12 @@ flowchart LR
     end
 
     MQ{{"RabbitMQ<br/>exchange orbita.eventos"}}
-    CLI -. cliente.* .-> MQ
-    ATV -. ativo.* .-> MQ
-    NEG -. ordem.* .-> MQ
-    CON -. conta.* .-> MQ
-    CAR -. carteira.* .-> MQ
-    MQ -. assinaturas .-> CON & NEG & CAR
+    CLI -.->|"cliente.*"| MQ
+    ATV -.->|"ativo.*"| MQ
+    NEG -.->|"ordem.*"| MQ
+    CON -.->|"conta.*"| MQ
+    CAR -.->|"carteira.*"| MQ
+    MQ -.->|"assinaturas"| CON & NEG & CAR
 ```
 
 ## 2. Mapa de relacionamentos
