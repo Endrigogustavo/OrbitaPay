@@ -1,0 +1,157 @@
+x-servico: &servico
+  restart: unless-stopped
+  environment: &ambiente
+    RABBITMQ_HOST: rabbitmq
+    RABBITMQ_USERNAME: orbita
+    RABBITMQ_PASSWORD: orbita
+    ORBITA_TOKEN_SEGREDO: ${ORBITA_TOKEN_SEGREDO:-orbita-segredo-de-desenvolvimento-troque-em-producao}
+  healthcheck: &saude
+    interval: 5s
+    timeout: 3s
+    retries: 40
+    start_period: 20s
+
+x-mongo: &mongo
+  image: mongo:8
+  restart: unless-stopped
+  healthcheck:
+    test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+    interval: 5s
+    timeout: 3s
+    retries: 20
+
+services:
+  rabbitmq:
+    image: rabbitmq:4-management
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: orbita
+      RABBITMQ_DEFAULT_PASS: orbita
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "-q", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 30
+
+  mongo-clientes:
+    <<: *mongo
+    volumes: [mongo-clientes:/data/db]
+  mongo-contas:
+    <<: *mongo
+    volumes: [mongo-contas:/data/db]
+  mongo-ativos:
+    <<: *mongo
+    volumes: [mongo-ativos:/data/db]
+  mongo-negociacao:
+    <<: *mongo
+    volumes: [mongo-negociacao:/data/db]
+  mongo-carteira:
+    <<: *mongo
+    volumes: [mongo-carteira:/data/db]
+
+  contas-service:
+    <<: *servico
+    build: ./backend/contas-service
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-contas:27017/orbita_contas
+    expose: ["8082"]
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8082"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-contas: { condition: service_healthy }
+
+  negociacao-service:
+    <<: *servico
+    build: ./backend/negociacao-service
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-negociacao:27017/orbita_negociacao
+    expose: ["8084"]
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8084"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-negociacao: { condition: service_healthy }
+
+  carteira-service:
+    <<: *servico
+    build: ./backend/carteira-service
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-carteira:27017/orbita_carteira
+    expose: ["8085"]
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8085"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-carteira: { condition: service_healthy }
+
+  ativos-service:
+    <<: *servico
+    build: ./backend/ativos-service
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-ativos:27017/orbita_ativos
+    expose: ["8083"]
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8083"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-ativos: { condition: service_healthy }
+      negociacao-service: { condition: service_healthy }
+      carteira-service: { condition: service_healthy }
+
+  clientes-service:
+    <<: *servico
+    build: ./backend/clientes-service
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-clientes:27017/orbita_clientes
+    expose: ["8081"]
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8081"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-clientes: { condition: service_healthy }
+      contas-service: { condition: service_healthy }
+      negociacao-service: { condition: service_healthy }
+      carteira-service: { condition: service_healthy }
+
+  gateway:
+    <<: *servico
+    build: ./backend/gateway
+    environment:
+      ORBITA_TOKEN_SEGREDO: ${ORBITA_TOKEN_SEGREDO:-orbita-segredo-de-desenvolvimento-troque-em-producao}
+      CLIENTES_URL: http://clientes-service:8081
+      CONTAS_URL: http://contas-service:8082
+      ATIVOS_URL: http://ativos-service:8083
+      NEGOCIACAO_URL: http://negociacao-service:8084
+      CARTEIRA_URL: http://carteira-service:8085
+    ports:
+      - "8080:8080"
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8080"]
+    depends_on:
+      clientes-service: { condition: service_healthy }
+      contas-service: { condition: service_healthy }
+      ativos-service: { condition: service_healthy }
+      negociacao-service: { condition: service_healthy }
+      carteira-service: { condition: service_healthy }
+
+volumes:
+  mongo-clientes:
+  mongo-contas:
+  mongo-ativos:
+  mongo-negociacao:
+  mongo-carteira:
