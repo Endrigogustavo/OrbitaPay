@@ -1,26 +1,49 @@
-import React, { memo, useEffect, useMemo } from 'react';
-import { View, Pressable, PixelRatio } from 'react-native';
+import { memo, useEffect, useMemo } from 'react';
+import { PixelRatio, Pressable, View } from 'react-native';
 import {
-  Canvas, Path, Circle, Group, Text, Rect, DashPathEffect, TwoPointConicalGradient, Shader, ImageShader,
-  Skia, useFont, useImage, matchFont, vec, FilterMode, MipmapMode,
+  Canvas, Circle, DashPathEffect, FilterMode, Group, ImageShader, MipmapMode, Path, Rect, Shader, Skia, Text,
+  TwoPointConicalGradient, matchFont, useFont, useImage, vec, type SkFont, type SkPath,
 } from '@shopify/react-native-skia';
-import { useSharedValue, useDerivedValue, useFrameCallback } from 'react-native-reanimated';
-import { runOnJS } from 'react-native-worklets';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
-import { EX, IC } from './data';
-import { C } from './theme';
-import { T, Icon } from './ui';
+import { useDerivedValue, useFrameCallback, useSharedValue, type SharedValue } from 'react-native-reanimated';
+import { runOnJS } from 'react-native-worklets';
+import { EX } from '@/constants/bolsas';
+import { IC } from '@/constants/icones';
+import { C } from '@/constants/tema';
+import { Icon, T } from './ui';
 
 const H = 370;
 const RAD = Math.PI / 180;
-const TILT = -0.38 * 180 / Math.PI;
+const TILT = (-0.38 * 180) / Math.PI;
 const MAX_SCALE = 2.6, MIN_SCALE = 0.8;
 const TEX = [2048, 1024];
 const PX = 1 / PixelRatio.get();
 
-const rgba = hex => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255, 1];
+type Vetor = [number, number, number];
+type Rgba = [number, number, number, number];
+
+interface Geometria {
+  cx: number;
+  cy: number;
+  R: number;
+  cL: number;
+  sL: number;
+  cP: number;
+  sP: number;
+  w: number;
+}
+
+interface Linhas {
+  /** Pontos 3D achatados (x, y, z, x, y, z…). */
+  p: number[];
+  /** Pares (início, quantidade) de cada polilinha. */
+  l: number[];
+}
+
+const rgba = (hex: string): Rgba => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255, 1];
 const COLORS = { cGrat: rgba(C.a300), cLand: rgba(C.a400), cCoast: rgba(C.a700) };
 
+// Shader que desenha graticulado, continentes (a partir da máscara de terra) e litoral na esfera.
 const EARTH = Skia.RuntimeEffect.Make(`
 uniform shader land;
 uniform float2 c;
@@ -79,19 +102,20 @@ half4 main(float2 p) {
   return o * half(cov);
 }`);
 
-const xyz = (lon, lat) => { const l = lon * RAD, p = lat * RAD, c = Math.cos(p); return [c * Math.cos(l), c * Math.sin(l), Math.sin(p)]; };
+const xyz = (lon: number, lat: number): Vetor => { const l = lon * RAD, p = lat * RAD, c = Math.cos(p); return [c * Math.cos(l), c * Math.sin(l), Math.sin(p)]; };
 const EXV = EX.map(e => xyz(e.lon, e.lat));
 const EXF = EXV.flat();
 
-function slerp(a, b, f) {
+function slerp(a: Vetor, b: Vetor, f: number): Vetor {
   const d = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2])));
   if (d < 1e-6) return a;
   const s = Math.sin(d), k0 = Math.sin((1 - f) * d) / s, k1 = Math.sin(f * d) / s;
   return [a[0] * k0 + b[0] * k1, a[1] * k0 + b[1] * k1, a[2] * k0 + b[2] * k1];
 }
 
-function arcsFrom(si) {
-  const a = EXV[si], p = [], l = [];
+/** Arcos de grande círculo da bolsa selecionada até todas as outras. */
+function arcsFrom(si: number): Linhas {
+  const a = EXV[si], p: number[] = [], l: number[] = [];
   EX.forEach((_, i) => {
     if (i === si) return;
     l.push(p.length / 3, 33);
@@ -100,9 +124,9 @@ function arcsFrom(si) {
   return { p, l };
 }
 
-function projectAll(src, g) {
+function projectAll(src: number[], g: Geometria): number[] {
   'worklet';
-  const n = src.length / 3, out = new Array(n * 3);
+  const n = src.length / 3, out = new Array<number>(n * 3);
   for (let i = 0; i < n; i++) {
     const x0 = src[i * 3], y0 = src[i * 3 + 1], z0 = src[i * 3 + 2];
     const x1 = x0 * g.cL - y0 * g.sL, y1 = x0 * g.sL + y0 * g.cL;
@@ -113,14 +137,15 @@ function projectAll(src, g) {
   return out;
 }
 
-function limb(q, a, b, g) {
+function limb(q: number[], a: number, b: number, g: Geometria): [number, number] {
   'worklet';
   const da = q[a * 3 + 2], db = q[b * 3 + 2], t = da / (da - db);
   const y = q[a * 3] + (q[b * 3] - q[a * 3]) * t, z = q[a * 3 + 1] + (q[b * 3 + 1] - q[a * 3 + 1]) * t, len = Math.hypot(y, z) || 1;
-  return [g.cx + g.R * y / len, g.cy - g.R * z / len];
+  return [g.cx + (g.R * y) / len, g.cy - (g.R * z) / len];
 }
 
-function strokeLines(path, data, g) {
+/** Desenha só os trechos visíveis (face da frente), cortando no limbo da esfera. */
+function strokeLines(path: SkPath, data: Linhas, g: Geometria) {
   'worklet';
   const q = projectAll(data.p, g), L = data.l;
   for (let k = 0; k < L.length; k += 2) {
@@ -140,7 +165,17 @@ function strokeLines(path, data, g) {
   }
 }
 
-const Marker = memo(function Marker({ i, marks, sel, open, font, tw }) {
+interface MarkerProps {
+  i: number;
+  /** Para cada bolsa: x, y, visibilidade e fase do pulso. */
+  marks: SharedValue<number[]>;
+  sel: boolean;
+  open: boolean;
+  font: SkFont | null;
+  tw: number;
+}
+
+const Marker = memo(function Marker({ i, marks, sel, open, font, tw }: MarkerProps) {
   const e = EX[i], side = e.side;
   const transform = useDerivedValue(() => [{ translateX: marks.value[i * 4] }, { translateY: marks.value[i * 4 + 1] }]);
   const opacity = useDerivedValue(() => marks.value[i * 4 + 2]);
@@ -170,7 +205,21 @@ const Marker = memo(function Marker({ i, marks, sel, open, font, tw }) {
   );
 });
 
-function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) {
+type GestoExterno = Parameters<ReturnType<typeof Gesture.Pan>['blocksExternalGesture']>[0];
+
+interface GloboProps {
+  selEx: string;
+  /** Incrementa a cada seleção, para disparar o voo até a bolsa. */
+  exN: number;
+  /** Uma posição por bolsa de EX: '1' aberta, '0' fechada. */
+  openKey: string;
+  onSelect: (codigo: string) => void;
+  /** Rolagem da tela, que cede o gesto de arrastar ao globo. */
+  scrollRef?: GestoExterno;
+  autoRotate?: boolean;
+}
+
+function Globo({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }: GloboProps) {
   const selIdx = Math.max(0, EX.findIndex(e => e.code === selEx));
   const e0 = EX[selIdx];
 
@@ -182,8 +231,9 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
   const last = useSharedValue(0), dragging = useSharedValue(false);
 
   const pendL = useSharedValue(0), pendP = useSharedValue(0);
-  const anim = useSharedValue(null), fly = useSharedValue({ n: exN, lon: e0.lon, lat: e0.lat }), flyDone = useSharedValue(exN);
-  const arcsSV = useSharedValue(arcsFrom(selIdx));
+  const anim = useSharedValue<{ l0: number; p0: number; l1: number; p1: number; t0: number } | null>(null);
+  const fly = useSharedValue({ n: exN, lon: e0.lon, lat: e0.lat }), flyDone = useSharedValue(exN);
+  const arcsSV = useSharedValue<Linhas>(arcsFrom(selIdx));
   const selSV = useSharedValue(selIdx);
 
   useEffect(() => { selSV.value = selIdx; arcsSV.value = arcsFrom(selIdx); }, [selIdx]);
@@ -195,7 +245,7 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
     const f = fly.value;
     if (f.n !== flyDone.value) {
       flyDone.value = f.n;
-      const d = ((-f.lon - rotL.value) % 360 + 540) % 360 - 180;
+      const d = ((((-f.lon - rotL.value) % 360) + 540) % 360) - 180;
       anim.value = { l0: rotL.value, p0: rotP.value, l1: rotL.value + d, p1: Math.max(-60, Math.min(60, -f.lat * 0.85)), t0: now };
       velL.value = 0; velP.value = 0;
     }
@@ -220,9 +270,9 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
     scale.value += (scaleT.value - scale.value) * (1 - Math.pow(0.92, k));
   });
 
-  const geo = useDerivedValue(() => {
+  const geo = useDerivedValue<Geometria>(() => {
     const w = size.value.width, h = size.value.height || H, l = rotL.value * RAD, p = rotP.value * RAD;
-    return { cx: w / 2, cy: h / 2 + 4, R: Math.min(w, h) / 2 * 0.78 * scale.value, cL: Math.cos(l), sL: Math.sin(l), cP: Math.cos(p), sP: Math.sin(p), w };
+    return { cx: w / 2, cy: h / 2 + 4, R: (Math.min(w, h) / 2) * 0.78 * scale.value, cL: Math.cos(l), sL: Math.sin(l), cP: Math.cos(p), sP: Math.sin(p), w };
   });
 
   const cx = useDerivedValue(() => geo.value.cx), cy = useDerivedValue(() => geo.value.cy), R = useDerivedValue(() => geo.value.R);
@@ -241,7 +291,7 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
   const ticks = useDerivedValue(() => {
     const g = geo.value, major = Skia.Path.Make(), minor = Skia.Path.Make();
     for (let i = 0; i < 72; i++) {
-      const a = i / 72 * Math.PI * 2, l = i % 6 === 0 ? 7 : 3, c = Math.cos(a), s = Math.sin(a), p = i % 6 === 0 ? major : minor;
+      const a = (i / 72) * Math.PI * 2, l = i % 6 === 0 ? 7 : 3, c = Math.cos(a), s = Math.sin(a), p = i % 6 === 0 ? major : minor;
       p.moveTo(g.cx + c * (g.R + 22), g.cy + s * (g.R + 22)); p.lineTo(g.cx + c * (g.R + 22 + l), g.cy + s * (g.R + 22 + l));
     }
     return [major, minor];
@@ -267,10 +317,10 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
   const satBack = useDerivedValue(() => (sat.value.sy < 0 ? 1 : 0)), satFront = useDerivedValue(() => (sat.value.sy >= 0 ? 1 : 0));
 
   const scanPath = useDerivedValue(() => {
-    const L = (((t.value / 45) % 360) - 180 - rotL.value) * RAD, pts = [];
-    for (let la = -89; la <= 89; la += 4) { const pa = la * RAD, c = Math.cos(pa); pts.push(c * Math.cos(L), c * Math.sin(L), Math.sin(pa)); }
+    const L = (((t.value / 45) % 360) - 180 - rotL.value) * RAD, pontos: number[] = [];
+    for (let la = -89; la <= 89; la += 4) { const pa = la * RAD, c = Math.cos(pa); pontos.push(c * Math.cos(L), c * Math.sin(L), Math.sin(pa)); }
     const p = Skia.Path.Make();
-    if (geo.value.w) strokeLines(p, { p: pts, l: [0, pts.length / 3] }, geo.value);
+    if (geo.value.w) strokeLines(p, { p: pontos, l: [0, pontos.length / 3] }, geo.value);
     return p;
   });
   const arcsPath = useDerivedValue(() => { const p = Skia.Path.Make(); if (geo.value.w) strokeLines(p, arcsSV.value, geo.value); return p; });
@@ -281,7 +331,7 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
     if (!g.w) return p;
     for (let i = 0; i < EXV.length; i++) {
       if (i === si) continue;
-      const b = EXV[i], f = ((t.value / 2800) + i * 0.19) % 1;
+      const b = EXV[i], f = (t.value / 2800 + i * 0.19) % 1;
       const d = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[1] * b[1] + a[2] * b[2]))), s = Math.sin(d);
       if (s < 1e-6) continue;
       const k0 = Math.sin((1 - f) * d) / s, k1 = Math.sin(f * d) / s;
@@ -292,12 +342,12 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
   });
 
   const marks = useDerivedValue(() => {
-    const g = geo.value, q = projectAll(EXF, g), out = new Array(EXV.length * 4);
+    const g = geo.value, q = projectAll(EXF, g), out = new Array<number>(EXV.length * 4);
     for (let i = 0; i < EXV.length; i++) {
       out[i * 4] = g.cx + g.R * q[i * 3];
       out[i * 4 + 1] = g.cy - g.R * q[i * 3 + 1];
       out[i * 4 + 2] = g.w && q[i * 3 + 2] > 0.07 ? 1 : 0;
-      out[i * 4 + 3] = ((t.value / 1500) + i * 0.23) % 1;
+      out[i * 4 + 3] = (t.value / 1500 + i * 0.23) % 1;
     }
     return out;
   });
@@ -307,7 +357,7 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
     return 'λ ' + (lo >= 0 ? '+' : '') + lo.toFixed(1) + '°   φ ' + (la >= 0 ? '+' : '') + la.toFixed(1) + '°   ×' + scale.value.toFixed(2);
   });
 
-  const mask = useImage(require('../assets/land-mask.png'));
+  const mask = useImage(require('../../assets/land-mask.png'));
   const font = useFont(require('@expo-google-fonts/barlow-condensed/600SemiBold/BarlowCondensed_600SemiBold.ttf'), 12);
 
   const small = useMemo(() => matchFont({ fontFamily: 'sans-serif', fontSize: 11 }), []);
@@ -340,7 +390,7 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
     return Gesture.Race(Gesture.Simultaneous(pan, pinch), tap);
   }, [onSelect, scrollRef]);
 
-  const zoom = f => { scaleT.value = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleT.value * f)); };
+  const zoom = (f: number) => { scaleT.value = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scaleT.value * f)); };
 
   return (
     <View style={{ height: H }}>
@@ -378,7 +428,7 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
       </GestureDetector>
       <T pointerEvents="none" style={{ position: 'absolute', left: 20, bottom: 10, fontSize: 11, letterSpacing: 0.9, textTransform: 'uppercase', color: C.n700 }}>Arraste para girar · toque num ponto</T>
       <View style={{ position: 'absolute', right: 16, top: 10, borderWidth: 1, borderColor: C.divider, borderRadius: 12, overflow: 'hidden', backgroundColor: C.bg }}>
-        {[[IC.plus, 1.25], [IC.minus, 1 / 1.25]].map(([d, f], i) => (
+        {([[IC.plus, 1.25], [IC.minus, 1 / 1.25]] as const).map(([d, f], i) => (
           <Pressable key={i} onPress={() => zoom(f)} style={({ pressed }) => [{ width: 40, height: 40, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? C.a100 : 'transparent' }, i === 0 && { borderBottomWidth: 1, borderBottomColor: C.divider }]}>
             <Icon d={d} size={18} />
           </Pressable>
@@ -388,4 +438,4 @@ function Globe({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }) 
   );
 }
 
-export default memo(Globe);
+export default memo(Globo);

@@ -13,12 +13,13 @@ export const C = {
 
   a100: '#eef6ff', a200: '#d6ebff', a300: '#b5d9fd', a400: '#94bce3', a500: '#749dc4',
   a600: '#597ea3', a700: '#416180', a800: '#2c455d', a900: '#1d2d3d',
-};
+} as const;
 
 export const F = {
   h: 'BarlowCondensed_600SemiBold',
   b: 'Barlow_400Regular',
   m: 'Barlow_500Medium',
-};
+} as const;
 
-export const TAB = ['tabular-nums'];
+/** Cor da variação de preço: azul para alta, cinza para baixa. */
+export const corDaVariacao = (subiu: boolean): string => (subiu ? C.a700 : C.n700);

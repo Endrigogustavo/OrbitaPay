@@ -1,8 +1,11 @@
+import type { AtivoDto, CarteiraDto, ClienteDto, ContaDto, LancamentoDto, MotivoBloqueioDto, TipoLancamentoDto } from '@/@types/api';
+import type { Acao, ClienteDoBackoffice, MotivoBloqueio, Movimentacao, Posicoes, TipoMovimentacao, Usuario } from '@/@types/orbita';
+
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
 
-const MOTIVOS = { PIN: 'pin', GERENTE: 'admin', CLIENTE: 'user' };
+const MOTIVOS: Record<MotivoBloqueioDto, MotivoBloqueio> = { PIN: 'pin', GERENTE: 'admin', CLIENTE: 'user' };
 
-const TIPOS_DE_LANCAMENTO = {
+const TIPOS_DE_LANCAMENTO: Record<TipoLancamentoDto, TipoMovimentacao> = {
   ABERTURA: 'sys',
   DEPOSITO: 'dep',
   SAQUE: 'saq',
@@ -10,14 +13,16 @@ const TIPOS_DE_LANCAMENTO = {
   VENDA_DE_ACOES: 'sell',
 };
 
-const numero = valor => Number(valor || 0);
+const numero = (valor: number | string | null | undefined): number => Number(valor || 0);
 
-const mesEAno = iso => {
+const mesEAno = (iso: string): string => {
   const data = new Date(iso);
-  return isNaN(data) ? '—' : MESES[data.getMonth()] + ' ' + data.getFullYear();
+  return isNaN(data.getTime()) ? '—' : MESES[data.getMonth()] + ' ' + data.getFullYear();
 };
 
-export function paraAcao(ativo, anterior) {
+const motivo = (dto: MotivoBloqueioDto | null): MotivoBloqueio | null => (dto && MOTIVOS[dto]) || null;
+
+export function paraAcao(ativo: AtivoDto, anterior?: Acao): Acao {
   const preco = numero(ativo.cotacao);
   const flash = anterior && anterior.price !== preco ? (preco >= anterior.price ? 'up' : 'down') : null;
   return {
@@ -34,7 +39,7 @@ export function paraAcao(ativo, anterior) {
   };
 }
 
-export function paraMovimentacao(lancamento) {
+export function paraMovimentacao(lancamento: LancamentoDto): Movimentacao {
   return {
     id: lancamento.id,
     type: TIPOS_DE_LANCAMENTO[lancamento.tipo] || 'sys',
@@ -44,15 +49,15 @@ export function paraMovimentacao(lancamento) {
   };
 }
 
-export function paraPosicoes(carteira) {
-  const posicoes = {};
-  ((carteira && carteira.posicoes) || []).forEach(p => {
+export function paraPosicoes(carteira: CarteiraDto | null): Posicoes {
+  const posicoes: Posicoes = {};
+  (carteira?.posicoes || []).forEach(p => {
     posicoes[p.ticker] = { qty: p.quantidade, reserved: p.quantidadeReservada, avg: numero(p.precoMedio) };
   });
   return posicoes;
 }
 
-export function paraUsuario(cliente, conta, carteira) {
+export function paraUsuario(cliente: ClienteDto | null, conta: ContaDto | null, carteira: CarteiraDto | null): Usuario | null {
   if (!cliente) return null;
   return {
     id: cliente.id,
@@ -60,7 +65,7 @@ export function paraUsuario(cliente, conta, carteira) {
     email: cliente.email,
     cpf: cliente.cpf,
     blocked: cliente.bloqueado,
-    reason: MOTIVOS[cliente.motivoBloqueio] || null,
+    reason: motivo(cliente.motivoBloqueio),
     fails: cliente.tentativasFalhas,
     maxFails: cliente.tentativasPermitidas,
     since: mesEAno(cliente.clienteDesde),
@@ -72,14 +77,14 @@ export function paraUsuario(cliente, conta, carteira) {
   };
 }
 
-export function paraClienteDoBackoffice(cliente, conta) {
+export function paraClienteDoBackoffice(cliente: ClienteDto, conta?: ContaDto): ClienteDoBackoffice {
   return {
     id: cliente.id,
     name: cliente.nome,
     email: cliente.email,
     cpf: cliente.cpf,
     blocked: cliente.bloqueado,
-    reason: MOTIVOS[cliente.motivoBloqueio] || null,
+    reason: motivo(cliente.motivoBloqueio),
     acct: conta ? conta.numero : '—',
     balance: conta ? numero(conta.saldo) : 0,
   };

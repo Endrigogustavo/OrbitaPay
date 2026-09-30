@@ -33,7 +33,12 @@
           "imageWidth": 170,
           "backgroundColor": "#1d2d3d"
         }
-      ]
-    ]
+      ],
+      "expo-router"
+    ],
+    "scheme": "orbita",
+    "experiments": {
+      "typedRoutes": true
+    }
   }
 }
