@@ -40,7 +40,7 @@ OrbitaPay/
 │   ├── ativos-service/
 │   ├── negociacao-service/
 │   └── carteira-service/
-├── mobile/                  app Expo / React Native
+├── mobile/                  app Expo / React Native em TypeScript (expo-router)
 ├── docs/context-map.md
 ├── scripts/teste-concorrencia.sh
 └── docker-compose.yml
@@ -76,11 +76,26 @@ As variáveis `MONGODB_URI`, `RABBITMQ_HOST`, `RABBITMQ_USERNAME`, `RABBITMQ_PAS
 
 ### App mobile
 
+O app é escrito em **TypeScript (`.ts`/`.tsx`)** e usa **expo-router**: cada arquivo em `src/app` é uma rota.
+
+```
+mobile/src/
+├── @types/        contratos do gateway (api.ts) e modelos das telas (orbita.ts)
+├── app/           rotas: _layout, login, cadastro e (tabs)/ index · mercado · globo · banco · perfil
+├── components/    ui/ (primitivas visuais), folhas/ (bottom sheets), Globo, Splash, barra de abas…
+├── constants/     tema, bolsas, ícones, abas, dados de demonstração e formatação
+├── context/       Toast, Sessao, Mercado, Gerente e Operacoes (estado e regras do app)
+└── integration/   cliente HTTP, API do gateway, mapeadores DTO → modelo e sessão salva
+```
+
 ```bash
 cd mobile
 npm install
 npx expo start
+npm run typecheck   # tsc --noEmit
 ```
+
+O app usa módulos nativos (Skia, Reanimated, react-native-screens), então roda em um *development build* e não no Expo Go: `npx expo run:android`.
 
 Por padrão o app aponta para `http://10.0.2.2:8080` no emulador Android e para `http://localhost:8080` nas demais plataformas. Em um celular físico, defina o IP da sua máquina:
 
