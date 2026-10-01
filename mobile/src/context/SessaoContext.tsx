@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { CarteiraDto, ClienteDto, ContaDto } from '@/@types/api';
+import type { AcessoDto, CarteiraDto, ClienteDto, ContaDto } from '@/@types/api';
 import type { SessaoSalva, Usuario } from '@/@types/orbita';
 import { comoErroDaApi } from '@/integration/http';
 import { paraUsuario } from '@/integration/mapeadores';
@@ -36,6 +36,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   const [me, setMe] = useState<ClienteDto | null>(null);
   const [conta, setConta] = useState<ContaDto | null>(null);
   const [carteira, setCarteira] = useState<CarteiraDto | null>(null);
+  const [acesso, setAcesso] = useState<AcessoDto | null>(null);
 
   const token = useRef<string | null>(null);
   const tokenDoGerente = useRef<string | null>(null);
@@ -50,16 +51,18 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   faseAtual.current = fase;
 
   const carregarCliente = useCallback(async (): Promise<ClienteDto> => {
-    const [cliente, contaDoCliente, carteiraDoCliente] = await Promise.all([
+    const [cliente, contaDoCliente, carteiraDoCliente, acessoDoCliente] = await Promise.all([
       api.clientes.meu(),
       api.contas.minha().catch(e => { if (comoErroDaApi(e).status === 404) return null; throw e; }),
       api.carteira.minha().catch(() => carteiraAtual.current),
+      api.autenticacao.meuAcesso().catch(() => null),
     ]);
     setMe(cliente);
     setConta(contaDoCliente);
     setCarteira(carteiraDoCliente);
+    setAcesso(acessoDoCliente);
     if (!contaDoCliente) {
-      // A conta é aberta de forma assíncrona pelo contas-service logo após o cadastro.
+      // A conta é aberta de forma assíncrona pelo contas-micro logo após o cadastro.
       clearTimeout(esperaPelaConta.current);
       esperaPelaConta.current = setTimeout(() => { carregarCliente().catch(() => {}); }, ESPERA_PELA_CONTA);
     }
@@ -75,21 +78,21 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     setMe(null);
     setConta(null);
     setCarteira(null);
+    setAcesso(null);
     setFase('login');
     if (mensagem) avisar(mensagem);
   }, [avisar]);
 
   const entrar = useCallback(async (email: string, pin: string, mensagem?: string) => {
     const resposta = await api.autenticacao.cliente(email, pin);
-    const nova: SessaoSalva = { token: resposta.token, clienteId: resposta.cliente.id };
+    const nova: SessaoSalva = { token: resposta.token, clienteId: resposta.clienteId };
     token.current = resposta.token;
     tokenDoGerente.current = null;
     await salvarSessao(nova);
     setSessao(nova);
-    setMe(resposta.cliente);
-    await carregarCliente();
+    const cliente = await carregarCliente();
     setFase('app');
-    avisar(mensagem || (resposta.cliente.bloqueado ? 'Conta em modo restrito' : 'Bem-vindo(a) de volta, ' + resposta.cliente.nome.split(' ')[0]));
+    avisar(mensagem || (cliente.bloqueado ? 'Conta em modo restrito' : 'Bem-vindo(a) de volta, ' + cliente.nome.split(' ')[0]));
   }, [api, carregarCliente, avisar]);
 
   useEffect(() => {
@@ -127,7 +130,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   const definirTokenDoGerente = useCallback((valor: string | null) => { tokenDoGerente.current = valor; }, []);
   const definirPausa = useCallback((valor: boolean) => { pausado.current = valor; }, []);
 
-  const usuario = useMemo(() => paraUsuario(me, conta, carteira), [me, conta, carteira]);
+  const usuario = useMemo(() => paraUsuario(me, conta, carteira, acesso), [me, conta, carteira, acesso]);
 
   const value = useMemo<SessaoContextValue>(() => ({
     api, fase, sessao, usuario, carregarCliente, entrar, encerrarSessao, definirTokenDoGerente, definirPausa,

@@ -7,21 +7,31 @@ skinparam rectangle {
   RoundCorner 12
 }
 
-rectangle "**Clientes**\nIdentidade e Acesso\n<<U · OHS/PL>>" as CLI #E3F2FD
+rectangle "**Auth**\nCredenciais e Tokens\n<<OHS>>" as AUT #F3E5F5
+rectangle "**Clientes**\nCadastro e Situação\n<<U · OHS/PL>>" as CLI #E3F2FD
 rectangle "**Ativos**\nCatálogo e Cotações\n<<U · OHS/PL>>" as ATV #E3F2FD
 rectangle "**Negociação**\nOrdens e Oferta\n<<Orquestrador da saga>>" as NEG #FFF3E0
 rectangle "**Contas**\nSaldo e Extrato" as CON #E8F5E9
 rectangle "**Carteira**\nCustódia de ações" as CAR #E8F5E9
+rectangle "**Pagamentos**\nDepósitos\n<<U · OHS/PL · ACL p/ provedores>>" as PAG #E3F2FD
+rectangle "**Relatórios**\nModelo de leitura (CQRS)" as REL #ECEFF1
+
+CLI <--> AUT : Parceria\nauth.registros-de-credencial (request/reply)\n↔ credencial.bloqueada-por-pin
 
 CLI --> CON : U → D · cliente.*\nACL: Titular
 CLI --> NEG : U → D · cliente.*\nACL: Investidor
 CLI --> CAR : U → D · cliente.removido
+CLI --> REL : U → D · cliente.#\nACL: Fato
 
 ATV --> NEG : U → D · ativo.* + request/reply\nACL: AtivoNegociavel
 ATV --> CAR : U → D · ativo.* + request/reply\nACL: AtivoCotado
 
 NEG <--> CON : Parceria (saga)\nordem.compra-solicitada ↔ conta.debito-*
 NEG <--> CAR : Parceria (saga)\nordem.venda-solicitada ↔ carteira.acoes-*
+NEG --> REL : U → D · ordem.executada / rejeitada\nACL: Fato
+
+PAG --> CON : U → D · pagamento.confirmado
+PAG --> REL : U → D · pagamento.#\nACL: Fato
 
 legend right
   **U** = upstream · **D** = downstream

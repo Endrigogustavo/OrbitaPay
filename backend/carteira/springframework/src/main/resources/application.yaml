@@ -1,0 +1,60 @@
+server:
+  port: 8085
+
+spring:
+  application:
+    name: carteira-micro
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_carteira}
+  data:
+    mongodb:
+      auto-index-creation: true
+      representation:
+        big-decimal: decimal128
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+    template:
+      reply-timeout: 5s
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 6
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+
+mensageria:
+  exchange: orbita.eventos
+  exchange-morta: orbita.eventos.mortos
+  fila-morta: carteira.dlq
+  chave-morta: "carteira.#"
+  fila-de-consultas-de-ativos: ativos.consultas
+  topicos:
+    acoes-reservadas: carteira.acoes-reservadas
+    acoes-insuficientes: carteira.acoes-insuficientes
+  assinaturas:
+    cliente-eventos:
+      fila: carteira.cliente-eventos
+      topico: "cliente.#"
+    ativo-eventos:
+      fila: carteira.ativo-eventos
+      topico: "ativo.#"
+    ordem-venda-solicitada:
+      fila: carteira.ordem-venda-solicitada
+      topico: ordem.venda-solicitada
+    ordem-executada:
+      fila: carteira.ordem-executada
+      topico: ordem.executada
+    ordem-rejeitada:
+      fila: carteira.ordem-rejeitada
+      topico: ordem.rejeitada
+
+orbita:
+  trava:
+    espera-maxima-ms: 10000
+    expiracao-ms: 30000

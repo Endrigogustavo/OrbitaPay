@@ -1,0 +1,52 @@
+server:
+  port: 8087
+
+spring:
+  application:
+    name: pagamentos-micro
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_pagamentos}
+  data:
+    mongodb:
+      auto-index-creation: true
+      representation:
+        big-decimal: decimal128
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+
+mensageria:
+  exchange: orbita.eventos
+  topicos:
+    confirmado: pagamento.confirmado
+    expirado: pagamento.expirado
+
+orbita:
+  conciliacao:
+    intervalo-ms: ${ORBITA_CONCILIACAO_INTERVALO_MS:2000}
+    lote: 200
+  # O que o OrbitaPay envia a cada provedor (lado de dentro da camada anticorrupção)
+  acl:
+    pix:
+      chave: pix@orbitapay.com.br
+      expiracao-segundos: 1800
+    boleto:
+      dias-para-vencimento: 3
+    ted:
+      horas-de-validade: 24
+  # Comportamento dos provedores simulados (lado de fora)
+  provedores-simulados:
+    pix:
+      ispb: "99999999"
+      liquidacao-segundos: ${ORBITA_PIX_LIQUIDACAO_S:3}
+    boleto:
+      codigo-do-banco: "999"
+      liquidacao-segundos: ${ORBITA_BOLETO_LIQUIDACAO_S:10}
+    ted:
+      banco-favorecido: "999"
+      agencia-favorecida: "0001"
+      conta-favorecida: "99999-9"
+      nome-favorecido: "OrbitaPay S.A."
+      liquidacao-segundos: ${ORBITA_TED_LIQUIDACAO_S:6}

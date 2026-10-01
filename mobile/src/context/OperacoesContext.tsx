@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { MetodoDeDeposito, OrdemDto } from '@/@types/api';
+import type { MetodoDeDeposito, OrdemDto, PagamentoDto } from '@/@types/api';
 import type {
   Acao, CampoDoFormulario, ClienteDoBackoffice, Confirmacao, Folha, FolhaDo, Formulario, ModoDeOrdem,
 } from '@/@types/orbita';
@@ -65,6 +65,8 @@ const OperacoesContext = createContext<OperacoesContextValue | null>(null);
 const DURACAO_DO_FECHAMENTO = 260;
 const LIMITE_DO_SAQUE = 5000;
 const TENTATIVAS_DE_ACOMPANHAMENTO = 40;
+const TENTATIVAS_DE_CONFIRMACAO_DO_DEPOSITO = 30;
+const ROTULO_DO_CODIGO: Record<MetodoDeDeposito, string> = { PIX: 'Pix copia e cola', Boleto: 'Linha digitável', TED: 'Dados para TED' };
 const CAMPOS: CampoDoFormulario[] = ['name', 'email', 'cpf', 'pin', 'pin2', 'pinOld', 'balance', 'ticker', 'sname', 'sector', 'price'];
 
 export function OperacoesProvider({ children }: { children: ReactNode }) {
@@ -232,10 +234,28 @@ export function OperacoesProvider({ children }: { children: ReactNode }) {
 
   function depositar(v: number, metodo: MetodoDeDeposito) {
     return ocupar(async () => {
-      const comprovante = await api.contas.depositar(v, metodo);
-      await carregarCliente();
-      abrir({ kind: 'success', title: 'Depósito confirmado', big: brl(v), lines: [['Método', metodo], ['Novo saldo', brl(Number(comprovante.novoSaldo))], ['Protocolo', '#' + comprovante.protocolo]] }, { amt: '' });
+      const cobranca = await api.pagamentos.solicitar(v, metodo);
+      const codigo = cobranca.instrucoes.codigo;
+      abrir({ kind: 'success', title: 'Cobrança gerada', big: brl(v), lines: [['Método', metodo], [ROTULO_DO_CODIGO[metodo], codigo.length > 28 ? codigo.slice(0, 28) + '…' : codigo], ['Situação', 'Aguardando pagamento'], ['Protocolo', '#' + cobranca.id.slice(-8).toUpperCase()]] }, { amt: '' });
+      acompanharDeposito(cobranca).catch(() => {});
     });
+  }
+
+  /** O crédito chega de forma assíncrona: Pagamentos concilia com o provedor e Contas credita ao receber o evento. */
+  async function acompanharDeposito(cobranca: PagamentoDto) {
+    for (let tentativa = 0; tentativa < TENTATIVAS_DE_CONFIRMACAO_DO_DEPOSITO; tentativa++) {
+      await esperar(1500);
+      const atual = await api.pagamentos.buscar(cobranca.id).catch(() => null);
+      if (!atual || atual.status === 'PENDENTE') continue;
+      if (atual.status === 'CONFIRMADO') {
+        await esperar(600);
+        await carregarCliente().catch(() => {});
+        avisar('Depósito de ' + brl(Number(atual.valorPago ?? atual.valor)) + ' confirmado');
+      } else {
+        avisar('A cobrança expirou sem pagamento');
+      }
+      return;
+    }
   }
 
   function sacar(v: number, assinatura: string) {
@@ -306,7 +326,7 @@ export function OperacoesProvider({ children }: { children: ReactNode }) {
     if (sh.purpose === 'unblock') return desbloquearComPin(p);
     let assinatura: string;
     try {
-      assinatura = (await api.clientes.assinar(p)).token;
+      assinatura = (await api.autenticacao.assinar(p)).token;
     } catch (e) {
       return erroDePin(e);
     }
@@ -316,7 +336,8 @@ export function OperacoesProvider({ children }: { children: ReactNode }) {
 
   async function desbloquearComPin(p: string) {
     try {
-      await api.clientes.desbloquearMinhaConta(p);
+      const assinatura = (await api.autenticacao.assinar(p)).token;
+      await api.clientes.desbloquearMinhaConta(assinatura);
       await carregarCliente();
       abrir({ kind: 'success', title: 'Conta desbloqueada', big: 'Tudo certo', lines: [['Saques', 'Liberados'], ['Ordens na bolsa', 'Liberadas']] });
     } catch (e) {
@@ -388,7 +409,7 @@ export function OperacoesProvider({ children }: { children: ReactNode }) {
     if ((f.pin || '').length !== 4) return falhar('Novo PIN com 4 dígitos');
     if (f.pin !== f.pin2) return falhar('Os PINs não conferem');
     ocupar(async () => {
-      await api.clientes.alterarPin(f.pinOld ?? '', f.pin ?? '');
+      await api.autenticacao.alterarPin(f.pinOld ?? '', f.pin ?? '');
       fechar();
       avisar('PIN alterado');
     });

@@ -4,10 +4,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.util.Optional;
 
-import com.orbitapay.gateway.application.port.out.VerificadorDeCredencial;
 import com.orbitapay.gateway.domain.Credencial;
 import com.orbitapay.gateway.domain.Decisao;
 import com.orbitapay.gateway.domain.Perfil;
+import com.orbitapay.gateway.domain.VerificadorDeCredencial;
 
 public class ControleDeAcesso {
 

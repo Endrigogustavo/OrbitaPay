@@ -11,9 +11,9 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-import com.orbitapay.gateway.adapter.in.web.FiltroDeAcesso;
 import com.orbitapay.gateway.application.ControleDeAcesso;
-import com.orbitapay.gateway.application.port.out.VerificadorDeCredencial;
+import com.orbitapay.gateway.domain.VerificadorDeCredencial;
+import com.orbitapay.gateway.web.FiltroDeAcesso;
 
 @Configuration
 public class GatewayConfig {

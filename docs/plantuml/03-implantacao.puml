@@ -17,54 +17,78 @@ node "Host Docker" {
   node "rabbitmq:4-management" as mq <<container>>
   note right of mq : 5672 (AMQP) · 15672 (painel)
 
-  node "clientes-service" as cli <<container>> {
-    artifact "clientes.jar"
+  node "auth" as aut <<container>> {
+    artifact "auth-micro.jar"
   }
-  node "contas-service" as con <<container>> {
-    artifact "contas.jar"
+  node "clientes" as cli <<container>> {
+    artifact "clientes-micro.jar"
   }
-  node "ativos-service" as atv <<container>> {
-    artifact "ativos.jar"
+  node "contas" as con <<container>> {
+    artifact "contas-micro.jar"
   }
-  node "negociacao-service" as neg <<container>> {
-    artifact "negociacao.jar"
+  node "ativos" as atv <<container>> {
+    artifact "ativos-micro.jar"
   }
-  node "carteira-service" as car <<container>> {
-    artifact "carteira.jar"
+  node "negociacao" as neg <<container>> {
+    artifact "negociacao-micro.jar"
+  }
+  node "carteira" as car <<container>> {
+    artifact "carteira-micro.jar"
+  }
+  node "pagamentos" as pag <<container>> {
+    artifact "pagamentos-micro.jar"
+  }
+  node "relatorios" as rel <<container>> {
+    artifact "relatorios-micro.jar"
   }
 
+  database "mongo-auth\n(mongo:8)" as m0
   database "mongo-clientes\n(mongo:8)" as m1
   database "mongo-contas\n(mongo:8)" as m2
   database "mongo-ativos\n(mongo:8)" as m3
   database "mongo-negociacao\n(mongo:8)" as m4
   database "mongo-carteira\n(mongo:8)" as m5
+  database "mongo-pagamentos\n(mongo:8)" as m6
+  database "mongo-relatorios\n(mongo:8)" as m7
+
+  node "k6 (profile testes)" as k6 <<container>>
 }
 
 app --> gw : HTTP :8080
+k6 --> gw : http://gateway:8080
+gw --> aut : :8086
 gw --> cli : :8081
 gw --> con : :8082
 gw --> atv : :8083
 gw --> neg : :8084
 gw --> car : :8085
+gw --> pag : :8087
+gw --> rel : :8088
 
+aut --> m0
 cli --> m1
 con --> m2
 atv --> m3
 neg --> m4
 car --> m5
+pag --> m6
+rel --> m7
 
+aut ..> mq : AMQP
 cli ..> mq : AMQP
 con ..> mq : AMQP
 atv ..> mq : AMQP
 neg ..> mq : AMQP
 car ..> mq : AMQP
+pag ..> mq : AMQP
+rel ..> mq : AMQP
 
 note bottom of neg
   Ordem de subida (depends_on):
   1. rabbitmq + mongos
-  2. contas, negociacao, carteira (declaram filas)
-  3. ativos, clientes (publicam dados iniciais)
+  2. auth, contas, negociacao, carteira, relatorios (declaram filas)
+  3. pagamentos, ativos, clientes (publicam; clientes precisa do auth)
   4. gateway
-  Escalável: --scale negociacao-service=2
+  Escalável: --scale negociacao=2 --scale contas=2
 end note
 @enduml

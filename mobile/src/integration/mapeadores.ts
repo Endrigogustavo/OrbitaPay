@@ -1,4 +1,4 @@
-import type { AtivoDto, CarteiraDto, ClienteDto, ContaDto, LancamentoDto, MotivoBloqueioDto, TipoLancamentoDto } from '@/@types/api';
+import type { AcessoDto, AtivoDto, CarteiraDto, ClienteDto, ContaDto, LancamentoDto, MotivoBloqueioDto, TipoLancamentoDto } from '@/@types/api';
 import type { Acao, ClienteDoBackoffice, MotivoBloqueio, Movimentacao, Posicoes, TipoMovimentacao, Usuario } from '@/@types/orbita';
 
 const MESES = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
@@ -57,7 +57,8 @@ export function paraPosicoes(carteira: CarteiraDto | null): Posicoes {
   return posicoes;
 }
 
-export function paraUsuario(cliente: ClienteDto | null, conta: ContaDto | null, carteira: CarteiraDto | null): Usuario | null {
+export function paraUsuario(cliente: ClienteDto | null, conta: ContaDto | null, carteira: CarteiraDto | null,
+  acesso: AcessoDto | null): Usuario | null {
   if (!cliente) return null;
   return {
     id: cliente.id,
@@ -66,8 +67,8 @@ export function paraUsuario(cliente: ClienteDto | null, conta: ContaDto | null, 
     cpf: cliente.cpf,
     blocked: cliente.bloqueado,
     reason: motivo(cliente.motivoBloqueio),
-    fails: cliente.tentativasFalhas,
-    maxFails: cliente.tentativasPermitidas,
+    fails: acesso ? acesso.tentativasFalhas : 0,
+    maxFails: acesso ? acesso.tentativasPermitidas : 0,
     since: mesEAno(cliente.clienteDesde),
     acct: conta ? conta.numero : '—',
     agency: conta ? conta.agencia : '0001',

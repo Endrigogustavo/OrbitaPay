@@ -1,0 +1,49 @@
+package com.orbitapay.ativos.infrastructure.config;
+
+import org.springframework.amqp.core.Declarables;
+import org.springframework.amqp.core.QueueBuilder;
+import org.springframework.amqp.core.TopicExchange;
+import org.springframework.amqp.rabbit.connection.ConnectionFactory;
+import org.springframework.amqp.rabbit.core.RabbitTemplate;
+import org.springframework.amqp.support.converter.JacksonJsonMessageConverter;
+import org.springframework.amqp.support.converter.MessageConverter;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import com.orbitapay.ativos.messaging.MensageriaProperties;
+
+import tools.jackson.databind.DeserializationFeature;
+import tools.jackson.databind.MapperFeature;
+import tools.jackson.databind.json.JsonMapper;
+
+@Configuration
+public class RabbitConfig {
+
+    @Bean
+    public Declarables topologia(MensageriaProperties mensageria) {
+        return new Declarables(
+                new TopicExchange(mensageria.exchange(), true, false),
+                QueueBuilder.durable(mensageria.filaDeConsultas()).build());
+    }
+
+    /**
+     * Leitor tolerante: campos desconhecidos são ignorados e campos ausentes assumem o valor padrão. Sem isso, o
+     * Jackson 3 recusa, por exemplo, um {@code cliente.cadastrado} lido como um record com {@code boolean bloqueado}.
+     */
+    @Bean
+    public MessageConverter jsonMessageConverter() {
+        JsonMapper leitorTolerante = JsonMapper.builder()
+                .findAndAddModules(RabbitConfig.class.getClassLoader())
+                .disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, DeserializationFeature.FAIL_ON_NULL_FOR_PRIMITIVES)
+                .disable(MapperFeature.DEFAULT_VIEW_INCLUSION)
+                .build();
+        return new JacksonJsonMessageConverter(leitorTolerante, "*");
+    }
+
+    @Bean
+    public RabbitTemplate rabbitTemplate(ConnectionFactory connectionFactory, MessageConverter jsonMessageConverter) {
+        RabbitTemplate rabbitTemplate = new RabbitTemplate(connectionFactory);
+        rabbitTemplate.setMessageConverter(jsonMessageConverter);
+        return rabbitTemplate;
+    }
+}

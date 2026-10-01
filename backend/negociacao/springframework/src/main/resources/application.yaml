@@ -1,0 +1,65 @@
+server:
+  port: 8084
+
+spring:
+  application:
+    name: negociacao-micro
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_negociacao}
+  data:
+    mongodb:
+      auto-index-creation: true
+      representation:
+        big-decimal: decimal128
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+    template:
+      reply-timeout: 5s
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 6
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+
+mensageria:
+  exchange: orbita.eventos
+  exchange-morta: orbita.eventos.mortos
+  fila-morta: negociacao.dlq
+  chave-morta: "negociacao.#"
+  fila-de-consultas-de-ativos: ativos.consultas
+  topicos:
+    compra-solicitada: ordem.compra-solicitada
+    venda-solicitada: ordem.venda-solicitada
+    executada: ordem.executada
+    rejeitada: ordem.rejeitada
+  assinaturas:
+    cliente-eventos:
+      fila: negociacao.cliente-eventos
+      topico: "cliente.#"
+    ativo-eventos:
+      fila: negociacao.ativo-eventos
+      topico: "ativo.#"
+    debito-aprovado:
+      fila: negociacao.debito-aprovado
+      topico: conta.debito-aprovado
+    debito-recusado:
+      fila: negociacao.debito-recusado
+      topico: conta.debito-recusado
+    acoes-reservadas:
+      fila: negociacao.acoes-reservadas
+      topico: carteira.acoes-reservadas
+    acoes-insuficientes:
+      fila: negociacao.acoes-insuficientes
+      topico: carteira.acoes-insuficientes
+
+orbita:
+  trava:
+    espera-maxima-ms: 10000
+    expiracao-ms: 30000

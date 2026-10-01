@@ -1,12 +1,14 @@
 import type {
-  AtivoDto, AtivoRequestDto, AtualizacaoDeClienteDto, CadastroDeClienteDto, CarteiraDto, ClienteDto, ComprovanteDto,
-  ContaDto, CredencialDto, MetodoDeDeposito, OrdemDto, OrdemRequestDto, SessaoDto,
+  AcessoDto, AtivoDto, AtivoRequestDto, AtualizacaoDeClienteDto, CadastroDeClienteDto, CarteiraDto, ClienteDto, ComprovanteDto,
+  ContaDto, CredencialDto, MetodoDeDeposito, MetodoDePagamentoDto, OrdemDto, OrdemRequestDto, PagamentoDto, SessaoDto,
 } from '@/@types/api';
 import { URL_DO_GATEWAY } from './configuracao';
 import { criarClienteHttp, type Credenciais } from './http';
 
 const CLIENTE = 'cliente';
 const GERENTE = 'gerente';
+
+const METODOS_DE_PAGAMENTO: Record<MetodoDeDeposito, MetodoDePagamentoDto> = { PIX: 'PIX', Boleto: 'BOLETO', TED: 'TED' };
 
 export function criarOrbitaApi(credenciais: Credenciais) {
   const http = criarClienteHttp(URL_DO_GATEWAY, credenciais);
@@ -15,6 +17,9 @@ export function criarOrbitaApi(credenciais: Credenciais) {
     autenticacao: {
       cliente: (email: string, pin: string) => http<SessaoDto>('POST', '/api/autenticacao/clientes', { corpo: { email, pin } }),
       gerente: (codigo: string) => http<CredencialDto>('POST', '/api/autenticacao/gerente', { corpo: { codigo } }),
+      assinar: (pin: string) => http<CredencialDto>('POST', '/api/autenticacao/assinaturas', { corpo: { pin }, autenticacao: CLIENTE }),
+      alterarPin: (pinAtual: string, novoPin: string) => http<void>('PUT', '/api/autenticacao/pin', { corpo: { pinAtual, novoPin }, autenticacao: CLIENTE }),
+      meuAcesso: () => http<AcessoDto>('GET', '/api/autenticacao/me', { autenticacao: CLIENTE }),
     },
 
     clientes: {
@@ -22,10 +27,8 @@ export function criarOrbitaApi(credenciais: Credenciais) {
       cadastrarPeloGerente: (dados: CadastroDeClienteDto) => http<ClienteDto>('POST', '/api/clientes', { corpo: dados, autenticacao: GERENTE }),
       meu: () => http<ClienteDto>('GET', '/api/clientes/me', { autenticacao: CLIENTE }),
       atualizarMeu: (dados: AtualizacaoDeClienteDto) => http<ClienteDto>('PUT', '/api/clientes/me', { corpo: dados, autenticacao: CLIENTE }),
-      alterarPin: (pinAtual: string, novoPin: string) => http<void>('PUT', '/api/clientes/me/pin', { corpo: { pinAtual, novoPin }, autenticacao: CLIENTE }),
-      assinar: (pin: string) => http<CredencialDto>('POST', '/api/clientes/me/assinaturas', { corpo: { pin }, autenticacao: CLIENTE }),
       bloquearMinhaConta: () => http<ClienteDto>('POST', '/api/clientes/me/bloqueio', { autenticacao: CLIENTE }),
-      desbloquearMinhaConta: (pin: string) => http<ClienteDto>('POST', '/api/clientes/me/desbloqueio', { corpo: { pin }, autenticacao: CLIENTE }),
+      desbloquearMinhaConta: (assinatura: string) => http<ClienteDto>('POST', '/api/clientes/me/desbloqueio', { autenticacao: CLIENTE, assinatura }),
       encerrarMinhaConta: () => http<void>('DELETE', '/api/clientes/me', { autenticacao: CLIENTE }),
       listar: () => http<ClienteDto[]>('GET', '/api/clientes', { autenticacao: GERENTE }),
       atualizar: (id: string, dados: AtualizacaoDeClienteDto) => http<ClienteDto>('PUT', '/api/clientes/' + id, { corpo: dados, autenticacao: GERENTE }),
@@ -36,9 +39,15 @@ export function criarOrbitaApi(credenciais: Credenciais) {
 
     contas: {
       minha: () => http<ContaDto>('GET', '/api/contas/me', { autenticacao: CLIENTE }),
-      depositar: (valor: number, metodo: MetodoDeDeposito) => http<ComprovanteDto>('POST', '/api/contas/me/depositos', { corpo: { valor, metodo }, autenticacao: CLIENTE }),
       sacar: (valor: number, assinatura: string) => http<ComprovanteDto>('POST', '/api/contas/me/saques', { corpo: { valor }, autenticacao: CLIENTE, assinatura }),
       listar: () => http<ContaDto[]>('GET', '/api/contas', { autenticacao: GERENTE }),
+    },
+
+    pagamentos: {
+      /** Gera a cobrança (Pix, boleto ou TED); o crédito na conta acontece quando o pagamento é confirmado. */
+      solicitar: (valor: number, metodo: MetodoDeDeposito) => http<PagamentoDto>('POST', '/api/pagamentos', { corpo: { valor, metodo: METODOS_DE_PAGAMENTO[metodo] }, autenticacao: CLIENTE }),
+      buscar: (id: string) => http<PagamentoDto>('GET', '/api/pagamentos/' + id, { autenticacao: CLIENTE }),
+      meus: () => http<PagamentoDto[]>('GET', '/api/pagamentos', { autenticacao: CLIENTE }),
     },
 
     ativos: {

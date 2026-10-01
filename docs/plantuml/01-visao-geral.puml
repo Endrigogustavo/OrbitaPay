@@ -14,18 +14,24 @@ node "App React Native (Expo)" as app
 component "API Gateway\n:8080" as gw <<Spring Boot>>
 
 package "Microserviços (Spring Boot 4 / Java 21)" {
+  component "Auth\n:8086" as aut
   component "Clientes\n:8081" as cli
   component "Contas\n:8082" as con
   component "Ativos\n:8083" as atv
   component "Negociação\n:8084" as neg
   component "Carteira\n:8085" as car
+  component "Pagamentos\n:8087" as pag
+  component "Relatórios\n:8088" as rel
 }
 
+database "orbita_auth" as dbaut
 database "orbita_clientes" as dbcli
 database "orbita_contas" as dbcon
 database "orbita_ativos" as dbatv
 database "orbita_negociacao" as dbneg
 database "orbita_carteira" as dbcar
+database "orbita_pagamentos" as dbpag
+database "orbita_relatorios" as dbrel
 
 queue "RabbitMQ\nexchange orbita.eventos (topic)" as mq
 
@@ -33,27 +39,38 @@ cliente --> app
 gerente --> app
 app --> gw : HTTP /api/**\nBearer + X-Assinatura
 
-gw --> cli : /api/autenticacao\n/api/clientes
+gw --> aut : /api/autenticacao
+gw --> cli : /api/clientes
 gw --> con : /api/contas
 gw --> atv : /api/ativos\n/api/bolsas
 gw --> neg : /api/ordens\n/api/ofertas
 gw --> car : /api/carteiras
+gw --> pag : /api/pagamentos
+gw --> rel : /api/relatorios
 
+aut --> dbaut
 cli --> dbcli
 con --> dbcon
 atv --> dbatv
 neg --> dbneg
 car --> dbcar
+pag --> dbpag
+rel --> dbrel
 
+aut ..> mq : publica credencial.*\nresponde auth.registros-de-credencial
 cli ..> mq : publica cliente.*
 atv ..> mq : publica ativo.*\nresponde ativos.consultas
 neg ..> mq : publica ordem.*
 con ..> mq : publica conta.*
 car ..> mq : publica carteira.*
+pag ..> mq : publica pagamento.*
 
+mq ..> aut : assina
+mq ..> cli : assina
 mq ..> con : assina
 mq ..> neg : assina
 mq ..> car : assina
+mq ..> rel : assina
 
 note bottom of mq
   Serviços NÃO se chamam por HTTP.

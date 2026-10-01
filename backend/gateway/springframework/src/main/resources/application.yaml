@@ -9,10 +9,16 @@ spring:
       server:
         webmvc:
           routes:
+            - id: auth
+              uri: ${AUTH_URL:http://localhost:8086}
+              predicates:
+                - Path=/api/autenticacao/**
+              filters:
+                - StripPrefix=1
             - id: clientes
               uri: ${CLIENTES_URL:http://localhost:8081}
               predicates:
-                - Path=/api/autenticacao/**,/api/clientes,/api/clientes/**
+                - Path=/api/clientes,/api/clientes/**
               filters:
                 - StripPrefix=1
             - id: contas
@@ -37,6 +43,18 @@ spring:
               uri: ${CARTEIRA_URL:http://localhost:8085}
               predicates:
                 - Path=/api/carteiras/**
+              filters:
+                - StripPrefix=1
+            - id: pagamentos
+              uri: ${PAGAMENTOS_URL:http://localhost:8087}
+              predicates:
+                - Path=/api/pagamentos,/api/pagamentos/**
+              filters:
+                - StripPrefix=1
+            - id: relatorios
+              uri: ${RELATORIOS_URL:http://localhost:8088}
+              predicates:
+                - Path=/api/relatorios/**
               filters:
                 - StripPrefix=1
 

@@ -1,0 +1,43 @@
+server:
+  port: 8088
+
+spring:
+  application:
+    name: relatorios-micro
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_relatorios}
+  data:
+    mongodb:
+      auto-index-creation: true
+      representation:
+        big-decimal: decimal128
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+    listener:
+      simple:
+        concurrency: 2
+        max-concurrency: 4
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+
+mensageria:
+  exchange: orbita.eventos
+  exchange-morta: orbita.eventos.mortos
+  fila-morta: relatorios.dlq
+  chave-morta: "relatorios.#"
+  assinaturas:
+    cliente-eventos:
+      fila: relatorios.cliente-eventos
+      topico: "cliente.#"
+    ordem-eventos:
+      fila: relatorios.ordem-eventos
+      topico: "ordem.executada, ordem.rejeitada"
+    pagamento-eventos:
+      fila: relatorios.pagamento-eventos
+      topico: "pagamento.#"

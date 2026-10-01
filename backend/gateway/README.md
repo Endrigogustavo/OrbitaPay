@@ -5,7 +5,7 @@ Serviço separado como **monolito modular**, em dois módulos Maven:
 | Módulo | Pacotes | Regra |
 |---|---|---|
 | [`domain`](domain) | `com.orbitapay.gateway.domain`, `com.orbitapay.gateway.application` | Java puro. O pom não declara **nenhuma** dependência, então nada do Spring compila aqui. |
-| [`springframework`](springframework) | `com.orbitapay.gateway.adapter`, `com.orbitapay.gateway.infrastructure` | Aplicação Spring Boot. Depende de `domain` e implementa as portas dele. |
+| [`springframework`](springframework) | `com.orbitapay.gateway.web`, `com.orbitapay.gateway.seguranca`, `com.orbitapay.gateway.infrastructure` | Aplicação Spring Boot. Depende de `domain` e implementa o `VerificadorDeCredencial` (HMAC). |
 
 ## Build e execução
 

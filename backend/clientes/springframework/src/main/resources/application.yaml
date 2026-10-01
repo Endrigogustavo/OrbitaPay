@@ -1,0 +1,44 @@
+server:
+  port: 8081
+
+spring:
+  application:
+    name: clientes-micro
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_clientes}
+  data:
+    mongodb:
+      auto-index-creation: true
+      representation:
+        big-decimal: decimal128
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+
+mensageria:
+  exchange: orbita.eventos
+  exchange-morta: orbita.eventos.mortos
+  fila-morta: clientes.dlq
+  chave-morta: "clientes.#"
+  fila-de-registros-de-credencial: auth.registros-de-credencial
+  topicos:
+    cliente-cadastrado: cliente.cadastrado
+    cliente-atualizado: cliente.atualizado
+    cliente-situacao-alterada: cliente.situacao-alterada
+    cliente-removido: cliente.removido
+  assinaturas:
+    credencial-eventos:
+      fila: clientes.credencial-eventos
+      topico: "credencial.#"
+
+orbita:
+  dados-iniciais: ${ORBITA_DADOS_INICIAIS:true}

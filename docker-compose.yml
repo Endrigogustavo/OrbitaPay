@@ -36,6 +36,9 @@ services:
       timeout: 5s
       retries: 30
 
+  mongo-auth:
+    <<: *mongo
+    volumes: [mongo-auth:/data/db]
   mongo-clientes:
     <<: *mongo
     volumes: [mongo-clientes:/data/db]
@@ -51,10 +54,31 @@ services:
   mongo-carteira:
     <<: *mongo
     volumes: [mongo-carteira:/data/db]
+  mongo-pagamentos:
+    <<: *mongo
+    volumes: [mongo-pagamentos:/data/db]
+  mongo-relatorios:
+    <<: *mongo
+    volumes: [mongo-relatorios:/data/db]
 
-  contas-service:
+  # Consumidores primeiro: declaram as filas antes que Clientes, Ativos e Pagamentos publiquem.
+  auth:
     <<: *servico
-    build: ./backend/contas-service
+    build: ./backend/auth
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-auth:27017/orbita_auth
+    expose: ["8086"]
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8086"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-auth: { condition: service_healthy }
+
+  contas:
+    <<: *servico
+    build: ./backend/contas
     environment:
       <<: *ambiente
       MONGODB_URI: mongodb://mongo-contas:27017/orbita_contas
@@ -66,9 +90,9 @@ services:
       rabbitmq: { condition: service_healthy }
       mongo-contas: { condition: service_healthy }
 
-  negociacao-service:
+  negociacao:
     <<: *servico
-    build: ./backend/negociacao-service
+    build: ./backend/negociacao
     environment:
       <<: *ambiente
       MONGODB_URI: mongodb://mongo-negociacao:27017/orbita_negociacao
@@ -80,9 +104,9 @@ services:
       rabbitmq: { condition: service_healthy }
       mongo-negociacao: { condition: service_healthy }
 
-  carteira-service:
+  carteira:
     <<: *servico
-    build: ./backend/carteira-service
+    build: ./backend/carteira
     environment:
       <<: *ambiente
       MONGODB_URI: mongodb://mongo-carteira:27017/orbita_carteira
@@ -94,9 +118,39 @@ services:
       rabbitmq: { condition: service_healthy }
       mongo-carteira: { condition: service_healthy }
 
-  ativos-service:
+  relatorios:
     <<: *servico
-    build: ./backend/ativos-service
+    build: ./backend/relatorios
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-relatorios:27017/orbita_relatorios
+    expose: ["8088"]
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8088"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-relatorios: { condition: service_healthy }
+
+  pagamentos:
+    <<: *servico
+    build: ./backend/pagamentos
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-pagamentos:27017/orbita_pagamentos
+    expose: ["8087"]
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8087"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-pagamentos: { condition: service_healthy }
+      contas: { condition: service_healthy }
+      relatorios: { condition: service_healthy }
+
+  ativos:
+    <<: *servico
+    build: ./backend/ativos
     environment:
       <<: *ambiente
       MONGODB_URI: mongodb://mongo-ativos:27017/orbita_ativos
@@ -107,12 +161,12 @@ services:
     depends_on:
       rabbitmq: { condition: service_healthy }
       mongo-ativos: { condition: service_healthy }
-      negociacao-service: { condition: service_healthy }
-      carteira-service: { condition: service_healthy }
+      negociacao: { condition: service_healthy }
+      carteira: { condition: service_healthy }
 
-  clientes-service:
+  clientes:
     <<: *servico
-    build: ./backend/clientes-service
+    build: ./backend/clientes
     environment:
       <<: *ambiente
       MONGODB_URI: mongodb://mongo-clientes:27017/orbita_clientes
@@ -123,35 +177,58 @@ services:
     depends_on:
       rabbitmq: { condition: service_healthy }
       mongo-clientes: { condition: service_healthy }
-      contas-service: { condition: service_healthy }
-      negociacao-service: { condition: service_healthy }
-      carteira-service: { condition: service_healthy }
+      auth: { condition: service_healthy }
+      contas: { condition: service_healthy }
+      negociacao: { condition: service_healthy }
+      carteira: { condition: service_healthy }
+      relatorios: { condition: service_healthy }
 
   gateway:
     <<: *servico
     build: ./backend/gateway
     environment:
       ORBITA_TOKEN_SEGREDO: ${ORBITA_TOKEN_SEGREDO:-orbita-segredo-de-desenvolvimento-troque-em-producao}
-      CLIENTES_URL: http://clientes-service:8081
-      CONTAS_URL: http://contas-service:8082
-      ATIVOS_URL: http://ativos-service:8083
-      NEGOCIACAO_URL: http://negociacao-service:8084
-      CARTEIRA_URL: http://carteira-service:8085
+      AUTH_URL: http://auth:8086
+      CLIENTES_URL: http://clientes:8081
+      CONTAS_URL: http://contas:8082
+      ATIVOS_URL: http://ativos:8083
+      NEGOCIACAO_URL: http://negociacao:8084
+      CARTEIRA_URL: http://carteira:8085
+      PAGAMENTOS_URL: http://pagamentos:8087
+      RELATORIOS_URL: http://relatorios:8088
     ports:
       - "8080:8080"
     healthcheck:
       <<: *saude
       test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8080"]
     depends_on:
-      clientes-service: { condition: service_healthy }
-      contas-service: { condition: service_healthy }
-      ativos-service: { condition: service_healthy }
-      negociacao-service: { condition: service_healthy }
-      carteira-service: { condition: service_healthy }
+      auth: { condition: service_healthy }
+      clientes: { condition: service_healthy }
+      contas: { condition: service_healthy }
+      ativos: { condition: service_healthy }
+      negociacao: { condition: service_healthy }
+      carteira: { condition: service_healthy }
+      pagamentos: { condition: service_healthy }
+      relatorios: { condition: service_healthy }
+
+  # Testes de carga e concorrência: docker compose run --rm k6 run /scripts/<script>.js
+  k6:
+    image: grafana/k6:latest
+    profiles: ["testes"]
+    environment:
+      BASE_URL: http://gateway:8080
+    volumes:
+      - ./k6:/scripts
+    working_dir: /scripts
+    depends_on:
+      gateway: { condition: service_healthy }
 
 volumes:
+  mongo-auth:
   mongo-clientes:
   mongo-contas:
   mongo-ativos:
   mongo-negociacao:
   mongo-carteira:
+  mongo-pagamentos:
+  mongo-relatorios:

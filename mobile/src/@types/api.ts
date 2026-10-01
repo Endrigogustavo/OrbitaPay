@@ -9,8 +9,6 @@ export interface ClienteDto {
   cpf: string;
   bloqueado: boolean;
   motivoBloqueio: MotivoBloqueioDto | null;
-  tentativasFalhas: number;
-  tentativasPermitidas: number;
   clienteDesde: string;
 }
 
@@ -20,7 +18,15 @@ export interface CredencialDto {
 }
 
 export interface SessaoDto extends CredencialDto {
-  cliente: ClienteDto;
+  clienteId: string;
+}
+
+/** Credencial de acesso guardada pelo contexto de Autenticação (PIN e tentativas). */
+export interface AcessoDto {
+  clienteId: string;
+  email: string;
+  tentativasFalhas: number;
+  tentativasPermitidas: number;
 }
 
 export type TipoLancamentoDto = 'ABERTURA' | 'DEPOSITO' | 'SAQUE' | 'COMPRA_DE_ACOES' | 'VENDA_DE_ACOES';
@@ -30,7 +36,8 @@ export interface LancamentoDto {
   tipo: TipoLancamentoDto;
   valor: number;
   descricao: string;
-  ordemId: string | null;
+  /** Ordem ou pagamento que originou o lançamento. */
+  referencia: string | null;
   ocorridoEm: string;
 }
 
@@ -139,3 +146,17 @@ export interface OrdemRequestDto {
 }
 
 export type MetodoDeDeposito = 'PIX' | 'TED' | 'Boleto';
+
+export type MetodoDePagamentoDto = 'PIX' | 'BOLETO' | 'TED';
+export type StatusDoPagamentoDto = 'PENDENTE' | 'CONFIRMADO' | 'EXPIRADO';
+
+export interface PagamentoDto {
+  id: string;
+  valor: number;
+  metodo: MetodoDePagamentoDto;
+  status: StatusDoPagamentoDto;
+  instrucoes: { codigo: string; descricao: string; validoAte: string };
+  valorPago: number | null;
+  criadoEm: string;
+  concluidoEm: string | null;
+}
