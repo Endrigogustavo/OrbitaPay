@@ -8,7 +8,6 @@ import org.springframework.data.mongodb.repository.Query;
 
 public interface FatoDocumentRepository extends MongoRepository<FatoDocument, String> {
 
-    // Consulta explícita: o método derivado com dois critérios em ocorridoEm é recusado pelo Spring Data MongoDB.
     @Query("{ 'ocorridoEm': { $gte: ?0, $lt: ?1 } }")
     List<FatoDocument> buscarNoPeriodo(Instant inicio, Instant fim);
 

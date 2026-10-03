@@ -16,7 +16,6 @@ import com.orbitapay.pagamentos.provedor.ProvedoresSimuladosProperties;
 import com.orbitapay.pagamentos.provedor.ReferenciaSimulada;
 import com.orbitapay.pagamentos.provedor.boleto.modelo.Boleto;
 
-/** Banco emissor de boletos simulado: registra o boleto e informa se foi liquidado ou baixado por prazo. */
 @Component
 public class BancoEmissorSimulado {
 

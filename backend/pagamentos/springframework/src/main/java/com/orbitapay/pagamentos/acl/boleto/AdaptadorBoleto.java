@@ -5,7 +5,6 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
-import java.util.function.Supplier;
 
 import org.springframework.stereotype.Component;
 
@@ -22,11 +21,6 @@ import com.orbitapay.pagamentos.provedor.ErroDoProvedor;
 import com.orbitapay.pagamentos.provedor.boleto.BancoEmissorSimulado;
 import com.orbitapay.pagamentos.provedor.boleto.modelo.Boleto;
 
-/**
- * Traduz entre o OrbitaPay e o banco emissor de boletos: {@link Dinheiro} vira centavos, o vencimento é uma
- * data local, e a liquidação chega como data e hora de Brasília sem fuso, que precisa ser convertida para
- * {@link java.time.Instant}.
- */
 @Component
 public class AdaptadorBoleto implements AdaptadorDeProvedor {
 
@@ -60,7 +54,12 @@ public class AdaptadorBoleto implements AdaptadorDeProvedor {
         LocalDate vencimento = LocalDate.now(relogio.withZone(BRASILIA)).plusDays(config.diasParaVencimento());
         Boleto.RegistroRequest requisicao = new Boleto.RegistroRequest(solicitacao.pagamentoId(),
                 solicitacao.valor().emCentavos(), vencimento.toString(), solicitacao.clienteId());
-        Boleto.RegistroResponse resposta = chamar(() -> banco.registrar(requisicao));
+        Boleto.RegistroResponse resposta;
+        try {
+            resposta = banco.registrar(requisicao);
+        } catch (ErroDoProvedor e) {
+            throw falhaDoProvedor(e);
+        }
         LocalDate dataDeVencimento = LocalDate.parse(resposta.dataDeVencimento());
         return new CobrancaEmitida(NOME, resposta.nossoNumero(), new InstrucoesDePagamento(resposta.linhaDigitavel(),
                 "Linha digitável · vence em " + DATA_BR.format(dataDeVencimento),
@@ -69,7 +68,12 @@ public class AdaptadorBoleto implements AdaptadorDeProvedor {
 
     @Override
     public SituacaoDaCobranca consultar(String nossoNumero) {
-        Boleto.SituacaoResponse resposta = chamar(() -> banco.consultar(nossoNumero));
+        Boleto.SituacaoResponse resposta;
+        try {
+            resposta = banco.consultar(nossoNumero);
+        } catch (ErroDoProvedor e) {
+            throw falhaDoProvedor(e);
+        }
         return switch (resposta.situacao()) {
             case Boleto.EM_ABERTO -> SituacaoDaCobranca.aguardando();
             case Boleto.LIQUIDADO -> SituacaoDaCobranca.paga(Dinheiro.deCentavos(resposta.valorPagoEmCentavos()),
@@ -79,11 +83,7 @@ public class AdaptadorBoleto implements AdaptadorDeProvedor {
         };
     }
 
-    private static <T> T chamar(Supplier<T> chamada) {
-        try {
-            return chamada.get();
-        } catch (ErroDoProvedor e) {
-            throw new ProvedorIndisponivelException(NOME, e.codigo() + " · " + e.getMessage());
-        }
+    private static ProvedorIndisponivelException falhaDoProvedor(ErroDoProvedor e) {
+        return new ProvedorIndisponivelException(NOME, e.codigo() + " · " + e.getMessage());
     }
 }

@@ -9,7 +9,6 @@ import { useOperacoes } from '@/context/OperacoesContext';
 import { TituloDaFolha } from '../Titulos';
 import { Anim, Cta, ErrBox, Field, InfoGrid, Input, Plain, T } from '../ui';
 
-/** Edição dos próprios dados, cadastro de cliente pelo gerente ou edição de cliente no backoffice. */
 export function FolhaDoCliente({ folha }: { folha: FolhaDo<'userForm'> }) {
   const op = useOperacoes();
   const { clientes } = useGerente();
@@ -41,7 +40,6 @@ export function FolhaDoCliente({ folha }: { folha: FolhaDo<'userForm'> }) {
   );
 }
 
-/** Listagem ou edição de uma ação em uma das bolsas do globo. */
 export function FolhaCadastroDeAtivo({ folha }: { folha: FolhaDo<'stockForm'> }) {
   const op = useOperacoes();
   const fv = op.form, cur = (EXM[fv.ex || 'B3'] || EX[0]).cur;

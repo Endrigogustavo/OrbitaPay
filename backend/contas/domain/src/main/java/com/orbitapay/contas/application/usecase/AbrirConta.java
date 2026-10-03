@@ -1,7 +1,6 @@
 package com.orbitapay.contas.application.usecase;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Instant;
 
 import com.orbitapay.contas.application.service.GeradorDeNumeroDeConta;
@@ -16,12 +15,10 @@ public class AbrirConta {
 
     private final ContaRepository repositorio;
     private final GeradorDeNumeroDeConta geradorDeNumero;
-    private final Clock relogio;
 
-    public AbrirConta(ContaRepository repositorio, GeradorDeNumeroDeConta geradorDeNumero, Clock relogio) {
+    public AbrirConta(ContaRepository repositorio, GeradorDeNumeroDeConta geradorDeNumero) {
         this.repositorio = repositorio;
         this.geradorDeNumero = geradorDeNumero;
-        this.relogio = relogio;
     }
 
     public void executar(Comando comando) {
@@ -29,7 +26,7 @@ public class AbrirConta {
             return;
         }
         Conta conta = Conta.abrir(repositorio.proximoId(), comando.clienteId(), comando.nomeTitular(),
-                geradorDeNumero.proximo(), new Dinheiro(comando.depositoInicial()), Instant.now(relogio));
+                geradorDeNumero.proximo(), new Dinheiro(comando.depositoInicial()), Instant.now());
         repositorio.inserir(conta);
     }
 }

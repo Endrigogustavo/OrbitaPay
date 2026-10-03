@@ -61,7 +61,6 @@ services:
     <<: *mongo
     volumes: [mongo-relatorios:/data/db]
 
-  # Consumidores primeiro: declaram as filas antes que Clientes, Ativos e Pagamentos publiquem.
   auth:
     <<: *servico
     build: ./backend/auth
@@ -211,7 +210,6 @@ services:
       pagamentos: { condition: service_healthy }
       relatorios: { condition: service_healthy }
 
-  # Testes de carga e concorrência: docker compose run --rm k6 run /scripts/<script>.js
   k6:
     image: grafana/k6:latest
     profiles: ["testes"]

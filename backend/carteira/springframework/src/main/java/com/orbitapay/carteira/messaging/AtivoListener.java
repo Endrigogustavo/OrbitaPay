@@ -1,8 +1,8 @@
 package com.orbitapay.carteira.messaging;
 
 import java.math.BigDecimal;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -43,8 +43,12 @@ public class AtivoListener {
     }
 
     private static Map<String, BigDecimal> cotacoes(EventoDeAtivoMensagem mensagem) {
-        return mensagem.cotacoes() == null ? Map.of()
-                : mensagem.cotacoes().stream().collect(Collectors.toMap(EventoDeAtivoMensagem.Cotacao::ticker,
-                        EventoDeAtivoMensagem.Cotacao::cotacao, (a, b) -> b));
+        Map<String, BigDecimal> cotacoes = new HashMap<>();
+        if (mensagem.cotacoes() != null) {
+            for (EventoDeAtivoMensagem.Cotacao cotacao : mensagem.cotacoes()) {
+                cotacoes.put(cotacao.ticker(), cotacao.cotacao());
+            }
+        }
+        return cotacoes;
     }
 }

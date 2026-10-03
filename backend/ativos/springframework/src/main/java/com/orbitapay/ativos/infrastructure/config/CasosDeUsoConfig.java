@@ -1,7 +1,5 @@
 package com.orbitapay.ativos.infrastructure.config;
 
-import java.time.Clock;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.scheduling.annotation.EnableScheduling;
@@ -21,26 +19,20 @@ import com.orbitapay.ativos.domain.repository.BolsaRepository;
 public class CasosDeUsoConfig {
 
     @Bean
-    public Clock relogio() {
-        return Clock.systemUTC();
-    }
-
-    @Bean
     public ListarAtivoNaBolsa listarAtivoNaBolsa(AtivoRepository ativos, BolsaRepository bolsas,
-            SimuladorDeMercado simulador, PublicadorDeEventosDeAtivo publicador, Clock relogio) {
-        return new ListarAtivoNaBolsa(ativos, bolsas, simulador, publicador, relogio);
+            SimuladorDeMercado simulador, PublicadorDeEventosDeAtivo publicador) {
+        return new ListarAtivoNaBolsa(ativos, bolsas, simulador, publicador);
     }
 
     @Bean
     public AtualizarAtivo atualizarAtivo(AtivoRepository ativos, BolsaRepository bolsas,
-            PublicadorDeEventosDeAtivo publicador, Clock relogio) {
-        return new AtualizarAtivo(ativos, bolsas, publicador, relogio);
+            PublicadorDeEventosDeAtivo publicador) {
+        return new AtualizarAtivo(ativos, bolsas, publicador);
     }
 
     @Bean
-    public RemoverAtivo removerAtivo(AtivoRepository ativos, PublicadorDeEventosDeAtivo publicador,
-            Clock relogio) {
-        return new RemoverAtivo(ativos, publicador, relogio);
+    public RemoverAtivo removerAtivo(AtivoRepository ativos, PublicadorDeEventosDeAtivo publicador) {
+        return new RemoverAtivo(ativos, publicador);
     }
 
     @Bean
@@ -50,7 +42,7 @@ public class CasosDeUsoConfig {
 
     @Bean
     public SimularCotacoes simularCotacoes(AtivoRepository ativos, SimuladorDeMercado simulador,
-            PublicadorDeEventosDeAtivo publicador, Clock relogio) {
-        return new SimularCotacoes(ativos, simulador, publicador, relogio);
+            PublicadorDeEventosDeAtivo publicador) {
+        return new SimularCotacoes(ativos, simulador, publicador);
     }
 }

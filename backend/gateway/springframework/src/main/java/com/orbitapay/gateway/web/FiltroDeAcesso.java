@@ -33,17 +33,13 @@ public class FiltroDeAcesso extends OncePerRequestFilter {
         String caminho = requisicao.getRequestURI();
         Decisao decisao = controleDeAcesso.decidir(requisicao.getMethod(), caminho, tokenDeSessao(requisicao),
                 requisicao.getHeader(CabecalhosInternos.ASSINATURA));
-        switch (decisao) {
-            case Decisao.Liberado liberado -> {
-                LOG.info("{} {} -> liberado perfil={} cliente={}", requisicao.getMethod(), caminho,
-                        liberado.perfil().orElse(null), liberado.clienteId().orElse(null));
-                cadeia.doFilter(new RequisicaoComIdentidade(requisicao, liberado), resposta);
-            }
-            case Decisao.Recusado recusado -> {
-                LOG.info("{} {} -> recusado {} {}", requisicao.getMethod(), caminho, recusado.status(),
-                        recusado.codigo());
-                responderErro(resposta, recusado);
-            }
+        if (decisao.liberado()) {
+            LOG.info("{} {} -> liberado perfil={} cliente={}", requisicao.getMethod(), caminho, decisao.perfil(),
+                    decisao.clienteId());
+            cadeia.doFilter(new RequisicaoComIdentidade(requisicao, decisao), resposta);
+        } else {
+            LOG.info("{} {} -> recusado {} {}", requisicao.getMethod(), caminho, decisao.status(), decisao.codigo());
+            responderErro(resposta, decisao);
         }
     }
 
@@ -54,11 +50,11 @@ public class FiltroDeAcesso extends OncePerRequestFilter {
                 : null;
     }
 
-    private static void responderErro(HttpServletResponse resposta, Decisao.Recusado recusado) throws IOException {
-        resposta.setStatus(recusado.status());
+    private static void responderErro(HttpServletResponse resposta, Decisao recusada) throws IOException {
+        resposta.setStatus(recusada.status());
         resposta.setContentType(MediaType.APPLICATION_JSON_VALUE);
         resposta.setCharacterEncoding(StandardCharsets.UTF_8.name());
-        resposta.getWriter().write("{\"codigo\":\"" + recusado.codigo() + "\",\"mensagem\":\"" + recusado.mensagem()
+        resposta.getWriter().write("{\"codigo\":\"" + recusada.codigo() + "\",\"mensagem\":\"" + recusada.mensagem()
                 + "\"}");
     }
 }

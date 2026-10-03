@@ -1,5 +1,7 @@
 package com.orbitapay.relatorios.application.usecase;
 
+import java.util.Optional;
+
 import com.orbitapay.relatorios.domain.model.Fato;
 import com.orbitapay.relatorios.domain.model.PerfilDeCliente;
 import com.orbitapay.relatorios.domain.model.TipoDeFato;
@@ -16,35 +18,38 @@ public class RegistrarFato {
         this.perfis = perfis;
     }
 
-    /** @param nome nome do cliente, quando a mensagem de origem trouxer (cadastro e atualização) */
     public void executar(Fato fato, String nome) {
         if (fatos.registrar(fato)) {
             atualizarPerfil(fato, nome);
         }
     }
 
-    /** Atualizações cadastrais não contam como fato, mas mantêm o nome usado nos rankings. */
     public void renomearCliente(String clienteId, String nome) {
-        perfis.buscar(clienteId).ifPresent(perfil -> {
-            perfil.renomear(nome);
-            perfis.salvar(perfil);
-        });
+        Optional<PerfilDeCliente> perfil = perfis.buscar(clienteId);
+        if (perfil.isPresent()) {
+            perfil.get().renomear(nome);
+            perfis.salvar(perfil.get());
+        }
     }
 
     private void atualizarPerfil(Fato fato, String nome) {
-        switch (fato.tipo()) {
-            case CLIENTE_CADASTRADO -> perfis.salvar(perfis.buscar(fato.clienteId())
-                    .orElseGet(() -> PerfilDeCliente.cadastrado(fato.clienteId(), nome, fato.ocorridoEm())));
-            case CLIENTE_BLOQUEADO, CLIENTE_DESBLOQUEADO -> perfis.buscar(fato.clienteId()).ifPresent(perfil -> {
-                perfil.alterarSituacao(fato.tipo() == TipoDeFato.CLIENTE_BLOQUEADO);
-                perfis.salvar(perfil);
-            });
-            case CLIENTE_REMOVIDO -> perfis.buscar(fato.clienteId()).ifPresent(perfil -> {
-                perfil.encerrar();
-                perfis.salvar(perfil);
-            });
-            default -> {
-            }
+        Optional<PerfilDeCliente> perfil = perfis.buscar(fato.clienteId());
+        if (fato.tipo() == TipoDeFato.CLIENTE_CADASTRADO && perfil.isEmpty()) {
+            perfis.salvar(PerfilDeCliente.cadastrado(fato.clienteId(), nome, fato.ocorridoEm()));
+            return;
+        }
+        if (perfil.isEmpty()) {
+            return;
+        }
+        if (fato.tipo() == TipoDeFato.CLIENTE_BLOQUEADO) {
+            perfil.get().alterarSituacao(true);
+            perfis.salvar(perfil.get());
+        } else if (fato.tipo() == TipoDeFato.CLIENTE_DESBLOQUEADO) {
+            perfil.get().alterarSituacao(false);
+            perfis.salvar(perfil.get());
+        } else if (fato.tipo() == TipoDeFato.CLIENTE_REMOVIDO) {
+            perfil.get().encerrar();
+            perfis.salvar(perfil.get());
         }
     }
 }

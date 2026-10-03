@@ -41,7 +41,6 @@ export const fmtT = (ts: number): string => {
   return p2(d.getDate()) + ' de ' + MON[d.getMonth()] + '. · ' + hhmm(d);
 };
 
-/** Converte uma série de preços em pontos [x, y] de um gráfico com largura w e altura hh. */
 export function pts(h: number[], w: number, hh: number, pad = 2): [number, number][] {
   const mn = Math.min(...h), mx = Math.max(...h), r = mx - mn || 1;
   return h.map((v, i) => [+((i / (h.length - 1)) * w).toFixed(1), +(pad + (1 - (v - mn) / r) * (hh - pad * 2)).toFixed(1)]);
@@ -57,7 +56,6 @@ function tzParts(e: Bolsa, now: Date): { h: number; m: number; wd: string } {
     const h = +(g('hour') ?? NaN) % 24, m = +(g('minute') ?? NaN), wd = g('weekday');
     if (!isNaN(h) && !isNaN(m) && wd) return { h, m, wd };
   } catch {
-    // Intl sem suporte a fusos horários: usa o deslocamento fixo da bolsa.
   }
   const d = new Date(now.getTime() + e.off * 36e5);
   return { h: d.getUTCHours(), m: d.getUTCMinutes(), wd: WD[d.getUTCDay()] };

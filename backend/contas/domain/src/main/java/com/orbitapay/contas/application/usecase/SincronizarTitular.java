@@ -1,32 +1,41 @@
 package com.orbitapay.contas.application.usecase;
 
 import com.orbitapay.contas.domain.repository.ContaRepository;
+import com.orbitapay.contas.domain.repository.ContaTravada;
 
 public class SincronizarTitular {
 
     private final ContaRepository repositorio;
-    private final OperacaoComTrava operacao;
 
-    public SincronizarTitular(ContaRepository repositorio, OperacaoComTrava operacao) {
+    public SincronizarTitular(ContaRepository repositorio) {
         this.repositorio = repositorio;
-        this.operacao = operacao;
     }
 
     public void atualizarNome(String clienteId, String nome) {
-        if (repositorio.existePorCliente(clienteId)) {
-            operacao.executar(clienteId, conta -> {
-                conta.atualizarTitular(nome);
-                return conta;
-            });
+        if (!repositorio.existePorCliente(clienteId)) {
+            return;
+        }
+        ContaTravada travada = repositorio.travarPorCliente(clienteId);
+        try {
+            travada.conta().atualizarTitular(nome);
+            repositorio.salvarELiberar(travada);
+        } catch (RuntimeException erro) {
+            repositorio.liberar(travada);
+            throw erro;
         }
     }
 
     public void alterarSituacao(String clienteId, boolean bloqueado) {
-        if (repositorio.existePorCliente(clienteId)) {
-            operacao.executar(clienteId, conta -> {
-                conta.alterarSituacaoDoTitular(bloqueado);
-                return conta;
-            });
+        if (!repositorio.existePorCliente(clienteId)) {
+            return;
+        }
+        ContaTravada travada = repositorio.travarPorCliente(clienteId);
+        try {
+            travada.conta().alterarSituacaoDoTitular(bloqueado);
+            repositorio.salvarELiberar(travada);
+        } catch (RuntimeException erro) {
+            repositorio.liberar(travada);
+            throw erro;
         }
     }
 

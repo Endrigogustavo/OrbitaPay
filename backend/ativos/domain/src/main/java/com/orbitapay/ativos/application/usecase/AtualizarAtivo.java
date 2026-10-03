@@ -1,6 +1,5 @@
 package com.orbitapay.ativos.application.usecase;
 
-import java.time.Clock;
 import java.time.Instant;
 
 import com.orbitapay.ativos.application.dto.AtivoCotado;
@@ -21,14 +20,11 @@ public class AtualizarAtivo {
     private final AtivoRepository ativos;
     private final BolsaRepository bolsas;
     private final PublicadorDeEventosDeAtivo publicador;
-    private final Clock relogio;
 
-    public AtualizarAtivo(AtivoRepository ativos, BolsaRepository bolsas, PublicadorDeEventosDeAtivo publicador,
-            Clock relogio) {
+    public AtualizarAtivo(AtivoRepository ativos, BolsaRepository bolsas, PublicadorDeEventosDeAtivo publicador) {
         this.ativos = ativos;
         this.bolsas = bolsas;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
     public AtivoCotado executar(Comando comando) {
@@ -39,7 +35,7 @@ public class AtualizarAtivo {
         ativo.atualizarCadastro(comando.nome(), comando.setor(), bolsa.codigo(), comando.cotacao(),
                 comando.quantidadeEmitida() == null ? ativo.quantidadeEmitida() : comando.quantidadeEmitida());
         ativos.salvar(ativo);
-        publicador.publicar(new AtivoAtualizado(DadosDoAtivo.de(ativo, bolsa), Instant.now(relogio)));
+        publicador.publicar(new AtivoAtualizado(DadosDoAtivo.de(ativo, bolsa), Instant.now()));
         return new AtivoCotado(ativo, bolsa);
     }
 }

@@ -6,11 +6,9 @@ import { useSessao } from './SessaoContext';
 import { useToast } from './ToastContext';
 
 interface GerenteContextValue {
-  /** Modo gerente ativo (backoffice liberado na aba Banco). */
   ativo: boolean;
   clientes: ClienteDoBackoffice[];
   carregarBackoffice: () => Promise<void>;
-  /** Autentica o gerente. Lança ErroDaApi quando o código é inválido. */
   entrar: (codigo: string) => Promise<void>;
   sair: (mensagem?: string) => void;
 }
@@ -50,7 +48,6 @@ export function GerenteProvider({ children }: { children: ReactNode }) {
     carregarBackoffice();
   }, [api, definirTokenDoGerente, avisar, carregarBackoffice]);
 
-  // Troca de cliente (login, logout ou sessão expirada) sempre encerra o modo gerente.
   useEffect(() => { sair(); }, [sessao?.token, sair]);
 
   const value = useMemo<GerenteContextValue>(() => ({ ativo, clientes, carregarBackoffice, entrar, sair }),

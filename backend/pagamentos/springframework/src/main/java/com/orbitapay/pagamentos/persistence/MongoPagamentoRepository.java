@@ -55,7 +55,7 @@ public class MongoPagamentoRepository implements PagamentoRepository {
     }
 
     private static Pagamento paraDominio(PagamentoDocument documento) {
-        return Pagamento.reconstituir(documento.id(), documento.clienteId(), new Dinheiro(documento.valor()),
+        return new Pagamento(documento.id(), documento.clienteId(), new Dinheiro(documento.valor()),
                 MetodoDePagamento.valueOf(documento.metodo()), documento.provedor(), documento.referenciaExterna(),
                 new InstrucoesDePagamento(documento.codigo(), documento.descricao(), documento.validoAte()),
                 StatusDoPagamento.valueOf(documento.status()),

@@ -15,10 +15,6 @@ import com.orbitapay.relatorios.messaging.mensagem.EventoDeClienteMensagem;
 import com.orbitapay.relatorios.messaging.mensagem.OrdemMensagem;
 import com.orbitapay.relatorios.messaging.mensagem.PagamentoMensagem;
 
-/**
- * Camada anticorrupção de entrada: traduz a linguagem publicada por Clientes, Negociação e Pagamentos para
- * {@link Fato}s deste contexto. Mensagens sem interesse para os relatórios são ignoradas.
- */
 @Component
 public class EventosListener {
 

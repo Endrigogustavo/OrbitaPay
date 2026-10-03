@@ -6,7 +6,6 @@ import { Anim, Kicker, Spin, T } from './ui';
 
 const ABS = StyleSheet.absoluteFill;
 
-/** Abertura animada, exibida enquanto a sessão salva é validada no gateway. */
 export function Splash() {
   const grow = useRef(new Animated.Value(0)).current;
   useEffect(() => { Animated.timing(grow, { toValue: 1, duration: 1900, easing: Easing.bezier(0.6, 0, 0.2, 1), useNativeDriver: true }).start(); }, []);

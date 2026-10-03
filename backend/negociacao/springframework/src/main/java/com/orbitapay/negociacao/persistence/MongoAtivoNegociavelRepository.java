@@ -3,16 +3,14 @@ package com.orbitapay.negociacao.persistence;
 import java.math.BigDecimal;
 import java.util.Map;
 import java.util.Optional;
+import java.util.UUID;
 
-import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
-import com.orbitapay.negociacao.application.exception.TravaIndisponivelException;
-import com.orbitapay.negociacao.domain.exception.RecursoNaoEncontradoException;
 import com.orbitapay.negociacao.domain.model.AtivoNegociavel;
 import com.orbitapay.negociacao.domain.repository.AtivoNegociavelRepository;
 import com.orbitapay.negociacao.domain.repository.AtivoTravado;
@@ -49,47 +47,28 @@ public class MongoAtivoNegociavelRepository implements AtivoNegociavelRepository
 
     @Override
     public AtivoTravado travar(String ticker) {
-        String dono = TravaPessimistaMongo.novoDono();
-        AtivoNegociavelDocument documento = trava.adquirir(AtivoNegociavelDocument.class, porTicker(ticker),
-                recurso(ticker), dono);
-        if (documento == null) {
-            throw new RecursoNaoEncontradoException("Ativo não negociado: " + ticker);
-        }
+        String dono = UUID.randomUUID().toString();
+        AtivoNegociavelDocument documento = trava.travar(ticker, dono);
         return new AtivoTravado(paraDominio(documento), dono);
     }
 
     @Override
     public void salvarELiberar(AtivoTravado travado) {
-        String ticker = travado.ativo().ticker();
-        if (!trava.substituirELiberar(AtivoNegociavelDocument.class, porTicker(ticker), recurso(ticker),
-                travado.dono(), paraDocumento(travado.ativo()))) {
-            throw new TravaIndisponivelException(recurso(ticker));
-        }
+        trava.salvarELiberar(paraDocumento(travado.ativo()), travado.dono());
     }
 
     @Override
     public void liberar(AtivoTravado travado) {
-        String ticker = travado.ativo().ticker();
-        trava.liberar(AtivoNegociavelDocument.class, porTicker(ticker), recurso(ticker), travado.dono());
+        trava.liberar(travado.ativo().ticker(), travado.dono());
     }
 
     @Override
     public void atualizarCotacoes(Map<String, BigDecimal> cotacoes) {
-        if (cotacoes.isEmpty()) {
-            return;
+        for (Map.Entry<String, BigDecimal> cotacao : cotacoes.entrySet()) {
+            Query porTicker = new Query(Criteria.where("_id").is(cotacao.getKey()));
+            template.updateFirst(porTicker, new Update().set("cotacao", cotacao.getValue()),
+                    AtivoNegociavelDocument.class);
         }
-        BulkOperations lote = template.bulkOps(BulkOperations.BulkMode.UNORDERED, AtivoNegociavelDocument.class);
-        cotacoes.forEach((ticker, cotacao) -> lote.updateOne(new Query(porTicker(ticker)),
-                new Update().set("cotacao", cotacao)));
-        lote.execute();
-    }
-
-    private static Criteria porTicker(String ticker) {
-        return Criteria.where("_id").is(ticker);
-    }
-
-    private static String recurso(String ticker) {
-        return "ativo:" + ticker;
     }
 
     private static AtivoNegociavelDocument paraDocumento(AtivoNegociavel ativo) {
@@ -99,8 +78,8 @@ public class MongoAtivoNegociavelRepository implements AtivoNegociavelRepository
     }
 
     private static AtivoNegociavel paraDominio(AtivoNegociavelDocument documento) {
-        return AtivoNegociavel.reconstituir(documento.ticker(), documento.nome(), documento.bolsa(),
-                documento.moeda(), documento.cambio(), documento.cotacao(), documento.quantidadeEmitida(),
+        return new AtivoNegociavel(documento.ticker(), documento.nome(), documento.bolsa(), documento.moeda(),
+                documento.cambio(), documento.cotacao(), documento.quantidadeEmitida(),
                 documento.quantidadeDisponivel(), documento.quantidadeReservada(), documento.negociavel());
     }
 }

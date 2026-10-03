@@ -3,7 +3,6 @@ import Svg, { Path } from 'react-native-svg';
 import { C } from '@/constants/tema';
 
 interface IconProps {
-  /** Traçado SVG de constants/icones. */
   d: string;
   size?: number;
   color?: string;

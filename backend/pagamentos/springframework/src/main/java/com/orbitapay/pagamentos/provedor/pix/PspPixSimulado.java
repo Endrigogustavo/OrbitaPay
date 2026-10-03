@@ -16,10 +16,6 @@ import com.orbitapay.pagamentos.provedor.ProvedoresSimuladosProperties;
 import com.orbitapay.pagamentos.provedor.ReferenciaSimulada;
 import com.orbitapay.pagamentos.provedor.pix.modelo.CobrancaImediata;
 
-/**
- * PSP Pix simulado. Imita o contrato da API Pix do Banco Central: {@code POST /cob} cria a cobrança e o PSP
- * gera o {@code txid}; {@code GET /cob/{txid}} devolve o status e, quando paga, a lista {@code pix} recebida.
- */
 @Component
 public class PspPixSimulado {
 
@@ -75,7 +71,6 @@ public class PspPixSimulado {
                 brCode(chave, valor, txid), recebidos);
     }
 
-    /** "Pix copia e cola" no formato EMV (BR Code), com CRC16 no final. */
     private static String brCode(String chave, String valor, String txid) {
         String contaRecebedor = campo("00", "br.gov.bcb.pix") + campo("01", chave);
         String semCrc = campo("00", "01") + campo("26", contaRecebedor) + campo("52", "0000") + campo("53", "986")

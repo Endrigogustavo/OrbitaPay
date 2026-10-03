@@ -3,8 +3,6 @@ package com.orbitapay.contas.domain.model;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
-import java.util.Optional;
 import java.util.UUID;
 
 import com.orbitapay.contas.domain.exception.ContaBloqueadaException;
@@ -25,16 +23,16 @@ public class Conta {
     private final List<Lancamento> lancamentos;
     private final Instant abertaEm;
 
-    private Conta(String id, String clienteId, String nomeTitular, boolean titularBloqueado, String numero,
+    public Conta(String id, String clienteId, String nomeTitular, boolean titularBloqueado, String numero,
             Dinheiro saldo, List<Lancamento> lancamentos, Instant abertaEm) {
-        this.id = Objects.requireNonNull(id);
-        this.clienteId = Objects.requireNonNull(clienteId);
-        this.nomeTitular = Objects.requireNonNull(nomeTitular);
+        this.id = id;
+        this.clienteId = clienteId;
+        this.nomeTitular = nomeTitular;
         this.titularBloqueado = titularBloqueado;
-        this.numero = Objects.requireNonNull(numero);
-        this.saldo = Objects.requireNonNull(saldo);
+        this.numero = numero;
+        this.saldo = saldo;
         this.lancamentos = new ArrayList<>(lancamentos);
-        this.abertaEm = Objects.requireNonNull(abertaEm);
+        this.abertaEm = abertaEm;
     }
 
     public static Conta abrir(String id, String clienteId, String nomeTitular, String numero, Dinheiro depositoInicial,
@@ -48,19 +46,10 @@ public class Conta {
         return conta;
     }
 
-    public static Conta reconstituir(String id, String clienteId, String nomeTitular, boolean titularBloqueado,
-            String numero, Dinheiro saldo, List<Lancamento> lancamentos, Instant abertaEm) {
-        return new Conta(id, clienteId, nomeTitular, titularBloqueado, numero, saldo, lancamentos, abertaEm);
-    }
-
-    /**
-     * Credita um depósito já pago, confirmado pelo contexto de Pagamentos. Os limites por depósito foram aplicados
-     * quando a cobrança foi emitida; aqui o dinheiro já entrou, então só a idempotência importa.
-     */
     public Lancamento creditarDeposito(String pagamentoId, Dinheiro valor, String metodo, Instant agora) {
-        Optional<Lancamento> existente = lancamentoReferenteA(pagamentoId);
-        if (existente.isPresent()) {
-            return existente.get();
+        Lancamento existente = lancamentoReferenteA(pagamentoId);
+        if (existente != null) {
+            return existente;
         }
         exigirPositivo(valor);
         saldo = saldo.somar(valor);
@@ -79,9 +68,9 @@ public class Conta {
     }
 
     public Lancamento debitarCompraDeAcoes(String ordemId, Dinheiro valor, String descricao, Instant agora) {
-        Optional<Lancamento> existente = lancamentoReferenteA(ordemId);
-        if (existente.isPresent()) {
-            return existente.get();
+        Lancamento existente = lancamentoReferenteA(ordemId);
+        if (existente != null) {
+            return existente;
         }
         exigirTitularLiberado();
         exigirPositivo(valor);
@@ -91,9 +80,9 @@ public class Conta {
     }
 
     public Lancamento creditarVendaDeAcoes(String ordemId, Dinheiro valor, String descricao, Instant agora) {
-        Optional<Lancamento> existente = lancamentoReferenteA(ordemId);
-        if (existente.isPresent()) {
-            return existente.get();
+        Lancamento existente = lancamentoReferenteA(ordemId);
+        if (existente != null) {
+            return existente;
         }
         exigirPositivo(valor);
         saldo = saldo.somar(valor);
@@ -101,15 +90,20 @@ public class Conta {
     }
 
     public void atualizarTitular(String nome) {
-        this.nomeTitular = Objects.requireNonNull(nome);
+        this.nomeTitular = nome;
     }
 
     public void alterarSituacaoDoTitular(boolean bloqueado) {
         this.titularBloqueado = bloqueado;
     }
 
-    private Optional<Lancamento> lancamentoReferenteA(String referencia) {
-        return lancamentos.stream().filter(l -> l.referenteA(referencia)).findFirst();
+    private Lancamento lancamentoReferenteA(String referencia) {
+        for (Lancamento lancamento : lancamentos) {
+            if (lancamento.referenteA(referencia)) {
+                return lancamento;
+            }
+        }
+        return null;
     }
 
     private void exigirTitularLiberado() {

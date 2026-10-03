@@ -22,7 +22,6 @@ export function Field({ label, children, style }: FieldProps) {
 }
 
 interface InputProps extends TextInputProps {
-  /** Campo de PIN: numérico, oculto e com 4 dígitos. */
   pin?: boolean;
 }
 
@@ -47,7 +46,6 @@ export interface OpcaoDoSeg {
   pick: () => void;
 }
 
-/** Controle segmentado. */
 export function Seg({ options, style }: { options: OpcaoDoSeg[]; style?: StyleProp<ViewStyle> }) {
   return (
     <View style={[{ flexDirection: 'row', borderWidth: 1, borderColor: C.divider, borderRadius: 12, overflow: 'hidden' }, style]}>

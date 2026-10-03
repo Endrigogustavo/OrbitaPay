@@ -7,12 +7,9 @@ import { useSessao } from './SessaoContext';
 
 interface MercadoContextValue {
   acoes: Acao[];
-  /** Ações indexadas pelo ticker. */
   porTicker: Record<string, Acao | undefined>;
-  /** Horário local e se a bolsa está aberta, por código da bolsa. */
   infos: Record<string, InfoDaBolsa>;
   bolsaSelecionada: string;
-  /** Muda a cada seleção no globo, para disparar a animação de voo até a bolsa. */
   voo: number;
   atualizarMercado: () => Promise<void>;
   selecionarBolsa: (codigo: string) => void;

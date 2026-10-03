@@ -11,11 +11,6 @@ import com.orbitapay.auth.domain.exception.RegraDeNegocioException;
 import com.orbitapay.auth.messaging.mensagem.RegistroDeCredencialMensagem;
 import com.orbitapay.auth.messaging.mensagem.RegistroDeCredencialRespostaMensagem;
 
-/**
- * Request/reply com o contexto de Clientes: durante o cadastro, Clientes pede a criação da credencial e só
- * confirma o cliente se a resposta for positiva. O PIN trafega apenas nesta fila ponto a ponto, nunca no tópico
- * de eventos que outros contextos assinam.
- */
 @Component
 public class RegistroDeCredencialListener {
 

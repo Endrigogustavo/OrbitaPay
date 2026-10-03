@@ -2,12 +2,9 @@ package com.orbitapay.carteira.persistence;
 
 import java.math.BigDecimal;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
-import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -30,9 +27,11 @@ public class MongoAtivoCotadoRepository implements AtivoCotadoRepository {
 
     @Override
     public Map<String, AtivoCotado> buscarTodos(Collection<String> tickers) {
-        return StreamSupport.stream(mongo.findAllById(tickers).spliterator(), false)
-                .map(d -> new AtivoCotado(d.ticker(), d.nome(), d.moeda(), d.cambio(), d.cotacao()))
-                .collect(Collectors.toMap(AtivoCotado::ticker, Function.identity()));
+        Map<String, AtivoCotado> ativos = new HashMap<>();
+        for (AtivoCotadoDocument d : mongo.findAllById(tickers)) {
+            ativos.put(d.ticker(), new AtivoCotado(d.ticker(), d.nome(), d.moeda(), d.cambio(), d.cotacao()));
+        }
+        return ativos;
     }
 
     @Override
@@ -47,12 +46,9 @@ public class MongoAtivoCotadoRepository implements AtivoCotadoRepository {
 
     @Override
     public void atualizarCotacoes(Map<String, BigDecimal> cotacoes) {
-        if (cotacoes.isEmpty()) {
-            return;
+        for (Map.Entry<String, BigDecimal> cotacao : cotacoes.entrySet()) {
+            Query porTicker = new Query(Criteria.where("_id").is(cotacao.getKey()));
+            template.updateFirst(porTicker, new Update().set("cotacao", cotacao.getValue()), AtivoCotadoDocument.class);
         }
-        BulkOperations lote = template.bulkOps(BulkOperations.BulkMode.UNORDERED, AtivoCotadoDocument.class);
-        cotacoes.forEach((ticker, cotacao) -> lote.updateOne(new Query(Criteria.where("_id").is(ticker)),
-                new Update().set("cotacao", cotacao)));
-        lote.execute();
     }
 }

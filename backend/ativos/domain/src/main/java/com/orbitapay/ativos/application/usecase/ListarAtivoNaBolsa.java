@@ -1,7 +1,6 @@
 package com.orbitapay.ativos.application.usecase;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
 
@@ -29,15 +28,13 @@ public class ListarAtivoNaBolsa {
     private final BolsaRepository bolsas;
     private final SimuladorDeMercado simulador;
     private final PublicadorDeEventosDeAtivo publicador;
-    private final Clock relogio;
 
     public ListarAtivoNaBolsa(AtivoRepository ativos, BolsaRepository bolsas, SimuladorDeMercado simulador,
-            PublicadorDeEventosDeAtivo publicador, Clock relogio) {
+            PublicadorDeEventosDeAtivo publicador) {
         this.ativos = ativos;
         this.bolsas = bolsas;
         this.simulador = simulador;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
     public AtivoCotado executar(Comando comando) {
@@ -47,7 +44,7 @@ public class ListarAtivoNaBolsa {
         }
         Bolsa bolsa = bolsas.buscar(comando.bolsa())
                 .orElseThrow(() -> new RegraDeNegocioException("Bolsa inválida: " + comando.bolsa()));
-        Instant agora = Instant.now(relogio);
+        Instant agora = Instant.now();
         Ativo ativo = Ativo.listar(ticker, comando.nome(), comando.setor(), bolsa.codigo(), comando.cotacao(),
                 comando.quantidadeEmitida() == null ? EMISSAO_PADRAO : comando.quantidadeEmitida(),
                 comando.cotacao() == null || comando.cotacao().signum() <= 0 ? List.of()

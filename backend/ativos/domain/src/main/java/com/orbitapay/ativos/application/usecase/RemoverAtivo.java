@@ -1,6 +1,5 @@
 package com.orbitapay.ativos.application.usecase;
 
-import java.time.Clock;
 import java.time.Instant;
 
 import com.orbitapay.ativos.application.service.PublicadorDeEventosDeAtivo;
@@ -13,12 +12,10 @@ public class RemoverAtivo {
 
     private final AtivoRepository ativos;
     private final PublicadorDeEventosDeAtivo publicador;
-    private final Clock relogio;
 
-    public RemoverAtivo(AtivoRepository ativos, PublicadorDeEventosDeAtivo publicador, Clock relogio) {
+    public RemoverAtivo(AtivoRepository ativos, PublicadorDeEventosDeAtivo publicador) {
         this.ativos = ativos;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
     public void executar(String ticker) {
@@ -27,6 +24,6 @@ public class RemoverAtivo {
             throw new AtivoNaoEncontradoException(codigo.valor());
         }
         ativos.remover(codigo);
-        publicador.publicar(new AtivoRemovido(codigo.valor(), Instant.now(relogio)));
+        publicador.publicar(new AtivoRemovido(codigo.valor(), Instant.now()));
     }
 }

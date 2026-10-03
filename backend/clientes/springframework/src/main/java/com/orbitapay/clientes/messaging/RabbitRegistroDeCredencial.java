@@ -13,7 +13,6 @@ import com.orbitapay.clientes.domain.exception.RegraDeNegocioException;
 import com.orbitapay.clientes.messaging.mensagem.RegistroDeCredencialMensagem;
 import com.orbitapay.clientes.messaging.mensagem.RegistroDeCredencialRespostaMensagem;
 
-/** Request/reply na fila ponto a ponto da Autenticação (direct reply-to), no mesmo molde de ativos.consultas. */
 @Component
 public class RabbitRegistroDeCredencial implements RegistroDeCredencial {
 
@@ -34,8 +33,7 @@ public class RabbitRegistroDeCredencial implements RegistroDeCredencial {
         try {
             resposta = rabbitTemplate.convertSendAndReceiveAsType("", mensageria.filaDeRegistrosDeCredencial(),
                     new RegistroDeCredencialMensagem(clienteId, email, pin),
-                    new ParameterizedTypeReference<RegistroDeCredencialRespostaMensagem>() {
-                    });
+                    ParameterizedTypeReference.forType(RegistroDeCredencialRespostaMensagem.class));
         } catch (AmqpException e) {
             LOG.warn("Contexto de Autenticação indisponível para o cliente {}: {}", clienteId, e.getMessage());
             throw new AutenticacaoIndisponivelException();

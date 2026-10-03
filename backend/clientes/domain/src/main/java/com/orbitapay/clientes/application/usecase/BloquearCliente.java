@@ -1,7 +1,7 @@
 package com.orbitapay.clientes.application.usecase;
 
-import java.time.Clock;
 import java.time.Instant;
+import java.util.Optional;
 
 import com.orbitapay.clientes.application.service.PublicadorDeEventosDeCliente;
 import com.orbitapay.clientes.domain.event.ClienteSituacaoAlterada;
@@ -14,12 +14,10 @@ public class BloquearCliente {
 
     private final ClienteRepository repositorio;
     private final PublicadorDeEventosDeCliente publicador;
-    private final Clock relogio;
 
-    public BloquearCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador, Clock relogio) {
+    public BloquearCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador) {
         this.repositorio = repositorio;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
     public Cliente executar(String clienteId, MotivoBloqueio motivo) {
@@ -27,17 +25,14 @@ public class BloquearCliente {
                 .orElseThrow(() -> new ClienteNaoEncontradoException(clienteId));
         cliente.bloquear(motivo);
         repositorio.salvar(cliente);
-        publicador.publicar(new ClienteSituacaoAlterada(cliente.id(), true, motivo, Instant.now(relogio)));
+        publicador.publicar(new ClienteSituacaoAlterada(cliente.id(), true, motivo, Instant.now()));
         return cliente;
     }
 
-    /**
-     * Reação ao evento {@code credencial.bloqueada-por-pin} da Autenticação. É idempotente: um cliente já
-     * bloqueado (ou já removido) não muda de situação.
-     */
     public void porExcessoDeTentativasDePin(String clienteId) {
-        repositorio.buscarPorId(clienteId)
-                .filter(cliente -> !cliente.bloqueado())
-                .ifPresent(cliente -> executar(cliente.id(), MotivoBloqueio.PIN));
+        Optional<Cliente> cliente = repositorio.buscarPorId(clienteId);
+        if (cliente.isPresent() && !cliente.get().bloqueado()) {
+            executar(clienteId, MotivoBloqueio.PIN);
+        }
     }
 }

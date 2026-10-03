@@ -1,6 +1,5 @@
 package com.orbitapay.clientes.application.usecase;
 
-import java.time.Clock;
 import java.time.Instant;
 
 import com.orbitapay.clientes.application.service.PublicadorDeEventosDeCliente;
@@ -20,13 +19,10 @@ public class AtualizarDadosDoCliente {
 
     private final ClienteRepository repositorio;
     private final PublicadorDeEventosDeCliente publicador;
-    private final Clock relogio;
 
-    public AtualizarDadosDoCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador,
-            Clock relogio) {
+    public AtualizarDadosDoCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador) {
         this.repositorio = repositorio;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
     public Cliente executar(Comando comando) {
@@ -42,7 +38,7 @@ public class AtualizarDadosDoCliente {
             cliente.corrigirCpf(new Cpf(comando.cpf()));
         }
         repositorio.salvar(cliente);
-        publicador.publicar(new ClienteAtualizado(cliente.id(), nome.valor(), email.valor(), Instant.now(relogio)));
+        publicador.publicar(new ClienteAtualizado(cliente.id(), nome.valor(), email.valor(), Instant.now()));
         return cliente;
     }
 }

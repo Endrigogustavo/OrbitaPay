@@ -4,7 +4,6 @@ import type { AcaoExibida } from '@/@types/orbita';
 import { C } from '@/constants/tema';
 import { T } from './ui';
 
-/** Letreiro de cotações rolando continuamente. Recebe a lista duplicada para o laço não ter emenda. */
 export function Letreiro({ items }: { items: AcaoExibida[] }) {
   const v = useRef(new Animated.Value(0)).current;
   const [w, setW] = useState(0);

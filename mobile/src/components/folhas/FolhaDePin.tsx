@@ -9,7 +9,6 @@ import { TituloDaFolha } from '../Titulos';
 import { Anim, ErrBox, T } from '../ui';
 import { Teclado } from './Teclado';
 
-/** Título, kicker e subtítulo conforme o que o PIN vai autorizar. */
 function textos(folha: FolhaDo<'pin'>): [string, string, string] {
   switch (folha.purpose) {
     case 'withdraw': return ['Autorizar saque', 'Confirme com seu PIN', 'Saque de ' + brl(folha.v)];

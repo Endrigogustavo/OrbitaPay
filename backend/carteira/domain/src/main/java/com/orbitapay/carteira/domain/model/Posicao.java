@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class Posicao {
 
@@ -14,9 +13,9 @@ public class Posicao {
     private final Map<String, Long> reservas;
 
     public Posicao(String ticker, long quantidade, BigDecimal precoMedio, Map<String, Long> reservas) {
-        this.ticker = Objects.requireNonNull(ticker);
+        this.ticker = ticker;
         this.quantidade = quantidade;
-        this.precoMedio = Objects.requireNonNull(precoMedio);
+        this.precoMedio = precoMedio;
         this.reservas = new LinkedHashMap<>(reservas);
     }
 
@@ -53,7 +52,11 @@ public class Posicao {
     }
 
     public long quantidadeReservada() {
-        return reservas.values().stream().mapToLong(Long::longValue).sum();
+        long total = 0;
+        for (long reservada : reservas.values()) {
+            total += reservada;
+        }
+        return total;
     }
 
     public long quantidadeDisponivel() {

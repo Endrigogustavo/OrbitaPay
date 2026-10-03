@@ -54,7 +54,3 @@ mensageria:
       fila: carteira.ordem-rejeitada
       topico: ordem.rejeitada
 
-orbita:
-  trava:
-    espera-maxima-ms: 10000
-    expiracao-ms: 30000

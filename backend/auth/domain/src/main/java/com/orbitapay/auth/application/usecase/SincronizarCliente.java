@@ -1,9 +1,11 @@
 package com.orbitapay.auth.application.usecase;
 
+import java.util.Optional;
+
+import com.orbitapay.auth.domain.model.Credencial;
 import com.orbitapay.auth.domain.model.Email;
 import com.orbitapay.auth.domain.repository.CredencialRepository;
 
-/** Mantém a credencial alinhada ao que o contexto de Clientes publica (e-mail, desbloqueio e encerramento). */
 public class SincronizarCliente {
 
     private final CredencialRepository repositorio;
@@ -13,17 +15,19 @@ public class SincronizarCliente {
     }
 
     public void atualizarEmail(String clienteId, String email) {
-        repositorio.buscarPorCliente(clienteId).ifPresent(credencial -> {
-            credencial.alterarEmail(new Email(email));
-            repositorio.salvar(credencial);
-        });
+        Optional<Credencial> credencial = repositorio.buscarPorCliente(clienteId);
+        if (credencial.isPresent()) {
+            credencial.get().alterarEmail(new Email(email));
+            repositorio.salvar(credencial.get());
+        }
     }
 
     public void desbloqueado(String clienteId) {
-        repositorio.buscarPorCliente(clienteId).ifPresent(credencial -> {
-            credencial.zerarTentativas();
-            repositorio.salvar(credencial);
-        });
+        Optional<Credencial> credencial = repositorio.buscarPorCliente(clienteId);
+        if (credencial.isPresent()) {
+            credencial.get().zerarTentativas();
+            repositorio.salvar(credencial.get());
+        }
     }
 
     public void encerrar(String clienteId) {

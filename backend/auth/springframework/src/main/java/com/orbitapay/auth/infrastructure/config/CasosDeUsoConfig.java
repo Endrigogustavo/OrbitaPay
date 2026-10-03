@@ -1,7 +1,5 @@
 package com.orbitapay.auth.infrastructure.config;
 
-import java.time.Clock;
-
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,20 +21,14 @@ import com.orbitapay.auth.domain.repository.CredencialRepository;
 public class CasosDeUsoConfig {
 
     @Bean
-    public Clock relogio() {
-        return Clock.systemUTC();
-    }
-
-    @Bean
     public ConferenciaDePin conferenciaDePin(CredencialRepository repositorio, CodificadorDePin codificador,
-            PublicadorDeEventosDeCredencial publicador, Clock relogio) {
-        return new ConferenciaDePin(repositorio, codificador, publicador, relogio);
+            PublicadorDeEventosDeCredencial publicador) {
+        return new ConferenciaDePin(repositorio, codificador, publicador);
     }
 
     @Bean
-    public RegistrarCredencial registrarCredencial(CredencialRepository repositorio, CodificadorDePin codificador,
-            Clock relogio) {
-        return new RegistrarCredencial(repositorio, codificador, relogio);
+    public RegistrarCredencial registrarCredencial(CredencialRepository repositorio, CodificadorDePin codificador) {
+        return new RegistrarCredencial(repositorio, codificador);
     }
 
     @Bean

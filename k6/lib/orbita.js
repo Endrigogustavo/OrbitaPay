@@ -1,5 +1,3 @@
-// Cliente HTTP do gateway OrbitaPay para os testes k6. Todas as requisições passam pelo gateway (:8080),
-// exatamente como o app mobile faz.
 import http from 'k6/http';
 import { check, fail, sleep } from 'k6';
 
@@ -11,7 +9,6 @@ export const CLIENTES_DE_DEMONSTRACAO = {
   bruno: { email: 'bruno@orbita.com', pin: '4321' },
 };
 
-/** Status que o teste considera respostas válidas além de 2xx (ex.: 422 de regra de negócio esperada). */
 export const aceitando = (...status) => http.expectedStatuses({ min: 200, max: 299 }, ...status);
 
 function cabecalhos({ token, assinatura } = {}) {
@@ -46,8 +43,6 @@ function exigir(res, descricao, status = 200) {
   return res;
 }
 
-// ---------- Autenticação ----------
-
 export function entrarComoCliente(email, pin) {
   const res = exigir(post('/api/autenticacao/clientes', { email, pin }), 'login do cliente');
   return { token: res.json('token'), clienteId: res.json('clienteId') };
@@ -57,12 +52,9 @@ export function entrarComoGerente(codigo = CODIGO_DO_GERENTE) {
   return exigir(post('/api/autenticacao/gerente', { codigo }), 'login do gerente').json('token');
 }
 
-/** Assinatura de curta duração exigida pelo gateway em saques, ordens e desbloqueio. */
 export function assinar(token, pin) {
   return exigir(post('/api/autenticacao/assinaturas', { pin }, { token }), 'assinatura com PIN').json('token');
 }
-
-// ---------- Clientes ----------
 
 function cpfAleatorio() {
   let cpf = '';
@@ -70,7 +62,6 @@ function cpfAleatorio() {
   return cpf;
 }
 
-/** Cadastra um cliente exclusivo para o teste, já com saldo inicial (só o gerente pode informar o depósito). */
 export function cadastrarInvestidor(tokenDoGerente, depositoInicial = 50000) {
   const marca = `${__VU}-${Date.now()}-${Math.floor(Math.random() * 1e6)}`;
   const dados = { nome: `Investidor K6 ${marca}`, email: `k6.${marca}@orbita.com`, cpf: cpfAleatorio(), pin: '2468', depositoInicial };
@@ -78,7 +69,6 @@ export function cadastrarInvestidor(tokenDoGerente, depositoInicial = 50000) {
   return { id: res.json('id'), email: dados.email, pin: dados.pin };
 }
 
-/** A conta é aberta de forma assíncrona pelo contexto de Contas depois do evento cliente.cadastrado. */
 export function aguardarConta(token, tentativas = 40) {
   for (let i = 0; i < tentativas; i++) {
     const res = get('/api/contas/me', { token }, { responseCallback: aceitando(404) });
@@ -88,13 +78,10 @@ export function aguardarConta(token, tentativas = 40) {
   fail('a conta não foi aberta a tempo');
 }
 
-// ---------- Negociação ----------
-
 export function enviarOrdem(token, assinatura, ticker, tipo, quantidade, responseCallback) {
   return post('/api/ordens', { ticker, tipo, quantidade }, { token, assinatura }, { nome: 'POST /api/ordens', responseCallback });
 }
 
-/** Acompanha a saga até a ordem sair de PENDENTE. Retorna a ordem final (ou null se não terminou). */
 export function aguardarOrdem(token, ordemId, tentativas = 60, intervalo = 0.25) {
   for (let i = 0; i < tentativas; i++) {
     const res = get(`/api/ordens/${ordemId}`, { token }, { nome: 'GET /api/ordens/{id}' });
@@ -103,8 +90,6 @@ export function aguardarOrdem(token, ordemId, tentativas = 60, intervalo = 0.25)
   }
   return null;
 }
-
-// ---------- Pagamentos ----------
 
 export function solicitarDeposito(token, valor, metodo = 'PIX') {
   return exigir(post('/api/pagamentos', { valor, metodo }, { token }, { nome: 'POST /api/pagamentos' }), `cobrança ${metodo}`, 201).json();
@@ -118,8 +103,6 @@ export function aguardarPagamento(token, pagamentoId, tentativas = 40, intervalo
   }
   return null;
 }
-
-// ---------- Relatório de saída ----------
 
 function linhasDeChecks(grupo, prefixo = '') {
   const linhas = [];
@@ -139,7 +122,6 @@ function valorDaMetrica(m) {
   return JSON.stringify(v);
 }
 
-/** Resumo em texto puro (sem dependências externas), usado no handleSummary de cada script. */
 export function resumoEmTexto(titulo, data, metricas) {
   const linhas = [
     '='.repeat(72),

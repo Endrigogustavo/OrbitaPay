@@ -21,5 +21,4 @@ export const F = {
   m: 'Barlow_500Medium',
 } as const;
 
-/** Cor da variação de preço: azul para alta, cinza para baixa. */
 export const corDaVariacao = (subiu: boolean): string => (subiu ? C.a700 : C.n700);

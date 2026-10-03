@@ -27,7 +27,6 @@ orbita:
   conciliacao:
     intervalo-ms: ${ORBITA_CONCILIACAO_INTERVALO_MS:2000}
     lote: 200
-  # O que o OrbitaPay envia a cada provedor (lado de dentro da camada anticorrupção)
   acl:
     pix:
       chave: pix@orbitapay.com.br
@@ -36,7 +35,6 @@ orbita:
       dias-para-vencimento: 3
     ted:
       horas-de-validade: 24
-  # Comportamento dos provedores simulados (lado de fora)
   provedores-simulados:
     pix:
       ispb: "99999999"

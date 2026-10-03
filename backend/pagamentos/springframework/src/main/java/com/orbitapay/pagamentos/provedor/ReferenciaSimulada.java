@@ -3,11 +3,6 @@ package com.orbitapay.pagamentos.provedor;
 import java.time.Instant;
 import java.util.concurrent.ThreadLocalRandom;
 
-/**
- * Os provedores simulados não guardam estado: o identificador que cada um gera carrega o instante de emissão, o
- * valor e a validade, e a situação é recalculada a cada consulta. Assim a simulação sobrevive a reinícios e
- * funciona com várias instâncias do serviço.
- */
 public record ReferenciaSimulada(Instant emitidaEm, long centavos, int validadeSegundos) {
 
     private static final int DIGITOS_DO_INSTANTE = 10;
@@ -47,7 +42,6 @@ public record ReferenciaSimulada(Instant emitidaEm, long centavos, int validadeS
         return emitidaEm.plusSeconds(segundosParaLiquidar);
     }
 
-    /** O pagador simulado desiste dos valores terminados em 99 centavos, para exercitar a expiração. */
     public boolean liquidadaEm(Instant agora, int segundosParaLiquidar) {
         Instant liquidacao = liquidacao(segundosParaLiquidar);
         return centavos % 100 != 99 && !agora.isBefore(liquidacao) && !liquidacao.isAfter(validaAte());

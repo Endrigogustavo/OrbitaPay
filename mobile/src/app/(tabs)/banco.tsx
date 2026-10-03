@@ -15,7 +15,6 @@ import { usePainel } from '@/context/usePainel';
 
 type Visao = 'clientes' | 'acoes';
 
-/** Backoffice do gerente: clientes e listagem de ações. */
 export default function Banco() {
   const gerente = useGerente();
   const { sessao } = useSessao();

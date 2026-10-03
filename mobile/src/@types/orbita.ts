@@ -1,7 +1,5 @@
 import type { MetodoDeDeposito } from './api';
 
-// Modelos usados pelas telas, já convertidos a partir dos DTOs do gateway (ver integration/mapeadores).
-
 export type MotivoBloqueio = 'pin' | 'admin' | 'user';
 export type TipoMovimentacao = 'sys' | 'dep' | 'saq' | 'buy' | 'sell';
 export type Direcao = 'up' | 'down';
@@ -89,7 +87,6 @@ export interface SessaoSalva {
   clienteId: string;
 }
 
-/** Ação já formatada para exibição em listas, letreiro e folha de negociação. */
 export interface AcaoExibida {
   ticker: string;
   name: string;

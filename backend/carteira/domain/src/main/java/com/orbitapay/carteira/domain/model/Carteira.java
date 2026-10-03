@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
 
 import com.orbitapay.carteira.domain.exception.AcoesInsuficientesException;
@@ -18,11 +17,13 @@ public class Carteira {
     private final Map<String, Posicao> posicoes;
     private final Set<String> ordensLiquidadas;
 
-    private Carteira(String id, String clienteId, Collection<Posicao> posicoes, Collection<String> ordensLiquidadas) {
-        this.id = Objects.requireNonNull(id);
-        this.clienteId = Objects.requireNonNull(clienteId);
+    public Carteira(String id, String clienteId, Collection<Posicao> posicoes, Collection<String> ordensLiquidadas) {
+        this.id = id;
+        this.clienteId = clienteId;
         this.posicoes = new LinkedHashMap<>();
-        posicoes.forEach(p -> this.posicoes.put(p.ticker(), p));
+        for (Posicao posicao : posicoes) {
+            this.posicoes.put(posicao.ticker(), posicao);
+        }
         this.ordensLiquidadas = new LinkedHashSet<>(ordensLiquidadas);
     }
 
@@ -30,16 +31,16 @@ public class Carteira {
         return new Carteira(id, clienteId, List.of(), List.of());
     }
 
-    public static Carteira reconstituir(String id, String clienteId, Collection<Posicao> posicoes,
-            Collection<String> ordensLiquidadas) {
-        return new Carteira(id, clienteId, posicoes, ordensLiquidadas);
-    }
-
     public void registrarCompra(String ordemId, String ticker, long quantidade, BigDecimal precoUnitario) {
         if (!ordensLiquidadas.add(ordemId)) {
             return;
         }
-        posicoes.computeIfAbsent(ticker, Posicao::vazia).adicionar(quantidade, precoUnitario);
+        Posicao posicao = posicoes.get(ticker);
+        if (posicao == null) {
+            posicao = Posicao.vazia(ticker);
+            posicoes.put(ticker, posicao);
+        }
+        posicao.adicionar(quantidade, precoUnitario);
     }
 
     public void reservarParaVenda(String ordemId, String ticker, long quantidade) {

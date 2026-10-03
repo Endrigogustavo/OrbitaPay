@@ -17,10 +17,14 @@ public class RequisicaoComIdentidade extends HttpServletRequestWrapper {
 
     private final Map<String, String> injetados = new LinkedHashMap<>();
 
-    public RequisicaoComIdentidade(HttpServletRequest requisicao, Decisao.Liberado liberado) {
+    public RequisicaoComIdentidade(HttpServletRequest requisicao, Decisao decisao) {
         super(requisicao);
-        liberado.clienteId().ifPresent(id -> injetados.put(CabecalhosInternos.CLIENTE_ID, id));
-        liberado.perfil().ifPresent(perfil -> injetados.put(CabecalhosInternos.PERFIL, perfil.name()));
+        if (decisao.clienteId() != null) {
+            injetados.put(CabecalhosInternos.CLIENTE_ID, decisao.clienteId());
+        }
+        if (decisao.perfil() != null) {
+            injetados.put(CabecalhosInternos.PERFIL, decisao.perfil().name());
+        }
     }
 
     @Override
@@ -43,15 +47,23 @@ public class RequisicaoComIdentidade extends HttpServletRequestWrapper {
 
     @Override
     public Enumeration<String> getHeaderNames() {
-        List<String> nomes = Collections.list(super.getHeaderNames()).stream().filter(n -> !controlado(n)).toList();
-        List<String> todos = new ArrayList<>(nomes);
-        todos.addAll(injetados.keySet());
-        return Collections.enumeration(todos);
+        List<String> nomes = new ArrayList<>();
+        for (String nome : Collections.list(super.getHeaderNames())) {
+            if (!controlado(nome)) {
+                nomes.add(nome);
+            }
+        }
+        nomes.addAll(injetados.keySet());
+        return Collections.enumeration(nomes);
     }
 
     private String injetado(String nome) {
-        return injetados.entrySet().stream().filter(e -> e.getKey().equalsIgnoreCase(nome)).map(Map.Entry::getValue)
-                .findFirst().orElse(null);
+        for (Map.Entry<String, String> cabecalho : injetados.entrySet()) {
+            if (cabecalho.getKey().equalsIgnoreCase(nome)) {
+                return cabecalho.getValue();
+            }
+        }
+        return null;
     }
 
     private static boolean controlado(String nome) {

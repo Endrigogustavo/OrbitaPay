@@ -34,16 +34,13 @@ interface Geometria {
 }
 
 interface Linhas {
-  /** Pontos 3D achatados (x, y, z, x, y, z…). */
   p: number[];
-  /** Pares (início, quantidade) de cada polilinha. */
   l: number[];
 }
 
 const rgba = (hex: string): Rgba => [parseInt(hex.slice(1, 3), 16) / 255, parseInt(hex.slice(3, 5), 16) / 255, parseInt(hex.slice(5, 7), 16) / 255, 1];
 const COLORS = { cGrat: rgba(C.a300), cLand: rgba(C.a400), cCoast: rgba(C.a700) };
 
-// Shader que desenha graticulado, continentes (a partir da máscara de terra) e litoral na esfera.
 const EARTH = Skia.RuntimeEffect.Make(`
 uniform shader land;
 uniform float2 c;
@@ -113,7 +110,6 @@ function slerp(a: Vetor, b: Vetor, f: number): Vetor {
   return [a[0] * k0 + b[0] * k1, a[1] * k0 + b[1] * k1, a[2] * k0 + b[2] * k1];
 }
 
-/** Arcos de grande círculo da bolsa selecionada até todas as outras. */
 function arcsFrom(si: number): Linhas {
   const a = EXV[si], p: number[] = [], l: number[] = [];
   EX.forEach((_, i) => {
@@ -144,7 +140,6 @@ function limb(q: number[], a: number, b: number, g: Geometria): [number, number]
   return [g.cx + (g.R * y) / len, g.cy - (g.R * z) / len];
 }
 
-/** Desenha só os trechos visíveis (face da frente), cortando no limbo da esfera. */
 function strokeLines(path: SkPath, data: Linhas, g: Geometria) {
   'worklet';
   const q = projectAll(data.p, g), L = data.l;
@@ -167,7 +162,6 @@ function strokeLines(path: SkPath, data: Linhas, g: Geometria) {
 
 interface MarkerProps {
   i: number;
-  /** Para cada bolsa: x, y, visibilidade e fase do pulso. */
   marks: SharedValue<number[]>;
   sel: boolean;
   open: boolean;
@@ -209,12 +203,9 @@ type GestoExterno = Parameters<ReturnType<typeof Gesture.Pan>['blocksExternalGes
 
 interface GloboProps {
   selEx: string;
-  /** Incrementa a cada seleção, para disparar o voo até a bolsa. */
   exN: number;
-  /** Uma posição por bolsa de EX: '1' aberta, '0' fechada. */
   openKey: string;
   onSelect: (codigo: string) => void;
-  /** Rolagem da tela, que cede o gesto de arrastar ao globo. */
   scrollRef?: GestoExterno;
   autoRotate?: boolean;
 }

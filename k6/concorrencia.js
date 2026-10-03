@@ -1,9 +1,3 @@
-// Teste de concorrência (substitui scripts/teste-concorrencia.sh): dispara ao mesmo tempo
-//   - 20 ordens de compra de 1 ORBT3, que foi emitida com apenas 10 ações;
-//   - 10 saques de R$ 500 na conta do Bruno (R$ 3.150 nos dados de demonstração).
-// No fim confere, direto no estado dos serviços, que a trava pessimista não deixou vender ações que não existem
-// nem sacar além do saldo. Grava o relatório em relatorio-concorrencia-<data>.txt.
-//   k6 run k6/concorrencia.js
 import { check, sleep } from 'k6';
 import { Counter } from 'k6/metrics';
 import {

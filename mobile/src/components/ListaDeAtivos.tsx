@@ -5,7 +5,6 @@ import { IC } from '@/constants/icones';
 import { C } from '@/constants/tema';
 import { Anim, Icon, Input, Row, T } from './ui';
 
-/** Gráfico de linha em miniatura (64x26). */
 export const Spark = ({ points, color }: { points: string; color: string }) => (
   <Svg width={64} height={26} viewBox="0 0 64 26"><Polyline points={points} fill="none" stroke={color} strokeWidth={1.3} strokeLinejoin="round" /></Svg>
 );
@@ -13,7 +12,6 @@ export const Spark = ({ points, color }: { points: string; color: string }) => (
 interface LinhaDeAtivoProps {
   acao: AcaoExibida;
   indice: number;
-  /** Versão enxuta usada dentro do cartão da bolsa, no globo. */
   compacta?: boolean;
 }
 
@@ -44,7 +42,6 @@ interface CampoDeBuscaProps {
   valor: string;
   aoMudar: (texto: string) => void;
   placeholder: string;
-  /** Altura: 40 na versão compacta (lado a lado com um botão), 44 na versão cheia. */
   h: 40 | 44;
 }
 
@@ -63,7 +60,6 @@ interface ChipProps {
   label: string;
   on: boolean;
   onPress: () => void;
-  /** Quando informado, mostra uma bolinha cheia (true) ou vazia (false) antes do rótulo. */
   dot?: boolean;
 }
 

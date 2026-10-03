@@ -1,6 +1,5 @@
 package com.orbitapay.clientes.application.usecase;
 
-import java.time.Clock;
 import java.time.Instant;
 
 import com.orbitapay.clientes.application.service.PublicadorDeEventosDeCliente;
@@ -13,15 +12,12 @@ public class DesbloquearCliente {
 
     private final ClienteRepository repositorio;
     private final PublicadorDeEventosDeCliente publicador;
-    private final Clock relogio;
 
-    public DesbloquearCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador, Clock relogio) {
+    public DesbloquearCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador) {
         this.repositorio = repositorio;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
-    /** O PIN já foi conferido pela Autenticação: o gateway só deixa a requisição passar com uma assinatura válida. */
     public Cliente peloCliente(String clienteId) {
         Cliente cliente = buscar(clienteId);
         cliente.desbloquearPeloCliente();
@@ -40,7 +36,7 @@ public class DesbloquearCliente {
 
     private Cliente salvarEPublicar(Cliente cliente) {
         repositorio.salvar(cliente);
-        publicador.publicar(new ClienteSituacaoAlterada(cliente.id(), false, null, Instant.now(relogio)));
+        publicador.publicar(new ClienteSituacaoAlterada(cliente.id(), false, null, Instant.now()));
         return cliente;
     }
 }

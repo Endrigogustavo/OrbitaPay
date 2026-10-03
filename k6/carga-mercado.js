@@ -1,6 +1,3 @@
-// Carga nas leituras públicas do mercado (o que o app consulta a cada poucos segundos).
-//   k6 run k6/carga-mercado.js
-//   k6 run -e TAXA=200 -e DURACAO=2m k6/carga-mercado.js
 import { check } from 'k6';
 import { get, resumoEmTexto } from './lib/orbita.js';
 

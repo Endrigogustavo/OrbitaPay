@@ -1,14 +1,10 @@
 package com.orbitapay.negociacao.persistence.trava;
 
-import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.UUID;
-import java.util.concurrent.ThreadLocalRandom;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -16,76 +12,67 @@ import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
 
 import com.orbitapay.negociacao.application.exception.TravaIndisponivelException;
+import com.orbitapay.negociacao.domain.exception.RecursoNaoEncontradoException;
+import com.orbitapay.negociacao.persistence.AtivoNegociavelDocument;
 
 @Component
 public class TravaPessimistaMongo {
 
     private static final Logger LOG = LoggerFactory.getLogger(TravaPessimistaMongo.class);
-    private static final String CAMPO = "trava";
+    private static final Duration ESPERA_MAXIMA = Duration.ofSeconds(10);
+    private static final Duration VALIDADE_DA_TRAVA = Duration.ofSeconds(30);
+    private static final long INTERVALO_ENTRE_TENTATIVAS_MS = 20;
 
     private final MongoTemplate mongo;
-    private final Duration esperaMaxima;
-    private final Duration expiracao;
-    private final Clock relogio;
 
-    public TravaPessimistaMongo(MongoTemplate mongo,
-            @Value("${orbita.trava.espera-maxima-ms}") long esperaMaximaMs,
-            @Value("${orbita.trava.expiracao-ms}") long expiracaoMs,
-            Clock relogio) {
+    public TravaPessimistaMongo(MongoTemplate mongo) {
         this.mongo = mongo;
-        this.esperaMaxima = Duration.ofMillis(esperaMaximaMs);
-        this.expiracao = Duration.ofMillis(expiracaoMs);
-        this.relogio = relogio;
     }
 
-    public <T> T adquirir(Class<T> tipo, Criteria filtro, String recurso, String dono) {
-        long inicio = System.nanoTime();
-        long limite = inicio + esperaMaxima.toNanos();
-        int tentativa = 0;
-        LOG.info("ANTES DO LOCK | recurso={} dono={}", recurso, dono);
+    public AtivoNegociavelDocument travar(String ticker, String dono) {
+        Instant limite = Instant.now().plus(ESPERA_MAXIMA);
+        LOG.info("ANTES DO LOCK | ativo={} dono={}", ticker, dono);
         while (true) {
-            Instant agora = Instant.now(relogio);
-            Query livre = new Query(new Criteria().andOperator(filtro, new Criteria().orOperator(
-                    Criteria.where(CAMPO).isNull(), Criteria.where(CAMPO + ".expiraEm").lt(agora))));
-            Update travar = new Update().set(CAMPO, new TravaDocument(dono, agora, agora.plus(expiracao)));
-            T documento = mongo.findAndModify(livre, travar, tipo);
-            if (documento != null) {
-                LOG.info("LOCK ADQUIRIDO | recurso={} dono={} esperou={}ms tentativas={}", recurso, dono,
-                        (System.nanoTime() - inicio) / 1_000_000, tentativa + 1);
-                return documento;
+            Instant agora = Instant.now();
+            Query ativoLivre = new Query(Criteria.where("_id").is(ticker).orOperator(
+                    Criteria.where("trava").isNull(),
+                    Criteria.where("trava.expiraEm").lt(agora)));
+            Update travar = new Update().set("trava", new TravaDocument(dono, agora, agora.plus(VALIDADE_DA_TRAVA)));
+
+            AtivoNegociavelDocument ativo = mongo.findAndModify(ativoLivre, travar, AtivoNegociavelDocument.class);
+            if (ativo != null) {
+                LOG.info("LOCK ADQUIRIDO | ativo={} dono={}", ticker, dono);
+                return ativo;
             }
-            if (!mongo.exists(new Query(filtro), tipo)) {
-                return null;
+            if (!mongo.exists(new Query(Criteria.where("_id").is(ticker)), AtivoNegociavelDocument.class)) {
+                throw new RecursoNaoEncontradoException("Ativo não negociado: " + ticker);
             }
-            if (System.nanoTime() > limite) {
-                LOG.warn("LOCK EXPIROU A ESPERA | recurso={} dono={}", recurso, dono);
-                throw new TravaIndisponivelException(recurso);
+            if (Instant.now().isAfter(limite)) {
+                LOG.warn("LOCK EXPIROU A ESPERA | ativo={} dono={}", ticker, dono);
+                throw new TravaIndisponivelException("ativo:" + ticker);
             }
-            aguardar(tentativa++);
+            esperar();
         }
     }
 
-    public <T> boolean substituirELiberar(Class<T> tipo, Criteria filtro, String recurso, String dono, T documento) {
-        Query minhaTrava = new Query(new Criteria().andOperator(filtro, Criteria.where(CAMPO + ".dono").is(dono)));
-        boolean substituiu = mongo.findAndReplace(minhaTrava, documento) != null;
-        LOG.info("{} | recurso={} dono={}", substituiu ? "SAVE + LOCK LIBERADO" : "LOCK PERDIDO", recurso, dono);
-        return substituiu;
+    public void salvarELiberar(AtivoNegociavelDocument ativo, String dono) {
+        Query minhaTrava = new Query(Criteria.where("_id").is(ativo.ticker()).and("trava.dono").is(dono));
+        if (mongo.findAndReplace(minhaTrava, ativo) == null) {
+            LOG.warn("LOCK PERDIDO | ativo={} dono={}", ativo.ticker(), dono);
+            throw new TravaIndisponivelException("ativo:" + ativo.ticker());
+        }
+        LOG.info("SAVE + LOCK LIBERADO | ativo={} dono={}", ativo.ticker(), dono);
     }
 
-    public <T> void liberar(Class<T> tipo, Criteria filtro, String recurso, String dono) {
-        Query minhaTrava = new Query(new Criteria().andOperator(filtro, Criteria.where(CAMPO + ".dono").is(dono)));
-        mongo.updateFirst(minhaTrava, new Update().unset(CAMPO), tipo);
-        LOG.info("LOCK LIBERADO SEM ALTERACAO | recurso={} dono={}", recurso, dono);
+    public void liberar(String ticker, String dono) {
+        Query minhaTrava = new Query(Criteria.where("_id").is(ticker).and("trava.dono").is(dono));
+        mongo.updateFirst(minhaTrava, new Update().unset("trava"), AtivoNegociavelDocument.class);
+        LOG.info("LOCK LIBERADO SEM ALTERACAO | ativo={} dono={}", ticker, dono);
     }
 
-    public static String novoDono() {
-        return UUID.randomUUID().toString();
-    }
-
-    private static void aguardar(int tentativa) {
-        long base = Math.min(5L << Math.min(tentativa, 5), 120L);
+    private static void esperar() {
         try {
-            Thread.sleep(base + ThreadLocalRandom.current().nextLong(10));
+            Thread.sleep(INTERVALO_ENTRE_TENTATIVAS_MS);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Espera pela trava interrompida", e);

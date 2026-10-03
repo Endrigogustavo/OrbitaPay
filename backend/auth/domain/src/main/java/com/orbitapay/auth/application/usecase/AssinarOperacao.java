@@ -7,11 +7,6 @@ import com.orbitapay.auth.domain.model.Credencial;
 import com.orbitapay.auth.domain.model.Pin;
 import com.orbitapay.auth.domain.repository.CredencialRepository;
 
-/**
- * Emite a assinatura de curta duração que o gateway exige em saques, ordens e no desbloqueio pelo cliente.
- * A assinatura só prova que o cliente conhece o PIN: cada contexto continua aplicando as próprias regras
- * (Contas recusa saque de titular bloqueado, Negociação recusa ordem de investidor bloqueado).
- */
 public class AssinarOperacao {
 
     private final CredencialRepository repositorio;

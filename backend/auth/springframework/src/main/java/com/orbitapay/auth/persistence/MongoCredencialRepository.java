@@ -50,7 +50,7 @@ public class MongoCredencialRepository implements CredencialRepository {
     }
 
     private static Credencial paraDominio(CredencialDocument documento) {
-        return Credencial.reconstituir(documento.clienteId(), new Email(documento.email()),
+        return new Credencial(documento.clienteId(), new Email(documento.email()),
                 documento.pinCodificado(), documento.tentativasFalhas(), documento.criadaEm());
     }
 }

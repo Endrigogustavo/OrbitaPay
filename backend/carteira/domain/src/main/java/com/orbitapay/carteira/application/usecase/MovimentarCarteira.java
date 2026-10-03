@@ -1,7 +1,6 @@
 package com.orbitapay.carteira.application.usecase;
 
 import java.math.BigDecimal;
-import java.time.Clock;
 import java.time.Instant;
 
 import com.orbitapay.carteira.application.service.PublicadorDeEventosDeCarteira;
@@ -9,6 +8,7 @@ import com.orbitapay.carteira.domain.event.AcoesInsuficientes;
 import com.orbitapay.carteira.domain.event.AcoesReservadas;
 import com.orbitapay.carteira.domain.exception.AcoesInsuficientesException;
 import com.orbitapay.carteira.domain.repository.CarteiraRepository;
+import com.orbitapay.carteira.domain.repository.CarteiraTravada;
 
 public class MovimentarCarteira {
 
@@ -16,43 +16,63 @@ public class MovimentarCarteira {
     }
 
     private final CarteiraRepository repositorio;
-    private final OperacaoComTrava operacao;
     private final PublicadorDeEventosDeCarteira publicador;
-    private final Clock relogio;
 
-    public MovimentarCarteira(CarteiraRepository repositorio, OperacaoComTrava operacao,
-            PublicadorDeEventosDeCarteira publicador, Clock relogio) {
+    public MovimentarCarteira(CarteiraRepository repositorio, PublicadorDeEventosDeCarteira publicador) {
         this.repositorio = repositorio;
-        this.operacao = operacao;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
     public void reservarParaVenda(Comando comando) {
+        CarteiraTravada travada = repositorio.travarPorCliente(comando.clienteId());
         try {
-            operacao.executar(comando.clienteId(), carteira -> carteira.reservarParaVenda(comando.ordemId(),
-                    comando.ticker(), comando.quantidade()));
-            publicador.publicar(new AcoesReservadas(comando.ordemId(), comando.clienteId(), comando.ticker(),
-                    comando.quantidade(), Instant.now(relogio)));
-        } catch (AcoesInsuficientesException e) {
+            travada.carteira().reservarParaVenda(comando.ordemId(), comando.ticker(), comando.quantidade());
+            repositorio.salvarELiberar(travada);
+        } catch (AcoesInsuficientesException erro) {
+            repositorio.liberar(travada);
             publicador.publicar(new AcoesInsuficientes(comando.ordemId(), comando.clienteId(), comando.ticker(),
-                    e.getMessage(), Instant.now(relogio)));
+                    erro.getMessage(), Instant.now()));
+            return;
+        } catch (RuntimeException erro) {
+            repositorio.liberar(travada);
+            throw erro;
         }
+        publicador.publicar(new AcoesReservadas(comando.ordemId(), comando.clienteId(), comando.ticker(),
+                comando.quantidade(), Instant.now()));
     }
 
     public void liquidarCompra(Comando comando) {
-        operacao.executar(comando.clienteId(), carteira -> carteira.registrarCompra(comando.ordemId(),
-                comando.ticker(), comando.quantidade(), comando.precoUnitario()));
+        CarteiraTravada travada = repositorio.travarPorCliente(comando.clienteId());
+        try {
+            travada.carteira().registrarCompra(comando.ordemId(), comando.ticker(), comando.quantidade(),
+                    comando.precoUnitario());
+            repositorio.salvarELiberar(travada);
+        } catch (RuntimeException erro) {
+            repositorio.liberar(travada);
+            throw erro;
+        }
     }
 
     public void liquidarVenda(Comando comando) {
-        operacao.executar(comando.clienteId(),
-                carteira -> carteira.liquidarVenda(comando.ordemId(), comando.ticker()));
+        CarteiraTravada travada = repositorio.travarPorCliente(comando.clienteId());
+        try {
+            travada.carteira().liquidarVenda(comando.ordemId(), comando.ticker());
+            repositorio.salvarELiberar(travada);
+        } catch (RuntimeException erro) {
+            repositorio.liberar(travada);
+            throw erro;
+        }
     }
 
     public void cancelarVenda(Comando comando) {
-        operacao.executar(comando.clienteId(),
-                carteira -> carteira.cancelarReserva(comando.ordemId(), comando.ticker()));
+        CarteiraTravada travada = repositorio.travarPorCliente(comando.clienteId());
+        try {
+            travada.carteira().cancelarReserva(comando.ordemId(), comando.ticker());
+            repositorio.salvarELiberar(travada);
+        } catch (RuntimeException erro) {
+            repositorio.liberar(travada);
+            throw erro;
+        }
     }
 
     public void encerrar(String clienteId) {

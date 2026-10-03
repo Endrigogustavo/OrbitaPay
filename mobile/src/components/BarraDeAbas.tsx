@@ -8,7 +8,6 @@ import { Anim, Icon, OUT, T } from './ui';
 
 export type PropsDaBarraDeAbas = Parameters<NonNullable<ComponentProps<typeof Tabs>['tabBar']>>[0];
 
-/** Barra inferior das abas, com indicador deslizante sobre a aba ativa. */
 export function BarraDeAbas({ state, navigation, insets }: PropsDaBarraDeAbas) {
   const x = useRef(new Animated.Value(0)).current;
   const [w, setW] = useState(0);

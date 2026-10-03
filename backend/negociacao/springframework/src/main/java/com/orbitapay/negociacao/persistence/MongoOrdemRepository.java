@@ -44,7 +44,7 @@ public class MongoOrdemRepository implements OrdemRepository {
     }
 
     private static Ordem paraDominio(OrdemDocument documento) {
-        return Ordem.reconstituir(documento.id(), documento.clienteId(), documento.ticker(),
+        return new Ordem(documento.id(), documento.clienteId(), documento.ticker(),
                 TipoOrdem.valueOf(documento.tipo()), documento.quantidade(), documento.precoUnitario(),
                 documento.moeda(), documento.cambio(), documento.valorTotal(), StatusOrdem.valueOf(documento.status()),
                 documento.motivoRejeicao(), documento.criadaEm(), documento.atualizadaEm());

@@ -1,9 +1,5 @@
 package com.orbitapay.pagamentos.provedor.boleto.modelo;
 
-/**
- * Modelo do banco emissor de boletos (no estilo das APIs de cobrança bancária): valores em centavos, datas
- * {@code yyyy-MM-dd}, data e hora de liquidação no horário de Brasília sem fuso e situação com códigos próprios.
- */
 public final class Boleto {
 
     private Boleto() {

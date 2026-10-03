@@ -44,7 +44,7 @@ package "domain (módulo Java puro)" {
 
   package "domain" {
     interface VerificadorDeCredencial {
-      + verificar(token) : Optional<Credencial>
+      + verificar(token) : Credencial / null
     }
     class Credencial <<record>> {
       tipo : TipoDeCredencial
@@ -56,15 +56,13 @@ package "domain (módulo Java puro)" {
       + sessaoDe(perfil) : boolean
       + assinaturaDe(clienteId) : boolean
     }
-    interface Decisao <<sealed>>
-    class Liberado <<record>> {
-      clienteId : Optional<String>
-      perfil : Optional<Perfil>
-    }
-    class Recusado <<record>> {
+    class Decisao <<record>> {
+      liberado : boolean
       status : int
       codigo : String
       mensagem : String
+      clienteId : String
+      perfil : Perfil
     }
     enum NivelDeAcesso {
       PUBLICO
@@ -88,14 +86,13 @@ package "domain (módulo Java puro)" {
 GatewayConfig ..> ControleDeAcesso : cria
 GatewayConfig ..> FiltroDeAcesso : registra
 FiltroDeAcesso --> ControleDeAcesso
-FiltroDeAcesso ..> RequisicaoComIdentidade : cria se Liberado
+FiltroDeAcesso ..> RequisicaoComIdentidade : cria se liberado
 RequisicaoComIdentidade ..> CabecalhosInternos
 ControleDeAcesso ..> MapaDeAcesso
 ControleDeAcesso --> VerificadorDeCredencial
 VerificadorDeCredencial <|.. HmacVerificadorDeCredencial
 ControleDeAcesso ..> Decisao
-Decisao <|.. Liberado
-Decisao <|.. Recusado
+Decisao --> Perfil
 Credencial --> TipoDeCredencial
 Credencial --> Perfil
 MapaDeAcesso ..> NivelDeAcesso

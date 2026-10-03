@@ -3,11 +3,8 @@ import { Text, type StyleProp, type TextProps, type TextStyle } from 'react-nati
 import { C, F } from '@/constants/tema';
 
 export interface TextoProps extends TextProps {
-  /** Título: Barlow Condensed. */
   h?: boolean;
-  /** Peso médio. */
   m?: boolean;
-  /** Números tabulares, para valores alinhados. */
   num?: boolean;
 }
 

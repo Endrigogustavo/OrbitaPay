@@ -7,7 +7,6 @@ import java.time.temporal.ChronoUnit;
 
 import com.orbitapay.relatorios.domain.exception.RegraDeNegocioException;
 
-/** Intervalo de dias (inclusivos) no fuso de Brasília, convertido para instantes [inicio, fim). */
 public record Periodo(LocalDate de, LocalDate ate, Instant inicio, Instant fim) {
 
     public static final ZoneId FUSO = ZoneId.of("America/Sao_Paulo");

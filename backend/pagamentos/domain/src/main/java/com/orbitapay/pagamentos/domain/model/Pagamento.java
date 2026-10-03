@@ -1,15 +1,9 @@
 package com.orbitapay.pagamentos.domain.model;
 
 import java.time.Instant;
-import java.util.Objects;
 
 import com.orbitapay.pagamentos.domain.exception.RegraDeNegocioException;
 
-/**
- * Um depósito em andamento: a cobrança emitida em um provedor externo (Pix, boleto ou TED) até ser paga ou
- * expirar. O provedor e a referência externa são guardados apenas para a conciliação; o restante do modelo
- * não conhece nenhum formato de provedor.
- */
 public class Pagamento {
 
     public static final Dinheiro LIMITE_POR_PAGAMENTO = Dinheiro.de("50000");
@@ -26,23 +20,22 @@ public class Pagamento {
     private final Instant criadoEm;
     private Instant concluidoEm;
 
-    private Pagamento(String id, String clienteId, Dinheiro valor, MetodoDePagamento metodo, String provedor,
+    public Pagamento(String id, String clienteId, Dinheiro valor, MetodoDePagamento metodo, String provedor,
             String referenciaExterna, InstrucoesDePagamento instrucoes, StatusDoPagamento status, Dinheiro valorPago,
             Instant criadoEm, Instant concluidoEm) {
-        this.id = Objects.requireNonNull(id);
-        this.clienteId = Objects.requireNonNull(clienteId);
-        this.valor = Objects.requireNonNull(valor);
-        this.metodo = Objects.requireNonNull(metodo);
-        this.provedor = Objects.requireNonNull(provedor);
-        this.referenciaExterna = Objects.requireNonNull(referenciaExterna);
-        this.instrucoes = Objects.requireNonNull(instrucoes);
-        this.status = Objects.requireNonNull(status);
+        this.id = id;
+        this.clienteId = clienteId;
+        this.valor = valor;
+        this.metodo = metodo;
+        this.provedor = provedor;
+        this.referenciaExterna = referenciaExterna;
+        this.instrucoes = instrucoes;
+        this.status = status;
         this.valorPago = valorPago;
-        this.criadoEm = Objects.requireNonNull(criadoEm);
+        this.criadoEm = criadoEm;
         this.concluidoEm = concluidoEm;
     }
 
-    /** Regras que valem antes de qualquer provedor ser acionado. */
     public static void validarSolicitacao(Dinheiro valor, MetodoDePagamento metodo) {
         if (valor == null || !valor.positivo()) {
             throw new RegraDeNegocioException("Digite um valor maior que zero");
@@ -62,21 +55,13 @@ public class Pagamento {
                 StatusDoPagamento.PENDENTE, null, agora, null);
     }
 
-    public static Pagamento reconstituir(String id, String clienteId, Dinheiro valor, MetodoDePagamento metodo,
-            String provedor, String referenciaExterna, InstrucoesDePagamento instrucoes, StatusDoPagamento status,
-            Dinheiro valorPago, Instant criadoEm, Instant concluidoEm) {
-        return new Pagamento(id, clienteId, valor, metodo, provedor, referenciaExterna, instrucoes, status, valorPago,
-                criadoEm, concluidoEm);
-    }
-
-    /** Retorna false se o pagamento já tinha sido concluído (a conciliação pode ver a mesma confirmação duas vezes). */
     public boolean confirmar(Dinheiro valorRecebido, Instant pagoEm) {
         if (!pendente()) {
             return false;
         }
         this.status = StatusDoPagamento.CONFIRMADO;
         this.valorPago = valorRecebido == null || !valorRecebido.positivo() ? valor : valorRecebido;
-        this.concluidoEm = Objects.requireNonNull(pagoEm);
+        this.concluidoEm = pagoEm;
         return true;
     }
 
@@ -85,7 +70,7 @@ public class Pagamento {
             return false;
         }
         this.status = StatusDoPagamento.EXPIRADO;
-        this.concluidoEm = Objects.requireNonNull(agora);
+        this.concluidoEm = agora;
         return true;
     }
 

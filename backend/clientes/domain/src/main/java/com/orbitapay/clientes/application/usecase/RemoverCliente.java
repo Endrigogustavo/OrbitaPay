@@ -1,6 +1,5 @@
 package com.orbitapay.clientes.application.usecase;
 
-import java.time.Clock;
 import java.time.Instant;
 
 import com.orbitapay.clientes.application.service.PublicadorDeEventosDeCliente;
@@ -12,12 +11,10 @@ public class RemoverCliente {
 
     private final ClienteRepository repositorio;
     private final PublicadorDeEventosDeCliente publicador;
-    private final Clock relogio;
 
-    public RemoverCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador, Clock relogio) {
+    public RemoverCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador) {
         this.repositorio = repositorio;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
     public void executar(String clienteId) {
@@ -25,6 +22,6 @@ public class RemoverCliente {
             throw new ClienteNaoEncontradoException(clienteId);
         }
         repositorio.remover(clienteId);
-        publicador.publicar(new ClienteRemovido(clienteId, Instant.now(relogio)));
+        publicador.publicar(new ClienteRemovido(clienteId, Instant.now()));
     }
 }

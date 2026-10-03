@@ -12,7 +12,6 @@ import com.orbitapay.pagamentos.domain.model.MetodoDePagamento;
 import com.orbitapay.pagamentos.domain.model.Pagamento;
 import com.orbitapay.pagamentos.domain.repository.PagamentoRepository;
 
-/** Emite a cobrança no provedor do método escolhido e registra o pagamento como pendente. */
 public class SolicitarPagamento {
 
     public record Comando(String clienteId, BigDecimal valor, String metodo) {

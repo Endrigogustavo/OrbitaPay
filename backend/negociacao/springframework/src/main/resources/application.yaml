@@ -59,7 +59,3 @@ mensageria:
       fila: negociacao.acoes-insuficientes
       topico: carteira.acoes-insuficientes
 
-orbita:
-  trava:
-    espera-maxima-ms: 10000
-    expiracao-ms: 30000

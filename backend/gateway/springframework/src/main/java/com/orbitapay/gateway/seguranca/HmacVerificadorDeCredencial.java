@@ -5,7 +5,6 @@ import java.security.GeneralSecurityException;
 import java.security.MessageDigest;
 import java.time.Instant;
 import java.util.Base64;
-import java.util.Optional;
 
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
@@ -30,24 +29,24 @@ public class HmacVerificadorDeCredencial implements VerificadorDeCredencial {
     }
 
     @Override
-    public Optional<Credencial> verificar(String token) {
+    public Credencial verificar(String token) {
         String[] partes = token.split("\\.");
         if (partes.length != 2) {
-            return Optional.empty();
+            return null;
         }
         try {
             byte[] assinaturaRecebida = Base64.getUrlDecoder().decode(partes[1]);
             if (!MessageDigest.isEqual(assinar(partes[0]), assinaturaRecebida)) {
-                return Optional.empty();
+                return null;
             }
             String[] campos = new String(Base64.getUrlDecoder().decode(partes[0]), StandardCharsets.UTF_8).split("\\|");
             if (campos.length != 4) {
-                return Optional.empty();
+                return null;
             }
-            return Optional.of(new Credencial(TipoDeCredencial.valueOf(campos[0]), campos[1], Perfil.valueOf(campos[2]),
-                    Instant.ofEpochSecond(Long.parseLong(campos[3]))));
+            return new Credencial(TipoDeCredencial.valueOf(campos[0]), campos[1], Perfil.valueOf(campos[2]),
+                    Instant.ofEpochSecond(Long.parseLong(campos[3])));
         } catch (IllegalArgumentException e) {
-            return Optional.empty();
+            return null;
         }
     }
 

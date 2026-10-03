@@ -11,7 +11,6 @@ import { Teclado } from './Teclado';
 
 const METODOS: MetodoDeDeposito[] = ['PIX', 'TED', 'Boleto'];
 
-/** Depósito ou saque: valor digitado no teclado, em centavos. */
 export function FolhaDeValor({ folha }: { folha: FolhaDo<'amount'> }) {
   const { usuario } = useSessao();
   const op = useOperacoes();

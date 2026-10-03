@@ -44,7 +44,6 @@ export function criarOrbitaApi(credenciais: Credenciais) {
     },
 
     pagamentos: {
-      /** Gera a cobrança (Pix, boleto ou TED); o crédito na conta acontece quando o pagamento é confirmado. */
       solicitar: (valor: number, metodo: MetodoDeDeposito) => http<PagamentoDto>('POST', '/api/pagamentos', { corpo: { valor, metodo: METODOS_DE_PAGAMENTO[metodo] }, autenticacao: CLIENTE }),
       buscar: (id: string) => http<PagamentoDto>('GET', '/api/pagamentos/' + id, { autenticacao: CLIENTE }),
       meus: () => http<PagamentoDto[]>('GET', '/api/pagamentos', { autenticacao: CLIENTE }),

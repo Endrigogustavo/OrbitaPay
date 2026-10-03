@@ -12,9 +12,7 @@ public class SincronizarInvestidores {
     }
 
     public void registrar(String clienteId, boolean bloqueado) {
-        Investidor investidor = investidores.buscar(clienteId).orElseGet(() -> new Investidor(clienteId, bloqueado));
-        investidor.alterarSituacao(bloqueado);
-        investidores.salvar(investidor);
+        investidores.salvar(new Investidor(clienteId, bloqueado));
     }
 
     public void remover(String clienteId) {

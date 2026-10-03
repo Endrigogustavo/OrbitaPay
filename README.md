@@ -3,6 +3,7 @@
 Ecossistema de **microserviços** para o banco e a corretora Órbita. Cada serviço corresponde a um **bounded context (DDD)** e é organizado em **camadas** (domínio, aplicação e infraestrutura). A comunicação entre serviços é feita exclusivamente por **mensageria (RabbitMQ)**. O app **React Native (Expo)** fala somente com o **API Gateway**.
 
 - Documentação do Context Map, da saga, das camadas anticorrupção e do lock pessimista: [docs/context-map.md](docs/context-map.md)
+- Por que o MongoDB não tem lock pessimista e como ele foi implementado: [docs/lock-pessimista.md](docs/lock-pessimista.md)
 - Diagramas UML em PlantUML: [docs/plantuml/](docs/plantuml/README.md)
 - Testes de carga e concorrência com k6: [k6/](k6/README.md)
 
@@ -51,11 +52,25 @@ OrbitaPay/
 │   └── relatorios/
 ├── mobile/                  app Expo / React Native em TypeScript (expo-router)
 ├── k6/                      testes de fumaça, carga, jornada e concorrência
+├── scripts/rodar-tudo.sh    sobe o ecossistema e roda todos os testes
 ├── docs/                    context-map.md e diagramas PlantUML
 └── docker-compose.yml
 ```
 
 ## Como rodar
+
+### Um comando para subir e testar tudo
+
+Requisito: Docker Desktop (e Maven, opcional, para os testes unitários). No Windows, rode pelo Git Bash.
+
+```bash
+scripts/rodar-tudo.sh                 # testes unitários + sobe o ecossistema + testes k6
+scripts/rodar-tudo.sh --limpar        # apaga os dados antes (resultados exatos do teste de concorrência)
+scripts/rodar-tudo.sh --sem-unitarios # pula o Maven
+scripts/rodar-tudo.sh --derrubar      # derruba os containers no final
+```
+
+O script roda os testes unitários dos 9 serviços, sobe tudo com `docker compose up --build --wait`, executa os testes k6 de fumaça, concorrência, jornada do investidor e carga, e termina com um resumo. Ele sai com código diferente de zero se alguma etapa falhar.
 
 ### Tudo em containers (recomendado)
 

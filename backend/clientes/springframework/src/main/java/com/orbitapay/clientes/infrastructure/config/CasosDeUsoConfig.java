@@ -1,7 +1,5 @@
 package com.orbitapay.clientes.infrastructure.config;
 
-import java.time.Clock;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -19,14 +17,9 @@ import com.orbitapay.clientes.domain.repository.ClienteRepository;
 public class CasosDeUsoConfig {
 
     @Bean
-    public Clock relogio() {
-        return Clock.systemUTC();
-    }
-
-    @Bean
     public CadastrarCliente cadastrarCliente(ClienteRepository repositorio, RegistroDeCredencial registroDeCredencial,
-            PublicadorDeEventosDeCliente publicador, Clock relogio) {
-        return new CadastrarCliente(repositorio, registroDeCredencial, publicador, relogio);
+            PublicadorDeEventosDeCliente publicador) {
+        return new CadastrarCliente(repositorio, registroDeCredencial, publicador);
     }
 
     @Bean
@@ -36,25 +29,25 @@ public class CasosDeUsoConfig {
 
     @Bean
     public AtualizarDadosDoCliente atualizarDadosDoCliente(ClienteRepository repositorio,
-            PublicadorDeEventosDeCliente publicador, Clock relogio) {
-        return new AtualizarDadosDoCliente(repositorio, publicador, relogio);
+            PublicadorDeEventosDeCliente publicador) {
+        return new AtualizarDadosDoCliente(repositorio, publicador);
     }
 
     @Bean
     public BloquearCliente bloquearCliente(ClienteRepository repositorio,
-            PublicadorDeEventosDeCliente publicador, Clock relogio) {
-        return new BloquearCliente(repositorio, publicador, relogio);
+            PublicadorDeEventosDeCliente publicador) {
+        return new BloquearCliente(repositorio, publicador);
     }
 
     @Bean
     public DesbloquearCliente desbloquearCliente(ClienteRepository repositorio,
-            PublicadorDeEventosDeCliente publicador, Clock relogio) {
-        return new DesbloquearCliente(repositorio, publicador, relogio);
+            PublicadorDeEventosDeCliente publicador) {
+        return new DesbloquearCliente(repositorio, publicador);
     }
 
     @Bean
     public RemoverCliente removerCliente(ClienteRepository repositorio,
-            PublicadorDeEventosDeCliente publicador, Clock relogio) {
-        return new RemoverCliente(repositorio, publicador, relogio);
+            PublicadorDeEventosDeCliente publicador) {
+        return new RemoverCliente(repositorio, publicador);
     }
 }

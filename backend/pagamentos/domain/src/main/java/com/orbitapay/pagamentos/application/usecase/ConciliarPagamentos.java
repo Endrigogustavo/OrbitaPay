@@ -12,11 +12,6 @@ import com.orbitapay.pagamentos.domain.event.PagamentoExpirado;
 import com.orbitapay.pagamentos.domain.model.Pagamento;
 import com.orbitapay.pagamentos.domain.repository.PagamentoRepository;
 
-/**
- * Pergunta aos provedores, pela fachada, a situação das cobranças pendentes e conclui as que foram pagas ou
- * expiraram. Cada conclusão vira um evento: {@code pagamento.confirmado} faz o contexto de Contas creditar o
- * depósito.
- */
 public class ConciliarPagamentos {
 
     public record Resultado(int verificados, int confirmados, int expirados, int falhas) {

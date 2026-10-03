@@ -8,7 +8,6 @@
     <packaging>pom</packaging>
     <name>relatorios-micro</name>
 
-    <!-- Apenas agrega os módulos. Não herda nada do Spring para não contaminar o domain. -->
     <modules>
         <module>domain</module>
         <module>springframework</module>

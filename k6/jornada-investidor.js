@@ -1,7 +1,3 @@
-// Jornada completa de investidores simultâneos, cada um com cadastro próprio:
-// cadastro (gerente) → login → depósito Pix → compras e vendas assinadas com PIN → carteira e extrato.
-//   k6 run k6/jornada-investidor.js
-//   k6 run -e INVESTIDORES=30 -e DURACAO=3m k6/jornada-investidor.js
 import { check, group, sleep } from 'k6';
 import { Counter, Trend } from 'k6/metrics';
 import {
@@ -40,14 +36,12 @@ export const options = {
   },
 };
 
-// Ativos líquidos (ORBT3 fica de fora: tem só 10 ações e é usado no teste de concorrência).
 const CARTEIRA_ALVO = ['PETR4', 'VALE3', 'ITUB4', 'WEGE3', 'KO', 'SHEL'];
 
 export function setup() {
   return { tokenDoGerente: entrarComoGerente() };
 }
 
-// Estado por VU: cada usuário virtual é um investidor diferente durante todo o teste.
 let investidor = null;
 
 function prepararInvestidor(tokenDoGerente) {

@@ -5,7 +5,6 @@ import java.math.RoundingMode;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 import com.orbitapay.ativos.domain.exception.RegraDeNegocioException;
 
@@ -22,16 +21,16 @@ public class Ativo {
     private long quantidadeEmitida;
     private final Instant listadoEm;
 
-    private Ativo(Ticker ticker, String nome, String setor, String bolsa, BigDecimal cotacao,
+    public Ativo(Ticker ticker, String nome, String setor, String bolsa, BigDecimal cotacao,
             List<BigDecimal> historico, long quantidadeEmitida, Instant listadoEm) {
-        this.ticker = Objects.requireNonNull(ticker);
+        this.ticker = ticker;
         this.nome = validarNome(nome);
         this.setor = normalizarSetor(setor);
-        this.bolsa = Objects.requireNonNull(bolsa);
+        this.bolsa = bolsa;
         this.cotacao = validarCotacao(cotacao);
         this.historico = new ArrayList<>(historico);
         this.quantidadeEmitida = validarQuantidade(quantidadeEmitida);
-        this.listadoEm = Objects.requireNonNull(listadoEm);
+        this.listadoEm = listadoEm;
     }
 
     public static Ativo listar(Ticker ticker, String nome, String setor, String bolsa, BigDecimal cotacao,
@@ -43,15 +42,10 @@ public class Ativo {
         return ativo;
     }
 
-    public static Ativo reconstituir(Ticker ticker, String nome, String setor, String bolsa, BigDecimal cotacao,
-            List<BigDecimal> historico, long quantidadeEmitida, Instant listadoEm) {
-        return new Ativo(ticker, nome, setor, bolsa, cotacao, historico, quantidadeEmitida, listadoEm);
-    }
-
     public void atualizarCadastro(String nome, String setor, String bolsa, BigDecimal cotacao, long quantidadeEmitida) {
         this.nome = validarNome(nome);
         this.setor = normalizarSetor(setor);
-        this.bolsa = Objects.requireNonNull(bolsa);
+        this.bolsa = bolsa;
         this.quantidadeEmitida = validarQuantidade(quantidadeEmitida);
         if (validarCotacao(cotacao).compareTo(this.cotacao) != 0) {
             registrarCotacao(cotacao);

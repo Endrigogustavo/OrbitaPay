@@ -74,7 +74,6 @@ public class ClienteController {
         return ClienteResponse.de(bloquearCliente.executar(clienteId, MotivoBloqueio.CLIENTE));
     }
 
-    /** O gateway só encaminha esta requisição com uma assinatura (PIN conferido pela Autenticação). */
     @PostMapping("/me/desbloqueio")
     public ClienteResponse desbloquearMinhaConta(@RequestHeader(CabecalhosDoGateway.CLIENTE_ID) String clienteId) {
         return ClienteResponse.de(desbloquearCliente.peloCliente(clienteId));

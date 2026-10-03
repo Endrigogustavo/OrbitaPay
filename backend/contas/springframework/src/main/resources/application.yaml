@@ -48,7 +48,3 @@ mensageria:
       fila: contas.pagamento-confirmado
       topico: pagamento.confirmado
 
-orbita:
-  trava:
-    espera-maxima-ms: 10000
-    expiracao-ms: 30000

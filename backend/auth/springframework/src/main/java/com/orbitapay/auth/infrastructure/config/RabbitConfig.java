@@ -33,21 +33,17 @@ public class RabbitConfig {
         List<Declarable> declaracoes = new ArrayList<>(List.of(eventos, mortas, filaMorta,
                 BindingBuilder.bind(filaMorta).to(mortas).with(mensageria.chaveMorta()),
                 QueueBuilder.durable(mensageria.filaDeRegistros()).build()));
-        mensageria.assinaturas().values().forEach(assinatura -> {
+        for (MensageriaProperties.Assinatura assinatura : mensageria.assinaturas().values()) {
             Queue fila = QueueBuilder.durable(assinatura.fila())
                     .deadLetterExchange(mensageria.exchangeMorta())
                     .deadLetterRoutingKey(assinatura.fila())
                     .build();
             declaracoes.add(fila);
             declaracoes.add(BindingBuilder.bind(fila).to(eventos).with(assinatura.topico()));
-        });
+        }
         return new Declarables(declaracoes);
     }
 
-    /**
-     * Leitor tolerante: campos desconhecidos são ignorados e campos ausentes assumem o valor padrão. Sem isso, o
-     * Jackson 3 recusa, por exemplo, um {@code cliente.cadastrado} lido como um record com {@code boolean bloqueado}.
-     */
     @Bean
     public MessageConverter jsonMessageConverter() {
         JsonMapper leitorTolerante = JsonMapper.builder()

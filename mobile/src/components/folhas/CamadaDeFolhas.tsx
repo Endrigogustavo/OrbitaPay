@@ -27,7 +27,6 @@ function Conteudo({ folha }: { folha: FolhaAtual }) {
   }
 }
 
-/** Renderiza a folha aberta no momento por cima de qualquer tela. O botão voltar do Android a fecha. */
 export function CamadaDeFolhas() {
   const { folha, fechando, fechar, tremor } = useOperacoes();
   const { usuario } = useSessao();

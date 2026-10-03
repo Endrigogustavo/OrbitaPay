@@ -1,9 +1,7 @@
 package com.orbitapay.relatorios.domain.model;
 
 import java.time.Instant;
-import java.util.Objects;
 
-/** Projeção mínima do cliente para dar nome aos rankings e contar a base ativa e bloqueada. */
 public class PerfilDeCliente {
 
     private final String clienteId;
@@ -13,7 +11,7 @@ public class PerfilDeCliente {
     private final Instant cadastradoEm;
 
     public PerfilDeCliente(String clienteId, String nome, boolean bloqueado, boolean ativo, Instant cadastradoEm) {
-        this.clienteId = Objects.requireNonNull(clienteId);
+        this.clienteId = clienteId;
         this.nome = nome;
         this.bloqueado = bloqueado;
         this.ativo = ativo;

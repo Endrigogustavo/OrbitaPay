@@ -1,6 +1,5 @@
 package com.orbitapay.gateway.infrastructure.config;
 
-import java.time.Clock;
 import java.util.List;
 
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
@@ -19,13 +18,8 @@ import com.orbitapay.gateway.web.FiltroDeAcesso;
 public class GatewayConfig {
 
     @Bean
-    public Clock relogio() {
-        return Clock.systemUTC();
-    }
-
-    @Bean
-    public ControleDeAcesso controleDeAcesso(VerificadorDeCredencial verificador, Clock relogio) {
-        return new ControleDeAcesso(verificador, relogio);
+    public ControleDeAcesso controleDeAcesso(VerificadorDeCredencial verificador) {
+        return new ControleDeAcesso(verificador);
     }
 
     @Bean

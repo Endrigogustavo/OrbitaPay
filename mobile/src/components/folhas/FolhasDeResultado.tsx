@@ -9,7 +9,6 @@ import { useSessao } from '@/context/SessaoContext';
 import { IconeGrande } from '../Titulos';
 import { Anim, Blueprint, Cta, ErrBox, InfoGrid, Kicker, Logo, Plain, PulseDot, T } from '../ui';
 
-/** Ordem enviada, aguardando a saga passar por negociação, conta e carteira. */
 export function FolhaProcessando({ folha }: { folha: FolhaDo<'processing'> }) {
   return (
     <View style={{ gap: 16, paddingTop: 8 }}>

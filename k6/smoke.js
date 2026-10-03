@@ -1,5 +1,3 @@
-// Fumaça: percorre uma vez cada bounded context pelo gateway para confirmar que o ecossistema está de pé.
-//   k6 run k6/smoke.js
 import { check, group } from 'k6';
 import {
   CLIENTES_DE_DEMONSTRACAO, aguardarOrdem, aguardarPagamento, assinar, enviarOrdem, entrarComoCliente,

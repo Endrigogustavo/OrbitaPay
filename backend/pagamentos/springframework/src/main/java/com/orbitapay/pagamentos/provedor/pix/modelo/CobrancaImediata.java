@@ -2,10 +2,6 @@ package com.orbitapay.pagamentos.provedor.pix.modelo;
 
 import java.util.List;
 
-/**
- * Modelo do PSP Pix, no formato da API Pix do Banco Central (cobrança imediata, "cob"). Valores são texto com
- * ponto decimal, datas são ISO-8601 e o status usa o vocabulário do PSP.
- */
 public final class CobrancaImediata {
 
     private CobrancaImediata() {

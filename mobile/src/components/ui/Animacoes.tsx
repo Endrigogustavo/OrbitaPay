@@ -20,7 +20,6 @@ type AnimProps = Omit<ComponentProps<typeof Animated.View>, 'style'> & {
   children?: ReactNode;
 };
 
-/** Anima a entrada do conteúdo uma única vez, na montagem. Mude a key para repetir. */
 export function Anim({ type = 'fadeUp', delay = 0, duration, style, children, ...p }: AnimProps) {
   const v = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -80,7 +79,6 @@ export function PulseDot({ size = 6, color = C.accent, duration = 1600, active =
   );
 }
 
-/** Faixa de luz que percorre o cartão de saldo. */
 export function Scan() {
   const v = useRef(new Animated.Value(0)).current;
   const [h, setH] = useState(0);
@@ -103,7 +101,6 @@ export function Scan() {
 }
 
 interface ShakeProps {
-  /** Incrementar este número dispara o tremor (erro de validação). */
   n: number;
   style?: StyleProp<ViewStyle>;
   children?: ReactNode;
@@ -121,7 +118,6 @@ export function Shake({ n, style, children }: ShakeProps) {
   return <Animated.View style={[style, { transform: [{ translateX }] }]}>{children}</Animated.View>;
 }
 
-/** Cursor piscante do teclado de valores. */
 export function Blink() {
   const [on, setOn] = useState(true);
   useEffect(() => { const iv = setInterval(() => setOn(v => !v), 500); return () => clearInterval(iv); }, []);

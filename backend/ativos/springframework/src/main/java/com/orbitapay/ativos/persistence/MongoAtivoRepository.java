@@ -4,7 +4,6 @@ import java.util.List;
 import java.util.Optional;
 
 import org.springframework.data.domain.Sort;
-import org.springframework.data.mongodb.core.BulkOperations;
 import org.springframework.data.mongodb.core.MongoTemplate;
 import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
@@ -49,11 +48,11 @@ public class MongoAtivoRepository implements AtivoRepository {
 
     @Override
     public void atualizarCotacoes(List<Ativo> ativos) {
-        BulkOperations lote = template.bulkOps(BulkOperations.BulkMode.UNORDERED, AtivoDocument.class);
-        ativos.forEach(ativo -> lote.updateOne(
-                new Query(Criteria.where("_id").is(ativo.ticker().valor())),
-                new Update().set("cotacao", ativo.cotacao()).set("historico", ativo.historico())));
-        lote.execute();
+        for (Ativo ativo : ativos) {
+            Query porTicker = new Query(Criteria.where("_id").is(ativo.ticker().valor()));
+            Update novaCotacao = new Update().set("cotacao", ativo.cotacao()).set("historico", ativo.historico());
+            template.updateFirst(porTicker, novaCotacao, AtivoDocument.class);
+        }
     }
 
     @Override
@@ -72,7 +71,7 @@ public class MongoAtivoRepository implements AtivoRepository {
     }
 
     private static Ativo paraDominio(AtivoDocument documento) {
-        return Ativo.reconstituir(new Ticker(documento.ticker()), documento.nome(), documento.setor(),
+        return new Ativo(new Ticker(documento.ticker()), documento.nome(), documento.setor(),
                 documento.bolsa(), documento.cotacao(), documento.historico() == null ? List.of() : documento.historico(),
                 documento.quantidadeEmitida(), documento.listadoEm());
     }

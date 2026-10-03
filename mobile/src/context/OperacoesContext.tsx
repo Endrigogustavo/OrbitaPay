@@ -24,10 +24,8 @@ interface OperacoesContextValue {
   fechando: boolean;
   form: Formulario;
   erro: string;
-  /** Contador que dispara a animação de tremor quando há erro. */
   tremor: number;
   pin: string;
-  /** Valor digitado no teclado, em centavos. */
   valor: string;
   quantidade: number;
   ocupado: boolean;
@@ -86,7 +84,6 @@ export function OperacoesProvider({ children }: { children: ReactNode }) {
   const [ocupado, setOcupado] = useState(false);
   const [ocultarValores, setOcultarValores] = useState(false);
 
-  // Refs com o valor mais recente, lidos por timers e continuações assíncronas.
   const folhaAtual = useRef<Folha | null>(null);
   const pinAtual = useRef('');
   const valorAtual = useRef('');
@@ -241,7 +238,6 @@ export function OperacoesProvider({ children }: { children: ReactNode }) {
     });
   }
 
-  /** O crédito chega de forma assíncrona: Pagamentos concilia com o provedor e Contas credita ao receber o evento. */
   async function acompanharDeposito(cobranca: PagamentoDto) {
     for (let tentativa = 0; tentativa < TENTATIVAS_DE_CONFIRMACAO_DO_DEPOSITO; tentativa++) {
       await esperar(1500);

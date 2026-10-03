@@ -74,11 +74,15 @@ public class DadosIniciais implements ApplicationRunner {
     @Override
     public void run(ApplicationArguments args) {
         if (bolsas.listar().isEmpty()) {
-            BOLSAS.forEach(bolsas::salvar);
+            for (Bolsa bolsa : BOLSAS) {
+                bolsas.salvar(bolsa);
+            }
             LOG.info("{} bolsas cadastradas", BOLSAS.size());
         }
         if (ativos.vazio()) {
-            ATIVOS.forEach(listarAtivo::executar);
+            for (ListarAtivoNaBolsa.Comando ativo : ATIVOS) {
+                listarAtivo.executar(ativo);
+            }
             LOG.info("{} ativos listados", ATIVOS.size());
         }
     }

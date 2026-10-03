@@ -8,11 +8,9 @@ interface CabecalhoProps {
   title: string;
   size?: number;
   right?: ReactNode;
-  /** Ponto pulsante de "ao vivo" antes do kicker. */
   dot?: boolean;
 }
 
-/** Cabeçalho das abas. */
 export const Cabecalho = ({ kicker, title, size = 36, right, dot }: CabecalhoProps) => (
   <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
     <View style={{ flex: 1 }}>
@@ -51,7 +49,6 @@ interface IconeGrandeProps {
   anim?: TipoDeAnimacao;
 }
 
-/** Ícone destacado dentro de uma moldura, no topo das folhas de resultado. */
 export const IconeGrande = ({ d, size = 96, icon = 48, bg, color = C.a800, sw = 1.5, anim = 'frame' }: IconeGrandeProps) => (
   <Blueprint anim={anim} style={{ width: size, height: size, alignItems: 'center', justifyContent: 'center', backgroundColor: bg }}>
     <Icon d={d} size={icon} color={color} sw={sw} />

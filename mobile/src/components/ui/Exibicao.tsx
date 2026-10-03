@@ -29,7 +29,6 @@ interface InfoGridProps {
   pad?: number;
 }
 
-/** Grade de pares rótulo e valor. */
 export function InfoGrid({ items, cols = 2, style, pad = 10 }: InfoGridProps) {
   const rows: [string, string][][] = [];
   for (let i = 0; i < items.length; i += cols) rows.push(items.slice(i, i + cols));
@@ -73,7 +72,6 @@ interface RowProps {
   bg?: string;
 }
 
-/** Linha tocável de lista, com destaque ao pressionar. */
 export const Row = ({ onPress, style, children, bg }: RowProps) => (
   <Pressable onPress={onPress} style={({ pressed }) => [{ backgroundColor: pressed ? C.a100 : bg || 'transparent' }, style]}>{children}</Pressable>
 );

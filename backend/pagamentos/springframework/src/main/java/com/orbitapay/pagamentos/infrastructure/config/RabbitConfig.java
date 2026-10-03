@@ -22,10 +22,6 @@ public class RabbitConfig {
         return new TopicExchange(mensageria.exchange(), true, false);
     }
 
-    /**
-     * Leitor tolerante: campos desconhecidos são ignorados e campos ausentes assumem o valor padrão. Sem isso, o
-     * Jackson 3 recusa, por exemplo, um {@code cliente.cadastrado} lido como um record com {@code boolean bloqueado}.
-     */
     @Bean
     public MessageConverter jsonMessageConverter() {
         JsonMapper leitorTolerante = JsonMapper.builder()

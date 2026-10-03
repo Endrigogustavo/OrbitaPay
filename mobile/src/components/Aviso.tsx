@@ -4,7 +4,6 @@ import { C } from '@/constants/tema';
 import { useToast } from '@/context/ToastContext';
 import { Anim, Icon, T } from './ui';
 
-/** Aviso temporário no topo da tela. */
 export function Aviso() {
   const { aviso } = useToast();
   const insets = useSafeAreaInsets();

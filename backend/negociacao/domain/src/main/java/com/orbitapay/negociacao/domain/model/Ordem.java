@@ -2,7 +2,6 @@ package com.orbitapay.negociacao.domain.model;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.Objects;
 
 import com.orbitapay.negociacao.domain.exception.RegraDeNegocioException;
 
@@ -24,22 +23,22 @@ public class Ordem {
     private final Instant criadaEm;
     private Instant atualizadaEm;
 
-    private Ordem(String id, String clienteId, String ticker, TipoOrdem tipo, int quantidade, BigDecimal precoUnitario,
+    public Ordem(String id, String clienteId, String ticker, TipoOrdem tipo, int quantidade, BigDecimal precoUnitario,
             String moeda, BigDecimal cambio, BigDecimal valorTotal, StatusOrdem status, String motivoRejeicao,
             Instant criadaEm, Instant atualizadaEm) {
-        this.id = Objects.requireNonNull(id);
-        this.clienteId = Objects.requireNonNull(clienteId);
-        this.ticker = Objects.requireNonNull(ticker);
-        this.tipo = Objects.requireNonNull(tipo);
+        this.id = id;
+        this.clienteId = clienteId;
+        this.ticker = ticker;
+        this.tipo = tipo;
         this.quantidade = quantidade;
-        this.precoUnitario = Objects.requireNonNull(precoUnitario);
+        this.precoUnitario = precoUnitario;
         this.moeda = moeda;
-        this.cambio = Objects.requireNonNull(cambio);
-        this.valorTotal = Objects.requireNonNull(valorTotal);
-        this.status = Objects.requireNonNull(status);
+        this.cambio = cambio;
+        this.valorTotal = valorTotal;
+        this.status = status;
         this.motivoRejeicao = motivoRejeicao;
-        this.criadaEm = Objects.requireNonNull(criadaEm);
-        this.atualizadaEm = Objects.requireNonNull(atualizadaEm);
+        this.criadaEm = criadaEm;
+        this.atualizadaEm = atualizadaEm;
     }
 
     public static Ordem abrir(String id, String clienteId, AtivoNegociavel ativo, TipoOrdem tipo, int quantidade,
@@ -47,13 +46,6 @@ public class Ordem {
         validarQuantidade(quantidade);
         return new Ordem(id, clienteId, ativo.ticker(), tipo, quantidade, ativo.cotacao(), ativo.moeda(),
                 ativo.cambio(), ativo.valorEmReais(quantidade), StatusOrdem.PENDENTE, null, agora, agora);
-    }
-
-    public static Ordem reconstituir(String id, String clienteId, String ticker, TipoOrdem tipo, int quantidade,
-            BigDecimal precoUnitario, String moeda, BigDecimal cambio, BigDecimal valorTotal, StatusOrdem status,
-            String motivoRejeicao, Instant criadaEm, Instant atualizadaEm) {
-        return new Ordem(id, clienteId, ticker, tipo, quantidade, precoUnitario, moeda, cambio, valorTotal, status,
-                motivoRejeicao, criadaEm, atualizadaEm);
     }
 
     public static void validarQuantidade(int quantidade) {

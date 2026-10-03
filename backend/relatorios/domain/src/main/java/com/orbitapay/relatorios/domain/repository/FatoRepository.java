@@ -7,7 +7,6 @@ import com.orbitapay.relatorios.domain.model.Periodo;
 
 public interface FatoRepository {
 
-    /** Retorna false se o fato (mesmo eventoId) já tinha sido registrado. */
     boolean registrar(Fato fato);
 
     List<Fato> listarNoPeriodo(Periodo periodo);

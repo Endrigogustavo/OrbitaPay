@@ -65,6 +65,5 @@ export function criarClienteHttp(urlBase: string, credenciais: Credenciais): Req
 
 export const ehErroDaApi = (erro: unknown): erro is ErroDaApi => erro instanceof ErroDaApi;
 
-/** Normaliza qualquer falha para ErroDaApi, para as telas tratarem um único formato. */
 export const comoErroDaApi = (erro: unknown): ErroDaApi =>
   ehErroDaApi(erro) ? erro : new ErroDaApi(-1, 'ERRO', erro instanceof Error ? erro.message : 'Erro inesperado');

@@ -10,7 +10,6 @@ import { useOperacoes } from '@/context/OperacoesContext';
 import { usePainel } from '@/context/usePainel';
 import { Anim, Blueprint, Cta, ErrBox, Icon, InfoGrid, Kicker, PulseDot, Seg, T } from '../ui';
 
-/** Detalhe do ativo com gráfico ao vivo e boleta de compra e venda. */
 export function FolhaDoAtivo({ folha }: { folha: FolhaDo<'stock'> }) {
   const { porTicker } = useMercado();
   const { usuario, posicoes, exibir } = usePainel();

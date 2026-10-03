@@ -86,7 +86,7 @@ public class MongoClienteRepository implements ClienteRepository {
     }
 
     private static Cliente paraDominio(ClienteDocument documento) {
-        return Cliente.reconstituir(
+        return new Cliente(
                 documento.id(),
                 new NomeCompleto(documento.nome()),
                 new Email(documento.email()),

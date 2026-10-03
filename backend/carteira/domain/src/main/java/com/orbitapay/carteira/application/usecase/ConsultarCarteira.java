@@ -6,6 +6,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import com.orbitapay.carteira.application.dto.CarteiraValorizada.PosicaoValorizada;
 import com.orbitapay.carteira.application.dto.CarteiraValorizada;
@@ -29,9 +30,13 @@ public class ConsultarCarteira {
     }
 
     public CarteiraValorizada doCliente(String clienteId) {
-        List<Posicao> posicoes = carteiras.buscarPorCliente(clienteId).map(Carteira::posicoes).orElse(List.of());
-        Map<String, AtivoCotado> cotados = new HashMap<>(
-                ativos.buscarTodos(posicoes.stream().map(Posicao::ticker).toList()));
+        Optional<Carteira> carteira = carteiras.buscarPorCliente(clienteId);
+        List<Posicao> posicoes = carteira.isPresent() ? carteira.get().posicoes() : List.of();
+        List<String> tickers = new ArrayList<>();
+        for (Posicao posicao : posicoes) {
+            tickers.add(posicao.ticker());
+        }
+        Map<String, AtivoCotado> cotados = new HashMap<>(ativos.buscarTodos(tickers));
         List<PosicaoValorizada> valorizadas = new ArrayList<>();
         BigDecimal valorTotal = BigDecimal.ZERO;
         BigDecimal custoTotal = BigDecimal.ZERO;
@@ -39,7 +44,10 @@ public class ConsultarCarteira {
             if (posicao.quantidade() <= 0) {
                 continue;
             }
-            AtivoCotado ativo = cotados.computeIfAbsent(posicao.ticker(), this::consultarNoCatalogo);
+            AtivoCotado ativo = cotados.get(posicao.ticker());
+            if (ativo == null) {
+                ativo = consultarNoCatalogo(posicao.ticker());
+            }
             PosicaoValorizada valorizada = valorizar(posicao, ativo);
             valorizadas.add(valorizada);
             valorTotal = valorTotal.add(valorizada.valorDeMercado());
@@ -49,10 +57,12 @@ public class ConsultarCarteira {
     }
 
     private AtivoCotado consultarNoCatalogo(String ticker) {
-        return catalogo.consultar(ticker).map(ativo -> {
-            ativos.salvar(ativo);
-            return ativo;
-        }).orElse(null);
+        Optional<AtivoCotado> ativo = catalogo.consultar(ticker);
+        if (ativo.isEmpty()) {
+            return null;
+        }
+        ativos.salvar(ativo.get());
+        return ativo.get();
     }
 
     private static PosicaoValorizada valorizar(Posicao posicao, AtivoCotado ativo) {

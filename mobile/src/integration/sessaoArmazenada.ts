@@ -17,6 +17,5 @@ export async function salvarSessao(sessao: SessaoSalva | null): Promise<void> {
     if (sessao) await AsyncStorage.setItem(CHAVE, JSON.stringify(sessao));
     else await AsyncStorage.removeItem(CHAVE);
   } catch {
-    // Sem armazenamento local o app segue funcionando; só não lembra a sessão.
   }
 }

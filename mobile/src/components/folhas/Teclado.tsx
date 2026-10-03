@@ -8,7 +8,6 @@ const TECLAS = {
   valor: ['1', '2', '3', '4', '5', '6', '7', '8', '9', '00', '0', 'del'],
 };
 
-/** Teclado numérico das folhas de PIN e de valor. */
 export function Teclado({ tipo, aoPressionar }: { tipo: keyof typeof TECLAS; aoPressionar: (tecla: string) => void }) {
   const keys = TECLAS[tipo];
   const rows = [0, 3, 6, 9].map(i => keys.slice(i, i + 3));

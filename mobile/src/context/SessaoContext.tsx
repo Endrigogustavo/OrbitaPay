@@ -7,7 +7,6 @@ import { criarOrbitaApi, type OrbitaApi } from '@/integration/orbitaApi';
 import { lerSessao, salvarSessao } from '@/integration/sessaoArmazenada';
 import { useToast } from './ToastContext';
 
-/** splash: abrindo o app · login: sem sessão · app: cliente autenticado e carregado. */
 export type Fase = 'splash' | 'login' | 'app';
 
 interface SessaoContextValue {
@@ -19,7 +18,6 @@ interface SessaoContextValue {
   entrar: (email: string, pin: string, mensagem?: string) => Promise<void>;
   encerrarSessao: (mensagem?: string | null) => void;
   definirTokenDoGerente: (token: string | null) => void;
-  /** Suspende a atualização periódica da conta, por exemplo enquanto uma folha está aberta. */
   definirPausa: (pausado: boolean) => void;
 }
 
@@ -62,7 +60,6 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     setCarteira(carteiraDoCliente);
     setAcesso(acessoDoCliente);
     if (!contaDoCliente) {
-      // A conta é aberta de forma assíncrona pelo contas-micro logo após o cadastro.
       clearTimeout(esperaPelaConta.current);
       esperaPelaConta.current = setTimeout(() => { carregarCliente().catch(() => {}); }, ESPERA_PELA_CONTA);
     }

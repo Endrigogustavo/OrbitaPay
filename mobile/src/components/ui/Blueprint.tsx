@@ -22,7 +22,6 @@ interface BlueprintProps {
   delay?: number;
 }
 
-/** Moldura com marcas de canto, no estilo de planta técnica. */
 export function Blueprint({ style, children, anim, delay }: BlueprintProps) {
   const moldura = [{ borderWidth: 1, borderColor: C.divider }, style];
   const cantos = <><Corner pos="tl" /><Corner pos="tr" /><Corner pos="bl" /><Corner pos="br" /></>;

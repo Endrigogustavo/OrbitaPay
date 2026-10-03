@@ -196,14 +196,16 @@ A **venda** é simétrica:
 
 ## 6. Lock pessimista no MongoDB
 
+> Explicação completa, com o passo a passo e a comparação com o `SELECT ... FOR UPDATE`: [lock-pessimista.md](lock-pessimista.md).
+
 O projeto de referência usa `@Lock(PESSIMISTIC_WRITE)` com `SELECT ... FOR UPDATE` no H2. O MongoDB não tem esse recurso, então cada serviço que altera saldo ou quantidade implementa a trava explicitamente em `persistence/trava/TravaPessimistaMongo`, no módulo `springframework`:
 
-1. **Adquirir:** um `findAndModify` atômico só modifica o documento se `trava` for nulo ou estiver expirado, e grava `trava = {dono: UUID, adquiridaEm, expiraEm}`. Se outra operação estiver com a trava, a thread espera com *backoff* e tenta de novo até `orbita.trava.espera-maxima-ms` (10 s, equivalente ao `LOCK_TIMEOUT=10000` do exemplo). Passado esse tempo, lança `TravaIndisponivelException` (HTTP 409).
+1. **Adquirir:** um `findAndModify` atômico só modifica o documento se `trava` for nulo ou estiver expirado, e grava `trava = {dono: UUID, adquiridaEm, expiraEm}`. Se outra operação estiver com a trava, a thread espera 20 ms e tenta de novo, por até 10 s (equivalente ao `LOCK_TIMEOUT=10000` do exemplo). Passado esse tempo, lança `TravaIndisponivelException` (HTTP 409).
 2. **Salvar e liberar:** um `findAndReplace` filtrado por `trava.dono == UUID` grava o novo estado com `trava = null`. Salvar e liberar acontece em **uma única operação atômica**. Se a trava tiver expirado e outro processo tiver assumido, a gravação é recusada, o que evita *lost update*.
 3. **Liberar sem alterar:** se a regra de negócio falhar (saldo ou oferta insuficiente), um `$unset` remove a trava.
-4. **Expiração** (`expiracao-ms`, 30 s): evita *deadlock* se uma instância cair segurando a trava.
+4. **Validade da trava** (30 s): evita *deadlock* se uma instância cair segurando a trava.
 
-Como a trava fica **no banco**, ela funciona entre **várias instâncias** do mesmo serviço, que é o cenário do teste de concorrência do projeto de referência (duas instâncias disputando o mesmo estoque). A camada de aplicação usa a trava pelo caso de uso `OperacaoComTrava`, que chama `travar…`, `salvarELiberar` e `liberar` da interface do repositório (`ContaRepository`, `AtivoNegociavelRepository`, `CarteiraRepository`), e não sabe que existe MongoDB por trás.
+Como a trava fica **no banco**, ela funciona entre **várias instâncias** do mesmo serviço, que é o cenário do teste de concorrência do projeto de referência (duas instâncias disputando o mesmo estoque). Cada caso de uso chama explicitamente `travar…`, `salvarELiberar` e, em caso de erro, `liberar` da interface do repositório (`ContaRepository`, `AtivoNegociavelRepository`, `CarteiraRepository`), e não sabe que existe MongoDB por trás.
 
 Agregados protegidos:
 

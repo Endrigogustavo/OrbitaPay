@@ -2,17 +2,14 @@ import { useEffect, useState } from 'react';
 import { brl } from '@/constants/formatacao';
 import { T } from './ui';
 
-// Último valor exibido, para a animação continuar de onde parou ao voltar para a tela.
 const ULTIMO: { id: string | null; v: number } = { id: null, v: 0 };
 
 interface SaldoProps {
   value: number;
-  /** Id do cliente: trocar de cliente reinicia a contagem a partir de zero. */
   id: string;
   hide: boolean;
 }
 
-/** Saldo com contagem animada até o valor atual. */
 export function Saldo({ value, id, hide }: SaldoProps) {
   const [disp, setDisp] = useState(ULTIMO.id === id ? ULTIMO.v : 0);
   useEffect(() => {

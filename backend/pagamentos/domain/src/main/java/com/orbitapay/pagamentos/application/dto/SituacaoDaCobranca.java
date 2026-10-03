@@ -4,7 +4,6 @@ import java.time.Instant;
 
 import com.orbitapay.pagamentos.domain.model.Dinheiro;
 
-/** Situação de uma cobrança já traduzida para o vocabulário do OrbitaPay, qualquer que seja o provedor. */
 public record SituacaoDaCobranca(Estado estado, Dinheiro valorPago, Instant pagaEm) {
 
     public enum Estado {

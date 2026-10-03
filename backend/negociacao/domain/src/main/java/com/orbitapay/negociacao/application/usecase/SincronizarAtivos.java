@@ -6,15 +6,14 @@ import java.util.Map;
 import com.orbitapay.negociacao.application.dto.AtivoDoCatalogo;
 import com.orbitapay.negociacao.domain.model.AtivoNegociavel;
 import com.orbitapay.negociacao.domain.repository.AtivoNegociavelRepository;
+import com.orbitapay.negociacao.domain.repository.AtivoTravado;
 
 public class SincronizarAtivos {
 
     private final AtivoNegociavelRepository ativos;
-    private final OperacaoComTrava operacao;
 
-    public SincronizarAtivos(AtivoNegociavelRepository ativos, OperacaoComTrava operacao) {
+    public SincronizarAtivos(AtivoNegociavelRepository ativos) {
         this.ativos = ativos;
-        this.operacao = operacao;
     }
 
     public void registrar(AtivoDoCatalogo dados) {
@@ -23,19 +22,28 @@ public class SincronizarAtivos {
                     dados.cambio(), dados.cotacao(), dados.quantidadeEmitida()));
             return;
         }
-        operacao.executar(dados.ticker(), ativo -> {
-            ativo.atualizarCadastro(dados.nome(), dados.bolsa(), dados.moeda(), dados.cambio(), dados.cotacao(),
-                    dados.quantidadeEmitida());
-            return ativo;
-        });
+        AtivoTravado travado = ativos.travar(dados.ticker());
+        try {
+            travado.ativo().atualizarCadastro(dados.nome(), dados.bolsa(), dados.moeda(), dados.cambio(),
+                    dados.cotacao(), dados.quantidadeEmitida());
+            ativos.salvarELiberar(travado);
+        } catch (RuntimeException erro) {
+            ativos.liberar(travado);
+            throw erro;
+        }
     }
 
     public void retirar(String ticker) {
-        if (ativos.existe(ticker)) {
-            operacao.executar(ticker, ativo -> {
-                ativo.retirarDeNegociacao();
-                return ativo;
-            });
+        if (!ativos.existe(ticker)) {
+            return;
+        }
+        AtivoTravado travado = ativos.travar(ticker);
+        try {
+            travado.ativo().retirarDeNegociacao();
+            ativos.salvarELiberar(travado);
+        } catch (RuntimeException erro) {
+            ativos.liberar(travado);
+            throw erro;
         }
     }
 

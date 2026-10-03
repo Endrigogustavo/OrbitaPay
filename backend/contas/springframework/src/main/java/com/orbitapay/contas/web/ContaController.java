@@ -15,10 +15,6 @@ import com.orbitapay.contas.web.dto.ComprovanteResponse;
 import com.orbitapay.contas.web.dto.ContaResponse;
 import com.orbitapay.contas.web.dto.SaqueRequest;
 
-/**
- * Depósitos não entram por aqui: o cliente gera uma cobrança no contexto de Pagamentos e o crédito chega pelo
- * evento {@code pagamento.confirmado}.
- */
 @RestController
 @RequestMapping("/contas")
 public class ContaController {

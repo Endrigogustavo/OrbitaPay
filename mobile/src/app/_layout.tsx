@@ -28,10 +28,6 @@ export default function RootLayout() {
   );
 }
 
-/**
- * As rotas protegidas trocam sozinhas conforme a sessão: sem cliente autenticado só login e cadastro
- * ficam acessíveis; com cliente, só as abas. Folhas, avisos e splash ficam por cima de qualquer rota.
- */
 function Navegacao() {
   const { fase, usuario } = useSessao();
   const logado = fase === 'app' && !!usuario;

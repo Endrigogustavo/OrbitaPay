@@ -2,7 +2,6 @@ package com.orbitapay.pagamentos.acl.pix;
 
 import java.math.BigDecimal;
 import java.time.Instant;
-import java.util.function.Supplier;
 
 import org.springframework.stereotype.Component;
 
@@ -19,10 +18,6 @@ import com.orbitapay.pagamentos.provedor.ErroDoProvedor;
 import com.orbitapay.pagamentos.provedor.pix.PspPixSimulado;
 import com.orbitapay.pagamentos.provedor.pix.modelo.CobrancaImediata;
 
-/**
- * Traduz entre o OrbitaPay e o PSP Pix. Valor {@link Dinheiro} vira texto "10.00"; o status ATIVA/CONCLUIDA/
- * REMOVIDA_PELO_PSP vira aguardando/paga/expirada; o horário do Pix recebido (ISO-8601) vira {@link Instant}.
- */
 @Component
 public class AdaptadorPix implements AdaptadorDeProvedor {
 
@@ -53,7 +48,12 @@ public class AdaptadorPix implements AdaptadorDeProvedor {
                 new CobrancaImediata.Valor(solicitacao.valor().valor().toPlainString()),
                 config.chave(),
                 "Depósito na conta OrbitaPay · " + solicitacao.pagamentoId());
-        CobrancaImediata.Resposta resposta = chamar(() -> psp.criarCobranca(requisicao));
+        CobrancaImediata.Resposta resposta;
+        try {
+            resposta = psp.criarCobranca(requisicao);
+        } catch (ErroDoProvedor e) {
+            throw falhaDoProvedor(e);
+        }
         Instant criacao = Instant.parse(resposta.calendario().criacao());
         return new CobrancaEmitida(NOME, resposta.txid(), new InstrucoesDePagamento(resposta.pixCopiaECola(),
                 "Pix copia e cola", criacao.plusSeconds(resposta.calendario().expiracao())));
@@ -61,7 +61,12 @@ public class AdaptadorPix implements AdaptadorDeProvedor {
 
     @Override
     public SituacaoDaCobranca consultar(String txid) {
-        CobrancaImediata.Resposta resposta = chamar(() -> psp.consultarCobranca(txid, config.chave()));
+        CobrancaImediata.Resposta resposta;
+        try {
+            resposta = psp.consultarCobranca(txid, config.chave());
+        } catch (ErroDoProvedor e) {
+            throw falhaDoProvedor(e);
+        }
         return switch (resposta.status()) {
             case CobrancaImediata.ATIVA -> SituacaoDaCobranca.aguardando();
             case CobrancaImediata.CONCLUIDA -> {
@@ -73,11 +78,7 @@ public class AdaptadorPix implements AdaptadorDeProvedor {
         };
     }
 
-    private static <T> T chamar(Supplier<T> chamada) {
-        try {
-            return chamada.get();
-        } catch (ErroDoProvedor e) {
-            throw new ProvedorIndisponivelException(NOME, e.codigo() + " · " + e.getMessage());
-        }
+    private static ProvedorIndisponivelException falhaDoProvedor(ErroDoProvedor e) {
+        return new ProvedorIndisponivelException(NOME, e.codigo() + " · " + e.getMessage());
     }
 }

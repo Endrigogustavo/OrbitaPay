@@ -1,4 +1,3 @@
-// Contratos HTTP expostos pelo gateway. Os campos BigDecimal chegam como número no JSON.
 
 export type MotivoBloqueioDto = 'PIN' | 'GERENTE' | 'CLIENTE';
 
@@ -21,7 +20,6 @@ export interface SessaoDto extends CredencialDto {
   clienteId: string;
 }
 
-/** Credencial de acesso guardada pelo contexto de Autenticação (PIN e tentativas). */
 export interface AcessoDto {
   clienteId: string;
   email: string;
@@ -36,7 +34,6 @@ export interface LancamentoDto {
   tipo: TipoLancamentoDto;
   valor: number;
   descricao: string;
-  /** Ordem ou pagamento que originou o lançamento. */
   referencia: string | null;
   ocorridoEm: string;
 }

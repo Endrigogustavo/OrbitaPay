@@ -18,7 +18,6 @@ import com.orbitapay.pagamentos.provedor.ProvedoresSimuladosProperties;
 import com.orbitapay.pagamentos.provedor.ReferenciaSimulada;
 import com.orbitapay.pagamentos.provedor.ted.modelo.MovimentoSpb;
 
-/** Banco liquidante simulado no SPB: gera identificadores de depósito por TED e informa os créditos recebidos. */
 @Component
 public class SpbSimulado {
 

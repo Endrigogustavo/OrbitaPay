@@ -2,7 +2,6 @@ package com.orbitapay.negociacao.domain.model;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
-import java.util.Objects;
 
 import com.orbitapay.negociacao.domain.exception.OfertaInsuficienteException;
 import com.orbitapay.negociacao.domain.exception.RegraDeNegocioException;
@@ -20,15 +19,15 @@ public class AtivoNegociavel {
     private long quantidadeReservada;
     private boolean negociavel;
 
-    private AtivoNegociavel(String ticker, String nome, String bolsa, String moeda, BigDecimal cambio,
+    public AtivoNegociavel(String ticker, String nome, String bolsa, String moeda, BigDecimal cambio,
             BigDecimal cotacao, long quantidadeEmitida, long quantidadeDisponivel, long quantidadeReservada,
             boolean negociavel) {
-        this.ticker = Objects.requireNonNull(ticker);
+        this.ticker = ticker;
         this.nome = nome;
         this.bolsa = bolsa;
         this.moeda = moeda;
-        this.cambio = Objects.requireNonNull(cambio);
-        this.cotacao = Objects.requireNonNull(cotacao);
+        this.cambio = cambio;
+        this.cotacao = cotacao;
         this.quantidadeEmitida = quantidadeEmitida;
         this.quantidadeDisponivel = quantidadeDisponivel;
         this.quantidadeReservada = quantidadeReservada;
@@ -39,13 +38,6 @@ public class AtivoNegociavel {
             BigDecimal cotacao, long quantidadeEmitida) {
         return new AtivoNegociavel(ticker, nome, bolsa, moeda, cambio, cotacao, quantidadeEmitida, quantidadeEmitida,
                 0, true);
-    }
-
-    public static AtivoNegociavel reconstituir(String ticker, String nome, String bolsa, String moeda,
-            BigDecimal cambio, BigDecimal cotacao, long quantidadeEmitida, long quantidadeDisponivel,
-            long quantidadeReservada, boolean negociavel) {
-        return new AtivoNegociavel(ticker, nome, bolsa, moeda, cambio, cotacao, quantidadeEmitida,
-                quantidadeDisponivel, quantidadeReservada, negociavel);
     }
 
     public void reservarParaCompra(int quantidade) {
@@ -75,15 +67,15 @@ public class AtivoNegociavel {
         this.nome = nome;
         this.bolsa = bolsa;
         this.moeda = moeda;
-        this.cambio = Objects.requireNonNull(cambio);
-        this.cotacao = Objects.requireNonNull(cotacao);
+        this.cambio = cambio;
+        this.cotacao = cotacao;
         this.quantidadeDisponivel = Math.max(0, quantidadeDisponivel + (novaQuantidadeEmitida - quantidadeEmitida));
         this.quantidadeEmitida = novaQuantidadeEmitida;
         this.negociavel = true;
     }
 
     public void atualizarCotacao(BigDecimal cotacao) {
-        this.cotacao = Objects.requireNonNull(cotacao);
+        this.cotacao = cotacao;
     }
 
     public void retirarDeNegociacao() {

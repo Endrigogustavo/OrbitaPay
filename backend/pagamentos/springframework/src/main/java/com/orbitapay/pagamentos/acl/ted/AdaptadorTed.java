@@ -9,7 +9,6 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Locale;
-import java.util.function.Supplier;
 
 import org.springframework.stereotype.Component;
 
@@ -26,10 +25,6 @@ import com.orbitapay.pagamentos.provedor.ErroDoProvedor;
 import com.orbitapay.pagamentos.provedor.ted.SpbSimulado;
 import com.orbitapay.pagamentos.provedor.ted.modelo.MovimentoSpb;
 
-/**
- * Traduz entre o OrbitaPay e o SPB: {@link Dinheiro} vira texto "1.234,56", a situação numérica (0, 1, 9) vira
- * aguardando/paga/expirada e as datas {@code dd/MM/yyyy HH:mm:ss} de Brasília viram {@link Instant}.
- */
 @Component
 public class AdaptadorTed implements AdaptadorDeProvedor {
 
@@ -59,7 +54,12 @@ public class AdaptadorTed implements AdaptadorDeProvedor {
     public CobrancaEmitida emitir(SolicitacaoDeCobranca solicitacao) {
         MovimentoSpb.PedidoDeIdentificador pedido = new MovimentoSpb.PedidoDeIdentificador(solicitacao.pagamentoId(),
                 formato().format(solicitacao.valor().valor()), config.horasDeValidade());
-        MovimentoSpb.Identificador identificador = chamar(() -> spb.gerarIdentificador(pedido));
+        MovimentoSpb.Identificador identificador;
+        try {
+            identificador = spb.gerarIdentificador(pedido);
+        } catch (ErroDoProvedor e) {
+            throw falhaDoProvedor(e);
+        }
         String dadosDaConta = "Banco " + identificador.bancoFavorecido() + " · Ag " + identificador.agenciaFavorecida()
                 + " · Conta " + identificador.contaFavorecida() + " · Id " + identificador.codigoIdentificador();
         return new CobrancaEmitida(NOME, identificador.codigoIdentificador(), new InstrucoesDePagamento(dadosDaConta,
@@ -69,7 +69,12 @@ public class AdaptadorTed implements AdaptadorDeProvedor {
 
     @Override
     public SituacaoDaCobranca consultar(String codigoIdentificador) {
-        MovimentoSpb.Movimento movimento = chamar(() -> spb.consultarMovimento(codigoIdentificador));
+        MovimentoSpb.Movimento movimento;
+        try {
+            movimento = spb.consultarMovimento(codigoIdentificador);
+        } catch (ErroDoProvedor e) {
+            throw falhaDoProvedor(e);
+        }
         return switch (movimento.codigoSituacao()) {
             case MovimentoSpb.AGUARDANDO_CREDITO -> SituacaoDaCobranca.aguardando();
             case MovimentoSpb.CREDITADO -> SituacaoDaCobranca.paga(lerValor(movimento.valorCreditado()),
@@ -97,11 +102,7 @@ public class AdaptadorTed implements AdaptadorDeProvedor {
         return formato;
     }
 
-    private static <T> T chamar(Supplier<T> chamada) {
-        try {
-            return chamada.get();
-        } catch (ErroDoProvedor e) {
-            throw new ProvedorIndisponivelException(NOME, e.codigo() + " · " + e.getMessage());
-        }
+    private static ProvedorIndisponivelException falhaDoProvedor(ErroDoProvedor e) {
+        return new ProvedorIndisponivelException(NOME, e.codigo() + " · " + e.getMessage());
     }
 }

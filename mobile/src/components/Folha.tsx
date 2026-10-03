@@ -13,7 +13,6 @@ interface FolhaProps {
   children?: ReactNode;
 }
 
-/** Folha inferior (bottom sheet) com fundo escurecido, que sobe ao abrir e desce ao fechar. */
 export function Folha({ closing, onClose, bottom, children }: FolhaProps) {
   const H = Dimensions.get('window').height;
   const y = useRef(new Animated.Value(H)).current, o = useRef(new Animated.Value(0)).current;

@@ -38,7 +38,6 @@ export function Btn({ kind = 'secondary', onPress, style, children, icon, iconCo
 
 interface CtaProps {
   label: string;
-  /** Passe null para esconder o ícone. */
   icon?: string | null;
   onPress?: () => void;
   kind?: TipoDeBotao;
@@ -47,7 +46,6 @@ interface CtaProps {
   style?: StyleProp<ViewStyle>;
 }
 
-/** Botão principal de largura total. */
 export function Cta({ label, icon = IC.arrowRight, onPress, kind = 'primary', h = 52, size = 17, style }: CtaProps) {
   const fg = kind === 'primary' ? C.bg : C.text;
   return (

@@ -32,8 +32,7 @@ public class RabbitCatalogoDeAtivos implements CatalogoDeAtivos {
         LOG.info("CONSULTANDO contexto de Ativos via mensageria: {}", ticker);
         try {
             Resposta resposta = rabbitTemplate.convertSendAndReceiveAsType("", mensageria.filaDeConsultasDeAtivos(),
-                    new Consulta(ticker, "carteira"), new ParameterizedTypeReference<Resposta>() {
-                    });
+                    new Consulta(ticker, "carteira"), ParameterizedTypeReference.forType(Resposta.class));
             if (resposta == null || !resposta.encontrado()) {
                 return Optional.empty();
             }

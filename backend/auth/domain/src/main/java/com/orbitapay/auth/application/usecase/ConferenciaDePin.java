@@ -1,6 +1,5 @@
 package com.orbitapay.auth.application.usecase;
 
-import java.time.Clock;
 import java.time.Instant;
 
 import com.orbitapay.auth.application.service.CodificadorDePin;
@@ -16,14 +15,12 @@ public class ConferenciaDePin {
     private final CredencialRepository repositorio;
     private final CodificadorDePin codificador;
     private final PublicadorDeEventosDeCredencial publicador;
-    private final Clock relogio;
 
     public ConferenciaDePin(CredencialRepository repositorio, CodificadorDePin codificador,
-            PublicadorDeEventosDeCredencial publicador, Clock relogio) {
+            PublicadorDeEventosDeCredencial publicador) {
         this.repositorio = repositorio;
         this.codificador = codificador;
         this.publicador = publicador;
-        this.relogio = relogio;
     }
 
     public void conferir(Credencial credencial, Pin pin) {
@@ -36,7 +33,7 @@ public class ConferenciaDePin {
         repositorio.salvar(credencial);
         if (bloqueouAgora) {
             publicador.publicar(new CredencialBloqueadaPorPin(credencial.clienteId(), credencial.tentativasFalhas(),
-                    Instant.now(relogio)));
+                    Instant.now()));
         }
         throw new PinIncorretoException(credencial.tentativasRestantes(), bloqueouAgora);
     }

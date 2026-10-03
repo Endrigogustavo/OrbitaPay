@@ -1,6 +1,5 @@
 package com.orbitapay.pagamentos.provedor;
 
-/** Erro devolvido por uma API de provedor, no formato do provedor (status HTTP e código próprio). */
 public class ErroDoProvedor extends RuntimeException {
 
     private final int status;

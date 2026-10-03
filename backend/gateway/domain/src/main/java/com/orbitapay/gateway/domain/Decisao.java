@@ -1,33 +1,25 @@
 package com.orbitapay.gateway.domain;
 
-import java.util.Optional;
+public record Decisao(boolean liberado, int status, String codigo, String mensagem, String clienteId, Perfil perfil) {
 
-public sealed interface Decisao {
-
-    record Liberado(Optional<String> clienteId, Optional<Perfil> perfil) implements Decisao {
+    public static Decisao liberadoAnonimo() {
+        return new Decisao(true, 200, null, null, null, null);
     }
 
-    record Recusado(int status, String codigo, String mensagem) implements Decisao {
+    public static Decisao liberado(Credencial sessao) {
+        String clienteId = sessao.perfil() == Perfil.CLIENTE ? sessao.sujeito() : null;
+        return new Decisao(true, 200, null, null, clienteId, sessao.perfil());
     }
 
-    static Decisao liberadoAnonimo() {
-        return new Liberado(Optional.empty(), Optional.empty());
+    public static Decisao naoAutenticado() {
+        return new Decisao(false, 401, "SESSAO_OBRIGATORIA", "Entre na sua conta", null, null);
     }
 
-    static Decisao liberado(Credencial sessao) {
-        Optional<String> clienteId = sessao.perfil() == Perfil.CLIENTE ? Optional.of(sessao.sujeito()) : Optional.empty();
-        return new Liberado(clienteId, Optional.of(sessao.perfil()));
+    public static Decisao semAssinatura() {
+        return new Decisao(false, 401, "ASSINATURA_OBRIGATORIA", "Confirme a operação com seu PIN", null, null);
     }
 
-    static Decisao naoAutenticado() {
-        return new Recusado(401, "SESSAO_OBRIGATORIA", "Entre na sua conta");
-    }
-
-    static Decisao semAssinatura() {
-        return new Recusado(401, "ASSINATURA_OBRIGATORIA", "Confirme a operação com seu PIN");
-    }
-
-    static Decisao proibido() {
-        return new Recusado(403, "ACESSO_NEGADO", "Acesso não permitido para este perfil");
+    public static Decisao proibido() {
+        return new Decisao(false, 403, "ACESSO_NEGADO", "Acesso não permitido para este perfil", null, null);
     }
 }

@@ -55,8 +55,11 @@ public final class MapaDeAcesso {
         if (caminho.startsWith("/api/pagamentos/")) {
             return leitura ? NivelDeAcesso.CLIENTE : NivelDeAcesso.NEGADO;
         }
+        if (caminho.equals("/api/ordens") && leitura) {
+            return NivelDeAcesso.CLIENTE;
+        }
         if (caminho.equals("/api/ordens")) {
-            return leitura ? NivelDeAcesso.CLIENTE : criacao ? NivelDeAcesso.CLIENTE_COM_ASSINATURA : NivelDeAcesso.NEGADO;
+            return criacao ? NivelDeAcesso.CLIENTE_COM_ASSINATURA : NivelDeAcesso.NEGADO;
         }
         if (caminho.startsWith("/api/ordens/")) {
             return leitura ? NivelDeAcesso.CLIENTE : NivelDeAcesso.NEGADO;

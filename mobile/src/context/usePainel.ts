@@ -10,15 +10,12 @@ export interface Painel {
   usuario: Usuario | null;
   bloqueada: boolean;
   posicoes: Posicoes;
-  /** Valor de mercado da carteira, em reais. */
   valorDaCarteira: number;
-  /** Custo de aquisição da carteira, em reais. */
   custoDaCarteira: number;
   listaDePosicoes: PosicaoExibida[];
   exibir: (acao: Acao) => AcaoExibida;
 }
 
-/** Junta cliente, cotações e ações da tela em números prontos para exibir. */
 export function usePainel(): Painel {
   const { usuario } = useSessao();
   const { porTicker } = useMercado();

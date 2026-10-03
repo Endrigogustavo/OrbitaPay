@@ -1,6 +1,7 @@
 package com.orbitapay.negociacao.application.usecase;
 
 import java.util.List;
+import java.util.Optional;
 
 import com.orbitapay.negociacao.domain.exception.RecursoNaoEncontradoException;
 import com.orbitapay.negociacao.domain.model.AtivoNegociavel;
@@ -19,9 +20,11 @@ public class ConsultarOrdens {
     }
 
     public Ordem buscarDoCliente(String ordemId, String clienteId) {
-        return ordens.buscar(ordemId)
-                .filter(ordem -> ordem.pertenceA(clienteId))
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Ordem não encontrada: " + ordemId));
+        Optional<Ordem> ordem = ordens.buscar(ordemId);
+        if (ordem.isEmpty() || !ordem.get().pertenceA(clienteId)) {
+            throw new RecursoNaoEncontradoException("Ordem não encontrada: " + ordemId);
+        }
+        return ordem.get();
     }
 
     public List<Ordem> listarDoCliente(String clienteId) {
@@ -29,7 +32,10 @@ public class ConsultarOrdens {
     }
 
     public AtivoNegociavel oferta(String ticker) {
-        return ativos.buscar(ticker == null ? "" : ticker.toUpperCase())
-                .orElseThrow(() -> new RecursoNaoEncontradoException("Ativo não negociado: " + ticker));
+        Optional<AtivoNegociavel> ativo = ativos.buscar(ticker == null ? "" : ticker.toUpperCase());
+        if (ativo.isEmpty()) {
+            throw new RecursoNaoEncontradoException("Ativo não negociado: " + ticker);
+        }
+        return ativo.get();
     }
 }

@@ -4,7 +4,6 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Optional;
 import java.util.concurrent.ThreadLocalRandom;
 
 import org.springframework.stereotype.Component;
@@ -19,13 +18,13 @@ public class SimuladorDeMercadoAleatorio implements SimuladorDeMercado {
     private static final double AMPLITUDE_HISTORICA = 0.018;
 
     @Override
-    public Optional<BigDecimal> proximaCotacao(BigDecimal cotacaoAtual) {
+    public BigDecimal proximaCotacao(BigDecimal cotacaoAtual) {
         ThreadLocalRandom aleatorio = ThreadLocalRandom.current();
         if (aleatorio.nextDouble() >= CHANCE_DE_NEGOCIO) {
-            return Optional.empty();
+            return null;
         }
         double fator = 1 + (aleatorio.nextDouble() - 0.485) * AMPLITUDE_DO_TICK;
-        return Optional.of(arredondar(cotacaoAtual.doubleValue() * fator));
+        return arredondar(cotacaoAtual.doubleValue() * fator);
     }
 
     @Override

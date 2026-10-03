@@ -10,7 +10,6 @@ interface LogoProps {
   duration?: number;
 }
 
-/** Planeta com satélite em órbita. */
 export function Logo({ size = 26, core = 8, sat = 5, color = C.a800, duration = 3000 }: LogoProps) {
   const out = Math.round(sat * 0.6);
   return (

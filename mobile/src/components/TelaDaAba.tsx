@@ -10,11 +10,9 @@ export type RolagemDaAba = GestureScrollView;
 
 interface TelaDaAbaProps {
   children: ReactNode;
-  /** Ref opcional da rolagem, usada pelo globo para não disputar o gesto de arrastar. */
   rolagem?: RefObject<RolagemDaAba | null>;
 }
 
-/** Estrutura comum das abas: área segura, rolagem e animação de entrada a cada vez que a aba é aberta. */
 export function TelaDaAba({ children, rolagem }: TelaDaAbaProps) {
   const insets = useSafeAreaInsets();
   const propria = useRef<RolagemDaAba>(null);

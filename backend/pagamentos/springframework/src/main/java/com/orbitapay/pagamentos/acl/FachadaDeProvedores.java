@@ -15,11 +15,6 @@ import com.orbitapay.pagamentos.application.service.ProvedorDePagamentos;
 import com.orbitapay.pagamentos.application.service.ProvedorIndisponivelException;
 import com.orbitapay.pagamentos.domain.model.MetodoDePagamento;
 
-/**
- * Fachada da camada anticorrupção: o domínio pede "emitir cobrança" e "consultar cobrança" sem saber qual
- * provedor existe por trás. Trocar de PSP ou incluir um novo meio de pagamento é registrar outro
- * {@link AdaptadorDeProvedor}; nada muda nos casos de uso.
- */
 @Component
 public class FachadaDeProvedores implements ProvedorDePagamentos {
 
@@ -28,15 +23,13 @@ public class FachadaDeProvedores implements ProvedorDePagamentos {
     private final Map<MetodoDePagamento, AdaptadorDeProvedor> porMetodo = new EnumMap<>(MetodoDePagamento.class);
 
     public FachadaDeProvedores(List<AdaptadorDeProvedor> adaptadores) {
-        adaptadores.forEach(adaptador -> {
-            AdaptadorDeProvedor anterior = porMetodo.put(adaptador.metodo(), adaptador);
-            if (anterior != null) {
-                throw new IllegalStateException("Dois provedores para " + adaptador.metodo() + ": "
-                        + anterior.nome() + " e " + adaptador.nome());
+        for (AdaptadorDeProvedor adaptador : adaptadores) {
+            if (porMetodo.containsKey(adaptador.metodo())) {
+                throw new IllegalStateException("Dois provedores para " + adaptador.metodo());
             }
-        });
-        LOG.info("Provedores de pagamento registrados: {}", porMetodo.values().stream()
-                .map(a -> a.metodo() + "=" + a.nome()).toList());
+            porMetodo.put(adaptador.metodo(), adaptador);
+            LOG.info("Provedor de pagamento registrado: {}={}", adaptador.metodo(), adaptador.nome());
+        }
     }
 
     @Override
