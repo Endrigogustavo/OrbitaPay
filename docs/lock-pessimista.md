@@ -93,19 +93,19 @@ mongo.updateFirst(minhaTrava, new Update().unset("trava"), ContaDocument.class);
 Todo caso de uso que altera um documento protegido segue os mesmos passos, sempre visíveis no código:
 
 ```java
-ContaTravada travada = repositorio.travarPorCliente(clienteId);   // 1. trava
+ContaTravada travada = trava.travar(clienteId);                // 1. trava
 try {
     Conta conta = travada.conta();
     Lancamento saque = conta.sacar(new Dinheiro(valor), Instant.now());   // 2. regra de negócio
-    repositorio.salvarELiberar(travada);                          // 3. salva e libera
+    trava.salvarELiberar(travada);                                // 3. salva e libera
     return new Comprovante(conta, saque);
 } catch (RuntimeException erro) {
-    repositorio.liberar(travada);                                 // em caso de erro, só libera
+    trava.liberar(travada);                                       // em caso de erro, só libera
     throw erro;
 }
 ```
 
-A camada de aplicação só conhece a interface do repositório (`travarPorCliente`, `salvarELiberar`, `liberar`) e não sabe que existe MongoDB por trás.
+A camada de aplicação só conhece a interface `TravaDeConta` (`travar`, `salvarELiberar`, `liberar`), declarada no módulo `domain`, e não sabe que existe MongoDB por trás. Quem a implementa é o `MongoContaRepository`, usando a `TravaPessimistaMongo`.
 
 ## Passo a passo com duas requisições
 
@@ -138,7 +138,7 @@ O saque B só lê o saldo **depois** que o saque A gravou o dele. Nenhuma atuali
 | Negociação | `ativos_negociaveis` | `ticker` | reserva de compra, confirmação, devolução da reserva, devolução de venda |
 | Carteira | `carteiras` | `clienteId` | reserva de venda, liquidação de compra e venda, cancelamento |
 
-Como a trava fica **gravada no banco** e não na memória do processo, ela funciona mesmo com **várias instâncias** do mesmo serviço (`docker compose up -d --scale negociacao=2 --scale contas=2`).
+Como a trava fica **gravada no banco** e não na memória do processo, ela funciona mesmo com **várias instâncias** do mesmo serviço (para escalar, veja a observação no fim de [enderecos.md](enderecos.md)).
 
 ## Comparação com o banco relacional
 
@@ -155,5 +155,5 @@ Como a trava fica **gravada no banco** e não na memória do processo, ela funci
 
 1. Suba o ecossistema: `docker compose up --build -d`.
 2. Rode o teste de concorrência: `docker compose run --rm k6 run concorrencia.js`.
-3. O resultado esperado num ambiente novo é **10 ordens executadas** (exatamente as 10 ações de `ORBT3`) e **6 saques aprovados** (saldo final R$ 150, nunca negativo).
+3. O teste dispara 20 compras simultâneas de 1 `ORBT3`. O resultado esperado num ambiente novo é **10 ordens executadas** (exatamente as 10 ações de `ORBT3`), **10 rejeitadas** e estoque final **0**, nunca negativo. O `teardown` do teste imprime o estoque inicial e o final e diz se bateu com o esperado.
 4. Nos logs (`docker compose logs contas negociacao`) aparecem as etapas de cada trava: `ANTES DO LOCK`, `LOCK ADQUIRIDO`, `SAVE + LOCK LIBERADO` e `LOCK LIBERADO SEM ALTERACAO`.

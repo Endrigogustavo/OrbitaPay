@@ -9,7 +9,9 @@ import com.orbitapay.clientes.application.usecase.AtualizarDadosDoCliente;
 import com.orbitapay.clientes.application.usecase.BloquearCliente;
 import com.orbitapay.clientes.application.usecase.CadastrarCliente;
 import com.orbitapay.clientes.application.usecase.ConsultarClientes;
-import com.orbitapay.clientes.application.usecase.DesbloquearCliente;
+import com.orbitapay.clientes.application.usecase.BloquearPorExcessoDeTentativas;
+import com.orbitapay.clientes.application.usecase.DesbloquearPeloCliente;
+import com.orbitapay.clientes.application.usecase.DesbloquearPeloGerente;
 import com.orbitapay.clientes.application.usecase.RemoverCliente;
 import com.orbitapay.clientes.domain.repository.ClienteRepository;
 
@@ -40,9 +42,21 @@ public class CasosDeUsoConfig {
     }
 
     @Bean
-    public DesbloquearCliente desbloquearCliente(ClienteRepository repositorio,
+    public BloquearPorExcessoDeTentativas bloquearPorExcessoDeTentativas(ClienteRepository repositorio,
+            BloquearCliente bloquearCliente) {
+        return new BloquearPorExcessoDeTentativas(repositorio, bloquearCliente);
+    }
+
+    @Bean
+    public DesbloquearPeloCliente desbloquearPeloCliente(ClienteRepository repositorio,
             PublicadorDeEventosDeCliente publicador) {
-        return new DesbloquearCliente(repositorio, publicador);
+        return new DesbloquearPeloCliente(repositorio, publicador);
+    }
+
+    @Bean
+    public DesbloquearPeloGerente desbloquearPeloGerente(ClienteRepository repositorio,
+            PublicadorDeEventosDeCliente publicador) {
+        return new DesbloquearPeloGerente(repositorio, publicador);
     }
 
     @Bean

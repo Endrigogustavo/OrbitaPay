@@ -11,7 +11,9 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import com.orbitapay.negociacao.application.dto.AtivoDoCatalogo;
-import com.orbitapay.negociacao.application.usecase.SincronizarAtivos;
+import com.orbitapay.negociacao.application.usecase.AtualizarCotacoes;
+import com.orbitapay.negociacao.application.usecase.RegistrarAtivo;
+import com.orbitapay.negociacao.application.usecase.RetirarAtivo;
 import com.orbitapay.negociacao.messaging.mensagem.EventoDeAtivoMensagem;
 
 @Component
@@ -19,10 +21,15 @@ public class AtivoListener {
 
     private static final Logger LOG = LoggerFactory.getLogger(AtivoListener.class);
 
-    private final SincronizarAtivos sincronizarAtivos;
+    private final RegistrarAtivo registrarAtivo;
+    private final RetirarAtivo retirarAtivo;
+    private final AtualizarCotacoes atualizarCotacoes;
 
-    public AtivoListener(SincronizarAtivos sincronizarAtivos) {
-        this.sincronizarAtivos = sincronizarAtivos;
+    public AtivoListener(RegistrarAtivo registrarAtivo, RetirarAtivo retirarAtivo,
+            AtualizarCotacoes atualizarCotacoes) {
+        this.registrarAtivo = registrarAtivo;
+        this.retirarAtivo = retirarAtivo;
+        this.atualizarCotacoes = atualizarCotacoes;
     }
 
     @RabbitListener(queues = "${mensageria.assinaturas.ativo-eventos.fila}", concurrency = "1")
@@ -30,14 +37,14 @@ public class AtivoListener {
         switch (mensagem.evento()) {
             case "ATIVO_LISTADO", "ATIVO_ATUALIZADO" -> {
                 LOG.info("RECEBIDO {} {}", mensagem.evento(), mensagem.ticker());
-                sincronizarAtivos.registrar(new AtivoDoCatalogo(mensagem.ticker(), mensagem.nome(), mensagem.bolsa(),
+                registrarAtivo.executar(new AtivoDoCatalogo(mensagem.ticker(), mensagem.nome(), mensagem.bolsa(),
                         mensagem.moeda(), mensagem.cambio(), mensagem.cotacao(), mensagem.quantidadeEmitida()));
             }
             case "ATIVO_REMOVIDO" -> {
                 LOG.info("RECEBIDO {} {}", mensagem.evento(), mensagem.ticker());
-                sincronizarAtivos.retirar(mensagem.ticker());
+                retirarAtivo.executar(mensagem.ticker());
             }
-            case "COTACOES_ATUALIZADAS" -> sincronizarAtivos.atualizarCotacoes(cotacoes(mensagem));
+            case "COTACOES_ATUALIZADAS" -> atualizarCotacoes.executar(cotacoes(mensagem));
             default -> LOG.warn("Evento de ativo ignorado: {}", mensagem.evento());
         }
     }

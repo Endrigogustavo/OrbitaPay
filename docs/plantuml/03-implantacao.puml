@@ -1,61 +1,46 @@
 @startuml 03-implantacao
-title OrbitaPay — Implantação (docker compose)
+title OrbitaPay — Implantação (docker compose · rede orbita 172.30.0.0/24)
 
 skinparam shadowing false
 skinparam defaultFontName "Segoe UI"
 
 node "Dispositivo do usuário" {
   artifact "App Expo" as app
+  artifact "Navegador" as nav
 }
 
-node "Host Docker" {
-  node "gateway" as gw <<container>> {
-    artifact "gateway.jar"
-  }
-  note right of gw : única porta exposta: **8080**
+node "Host Docker · rede orbita" {
+  node "gateway\n172.30.0.80" as gw <<container>>
+  note right of gw : localhost:**8080**
 
-  node "rabbitmq:4-management" as mq <<container>>
-  note right of mq : 5672 (AMQP) · 15672 (painel)
+  node "rabbitmq\n172.30.0.10" as mq <<container>>
+  note right of mq : localhost:5672 (AMQP) · localhost:15672 (painel completo)
 
-  node "auth" as aut <<container>> {
-    artifact "auth-micro.jar"
-  }
-  node "clientes" as cli <<container>> {
-    artifact "clientes-micro.jar"
-  }
-  node "contas" as con <<container>> {
-    artifact "contas-micro.jar"
-  }
-  node "ativos" as atv <<container>> {
-    artifact "ativos-micro.jar"
-  }
-  node "negociacao" as neg <<container>> {
-    artifact "negociacao-micro.jar"
-  }
-  node "carteira" as car <<container>> {
-    artifact "carteira-micro.jar"
-  }
-  node "pagamentos" as pag <<container>> {
-    artifact "pagamentos-micro.jar"
-  }
-  node "relatorios" as rel <<container>> {
-    artifact "relatorios-micro.jar"
-  }
+  node "rabbit-ui (nginx)\n172.30.0.90" as ui <<container>>
+  note right of ui : localhost:**8090** (painel simples)
 
-  database "mongo-auth\n(mongo:8)" as m0
-  database "mongo-clientes\n(mongo:8)" as m1
-  database "mongo-contas\n(mongo:8)" as m2
-  database "mongo-ativos\n(mongo:8)" as m3
-  database "mongo-negociacao\n(mongo:8)" as m4
-  database "mongo-carteira\n(mongo:8)" as m5
-  database "mongo-pagamentos\n(mongo:8)" as m6
-  database "mongo-relatorios\n(mongo:8)" as m7
+  node "auth\n172.30.0.86" as aut <<container>>
+  node "clientes\n172.30.0.81" as cli <<container>>
+  node "contas\n172.30.0.82" as con <<container>>
+  node "ativos\n172.30.0.83" as atv <<container>>
+  node "negociacao\n172.30.0.84" as neg <<container>>
+  node "carteira\n172.30.0.85" as car <<container>>
+  node "pagamentos\n172.30.0.87" as pag <<container>>
+  node "relatorios\n172.30.0.88" as rel <<container>>
 
-  node "k6 (profile testes)" as k6 <<container>>
+  database "mongo-auth\n172.30.0.186" as m0
+  database "mongo-clientes\n172.30.0.181" as m1
+  database "mongo-contas\n172.30.0.182" as m2
+  database "mongo-ativos\n172.30.0.183" as m3
+  database "mongo-negociacao\n172.30.0.184" as m4
+  database "mongo-carteira\n172.30.0.185" as m5
+  database "mongo-pagamentos\n172.30.0.187" as m6
+  database "mongo-relatorios\n172.30.0.188" as m7
 }
 
 app --> gw : HTTP :8080
-k6 --> gw : http://gateway:8080
+nav --> ui : HTTP :8090
+ui --> mq : API de gerenciamento :15672
 gw --> aut : :8086
 gw --> cli : :8081
 gw --> con : :8082
@@ -89,6 +74,6 @@ note bottom of neg
   2. auth, contas, negociacao, carteira, relatorios (declaram filas)
   3. pagamentos, ativos, clientes (publicam; clientes precisa do auth)
   4. gateway
-  Escalável: --scale negociacao=2 --scale contas=2
+  Regra dos IPs: o final do IP é a porta do serviço.
 end note
 @enduml

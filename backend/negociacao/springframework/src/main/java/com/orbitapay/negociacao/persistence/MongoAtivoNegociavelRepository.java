@@ -14,10 +14,11 @@ import org.springframework.stereotype.Component;
 import com.orbitapay.negociacao.domain.model.AtivoNegociavel;
 import com.orbitapay.negociacao.domain.repository.AtivoNegociavelRepository;
 import com.orbitapay.negociacao.domain.repository.AtivoTravado;
+import com.orbitapay.negociacao.domain.repository.TravaDeAtivo;
 import com.orbitapay.negociacao.persistence.trava.TravaPessimistaMongo;
 
 @Component
-public class MongoAtivoNegociavelRepository implements AtivoNegociavelRepository {
+public class MongoAtivoNegociavelRepository implements AtivoNegociavelRepository, TravaDeAtivo {
 
     private final AtivoNegociavelDocumentRepository mongo;
     private final MongoTemplate template;

@@ -1,53 +1,35 @@
 package com.orbitapay.negociacao.application.usecase;
 
-import java.math.BigDecimal;
-import java.util.Map;
-
 import com.orbitapay.negociacao.application.dto.AtivoDoCatalogo;
 import com.orbitapay.negociacao.domain.model.AtivoNegociavel;
 import com.orbitapay.negociacao.domain.repository.AtivoNegociavelRepository;
 import com.orbitapay.negociacao.domain.repository.AtivoTravado;
+import com.orbitapay.negociacao.domain.repository.TravaDeAtivo;
 
-public class SincronizarAtivos {
+public class RegistrarAtivo {
 
     private final AtivoNegociavelRepository ativos;
+    private final TravaDeAtivo trava;
 
-    public SincronizarAtivos(AtivoNegociavelRepository ativos) {
+    public RegistrarAtivo(AtivoNegociavelRepository ativos, TravaDeAtivo trava) {
         this.ativos = ativos;
+        this.trava = trava;
     }
 
-    public void registrar(AtivoDoCatalogo dados) {
+    public void executar(AtivoDoCatalogo dados) {
         if (!ativos.existe(dados.ticker())) {
             ativos.inserir(AtivoNegociavel.listar(dados.ticker(), dados.nome(), dados.bolsa(), dados.moeda(),
                     dados.cambio(), dados.cotacao(), dados.quantidadeEmitida()));
             return;
         }
-        AtivoTravado travado = ativos.travar(dados.ticker());
+        AtivoTravado travado = trava.travar(dados.ticker());
         try {
             travado.ativo().atualizarCadastro(dados.nome(), dados.bolsa(), dados.moeda(), dados.cambio(),
                     dados.cotacao(), dados.quantidadeEmitida());
-            ativos.salvarELiberar(travado);
+            trava.salvarELiberar(travado);
         } catch (RuntimeException erro) {
-            ativos.liberar(travado);
+            trava.liberar(travado);
             throw erro;
         }
-    }
-
-    public void retirar(String ticker) {
-        if (!ativos.existe(ticker)) {
-            return;
-        }
-        AtivoTravado travado = ativos.travar(ticker);
-        try {
-            travado.ativo().retirarDeNegociacao();
-            ativos.salvarELiberar(travado);
-        } catch (RuntimeException erro) {
-            ativos.liberar(travado);
-            throw erro;
-        }
-    }
-
-    public void atualizarCotacoes(Map<String, BigDecimal> cotacoes) {
-        ativos.atualizarCotacoes(cotacoes);
     }
 }

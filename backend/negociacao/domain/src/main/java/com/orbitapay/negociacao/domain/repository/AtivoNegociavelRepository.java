@@ -14,11 +14,5 @@ public interface AtivoNegociavelRepository {
 
     void inserir(AtivoNegociavel ativo);
 
-    AtivoTravado travar(String ticker);
-
-    void salvarELiberar(AtivoTravado travado);
-
-    void liberar(AtivoTravado travado);
-
     void atualizarCotacoes(Map<String, BigDecimal> cotacoes);
 }

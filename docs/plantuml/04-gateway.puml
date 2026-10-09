@@ -38,6 +38,7 @@ package "domain (módulo Java puro)" {
       + decidir(metodo, caminho, tokenDeSessao, tokenDeAssinatura) : Decisao
     }
     class MapaDeAcesso <<utility>> {
+      - REGRAS : List<RegraDeAcesso>
       + {static} nivel(metodo, caminho) : NivelDeAcesso
     }
   }
@@ -55,6 +56,13 @@ package "domain (módulo Java puro)" {
       + validaEm(instante) : boolean
       + sessaoDe(perfil) : boolean
       + assinaturaDe(clienteId) : boolean
+    }
+    class RegraDeAcesso <<record>> {
+      metodo : String
+      caminho : String
+      nivel : NivelDeAcesso
+      --
+      + atende(metodo, caminho) : boolean
     }
     class Decisao <<record>> {
       liberado : boolean
@@ -95,5 +103,6 @@ ControleDeAcesso ..> Decisao
 Decisao --> Perfil
 Credencial --> TipoDeCredencial
 Credencial --> Perfil
-MapaDeAcesso ..> NivelDeAcesso
+MapaDeAcesso --> "*" RegraDeAcesso
+RegraDeAcesso --> NivelDeAcesso
 @enduml

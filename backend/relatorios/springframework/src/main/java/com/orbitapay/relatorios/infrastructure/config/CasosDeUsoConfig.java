@@ -8,6 +8,7 @@ import org.springframework.context.annotation.Configuration;
 import com.orbitapay.relatorios.application.usecase.GerarExtratoDeInvestimentos;
 import com.orbitapay.relatorios.application.usecase.GerarRelatorioGerencial;
 import com.orbitapay.relatorios.application.usecase.RegistrarFato;
+import com.orbitapay.relatorios.application.usecase.RenomearCliente;
 import com.orbitapay.relatorios.domain.repository.FatoRepository;
 import com.orbitapay.relatorios.domain.repository.PerfilDeClienteRepository;
 
@@ -22,6 +23,11 @@ public class CasosDeUsoConfig {
     @Bean
     public RegistrarFato registrarFato(FatoRepository fatos, PerfilDeClienteRepository perfis) {
         return new RegistrarFato(fatos, perfis);
+    }
+
+    @Bean
+    public RenomearCliente renomearCliente(PerfilDeClienteRepository perfis) {
+        return new RenomearCliente(perfis);
     }
 
     @Bean

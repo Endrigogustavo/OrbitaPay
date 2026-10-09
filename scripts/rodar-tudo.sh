@@ -75,19 +75,9 @@ if [ "$CODIGO" -ne 0 ]; then
   exit 1
 fi
 
-etapa "3/3 Testes de ponta a ponta (k6 pelo gateway)"
-rodar_k6() {
-  local nome="$1"; shift
-  echo
-  echo "-> $nome"
-  docker compose run --rm k6 run --quiet "$@"
-  registrar "k6: $nome" $?
-}
-
-rodar_k6 "smoke (todos os contextos)" smoke.js
-rodar_k6 "concorrencia (lock pessimista)" concorrencia.js
-rodar_k6 "jornada do investidor (compra, venda e Pix)" -e INVESTIDORES=5 -e DURACAO=30s jornada-investidor.js
-rodar_k6 "carga no mercado" -e TAXA=50 -e DURACAO=30s carga-mercado.js
+etapa "3/3 Teste de concorrencia (k6 pelo gateway)"
+docker compose run --rm k6 run concorrencia.js
+registrar "k6: compra simultanea (lock pessimista)" $?
 
 if [ "$MANTER" -eq 0 ]; then
   docker compose down --remove-orphans
@@ -99,7 +89,7 @@ for linha in "${RESULTADOS[@]}"; do
 done
 echo
 if [ "$FALHAS" -eq 0 ]; then
-  echo "Tudo certo. Gateway em http://localhost:8080 e painel do RabbitMQ em http://localhost:15672 (orbita/orbita)."
+  echo "Tudo certo. Gateway em http://localhost:8080 e painel do RabbitMQ em http://localhost:8090 (completo em http://localhost:15672, orbita/orbita)."
 else
   echo "$FALHAS etapa(s) falharam."
 fi

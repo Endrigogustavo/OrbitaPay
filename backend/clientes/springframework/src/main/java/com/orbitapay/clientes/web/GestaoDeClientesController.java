@@ -17,7 +17,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.orbitapay.clientes.application.usecase.AtualizarDadosDoCliente;
 import com.orbitapay.clientes.application.usecase.BloquearCliente;
 import com.orbitapay.clientes.application.usecase.ConsultarClientes;
-import com.orbitapay.clientes.application.usecase.DesbloquearCliente;
+import com.orbitapay.clientes.application.usecase.DesbloquearPeloGerente;
 import com.orbitapay.clientes.application.usecase.RemoverCliente;
 import com.orbitapay.clientes.domain.model.MotivoBloqueio;
 import com.orbitapay.clientes.web.dto.AtualizacaoRequest;
@@ -30,16 +30,16 @@ public class GestaoDeClientesController {
     private final ConsultarClientes consultarClientes;
     private final AtualizarDadosDoCliente atualizarDados;
     private final BloquearCliente bloquearCliente;
-    private final DesbloquearCliente desbloquearCliente;
+    private final DesbloquearPeloGerente desbloquearPeloGerente;
     private final RemoverCliente removerCliente;
 
     public GestaoDeClientesController(ConsultarClientes consultarClientes,
             AtualizarDadosDoCliente atualizarDados, BloquearCliente bloquearCliente,
-            DesbloquearCliente desbloquearCliente, RemoverCliente removerCliente) {
+            DesbloquearPeloGerente desbloquearPeloGerente, RemoverCliente removerCliente) {
         this.consultarClientes = consultarClientes;
         this.atualizarDados = atualizarDados;
         this.bloquearCliente = bloquearCliente;
-        this.desbloquearCliente = desbloquearCliente;
+        this.desbloquearPeloGerente = desbloquearPeloGerente;
         this.removerCliente = removerCliente;
     }
 
@@ -75,7 +75,7 @@ public class GestaoDeClientesController {
     public ClienteResponse desbloquear(@PathVariable String clienteId,
             @RequestHeader(value = CabecalhosDoGateway.PERFIL, required = false) String perfil) {
         CabecalhosDoGateway.exigirGerente(perfil);
-        return ClienteResponse.de(desbloquearCliente.peloGerente(clienteId));
+        return ClienteResponse.de(desbloquearPeloGerente.executar(clienteId));
     }
 
     @DeleteMapping("/{clienteId}")

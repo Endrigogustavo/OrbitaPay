@@ -1,6 +1,6 @@
 # Documentação em PlantUML — OrbitaPay
 
-Diagramas UML do ecossistema OrbitaPay, derivados do código em `backend/`. Complementam o [Context Map](../context-map.md), que traz também a saga de compra, o modelo de cada contexto e a trava pessimista.
+Diagramas UML do ecossistema OrbitaPay, derivados do código em `backend/`. Complementam o [diagrama de comunicação](../comunicacao.md) e o [Context Map](../context-map.md), que traz também a saga de compra, o modelo de cada contexto e a trava pessimista.
 
 ## Arquitetura
 
@@ -8,14 +8,14 @@ Diagramas UML do ecossistema OrbitaPay, derivados do código em `backend/`. Comp
 |---|---|---|
 | [01-visao-geral.puml](01-visao-geral.puml) | Componentes | App, Gateway, 8 microserviços, bancos MongoDB e RabbitMQ |
 | [02-context-map.puml](02-context-map.puml) | Componentes | Bounded contexts e padrões DDD (U/D, OHS/PL, ACL, Parceria) |
-| [03-implantacao.puml](03-implantacao.puml) | Implantação | Containers do `docker-compose.yml`, portas e ordem de subida |
+| [03-implantacao.puml](03-implantacao.puml) | Implantação | Containers do `docker-compose.yml`, IPs fixos, portas e ordem de subida |
 | [06-mensageria.puml](06-mensageria.puml) | Componentes | Exchange `orbita.eventos`, filas por serviço, request/reply (`ativos.consultas`, `auth.registros-de-credencial`) e DLQs |
 
 ## Gateway
 
 | Arquivo | Tipo | Conteúdo |
 |---|---|---|
-| [04-gateway.puml](04-gateway.puml) | Classes | `ControleDeAcesso`, `MapaDeAcesso`, `Credencial`, `Decisao` e o filtro HTTP |
+| [04-gateway.puml](04-gateway.puml) | Classes | `ControleDeAcesso`, `MapaDeAcesso` (tabela de `RegraDeAcesso`), `Credencial`, `Decisao` e o filtro HTTP |
 | [05-atividade-gateway.puml](05-atividade-gateway.puml) | Atividade | Decisão de acesso do gateway por requisição |
 
 ## Como gerar as imagens

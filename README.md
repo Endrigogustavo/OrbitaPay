@@ -2,30 +2,36 @@
 
 Ecossistema de **microserviços** para o banco e a corretora Órbita. Cada serviço corresponde a um **bounded context (DDD)** e é organizado em **camadas** (domínio, aplicação e infraestrutura). A comunicação entre serviços é feita exclusivamente por **mensageria (RabbitMQ)**. O app **React Native (Expo)** fala somente com o **API Gateway**.
 
+- **Diagrama de comunicação** do ecossistema inteiro (HTTP, eventos e consultas): [docs/comunicacao.md](docs/comunicacao.md)
+- **Endereços e IPs** de todos os containers: [docs/enderecos.md](docs/enderecos.md)
+- **SOLID** no código, com exemplos: [docs/solid.md](docs/solid.md)
+- **Painel do RabbitMQ** (tópicos, filas e configurações): http://localhost:8090
 - Documentação do Context Map, da saga, das camadas anticorrupção e do lock pessimista: [docs/context-map.md](docs/context-map.md)
 - Por que o MongoDB não tem lock pessimista e como ele foi implementado: [docs/lock-pessimista.md](docs/lock-pessimista.md)
 - Diagramas UML em PlantUML: [docs/plantuml/](docs/plantuml/README.md)
-- Testes de carga e concorrência com k6: [k6/](k6/README.md)
+- Teste de concorrência com k6: [k6/concorrencia.js](k6/concorrencia.js)
 
 ## Serviços
 
-| Serviço | Porta | Banco MongoDB | Responsabilidade |
-|---|---|---|---|
-| `gateway` | 8080 | — | Entrada única do front. Roteia, valida sessão (HMAC), exige assinatura por PIN e injeta a identidade |
-| `auth` | 8086 | `orbita_auth` | Credenciais (PIN), login do cliente e do gerente, tokens de sessão e de assinatura, bloqueio por tentativas |
-| `clientes` | 8081 | `orbita_clientes` | Cadastro, dados pessoais e situação da conta (bloqueio e desbloqueio) |
-| `contas` | 8082 | `orbita_contas` | Saldo, extrato, saque, crédito dos depósitos confirmados, débito e crédito das ordens |
-| `ativos` | 8083 | `orbita_ativos` | Catálogo de ações, bolsas, cotações simuladas ao vivo |
-| `negociacao` | 8084 | `orbita_negociacao` | Ordens de compra e venda (saga), oferta disponível por ativo |
-| `carteira` | 8085 | `orbita_carteira` | Custódia: posições, preço médio, reservas de venda |
-| `pagamentos` | 8087 | `orbita_pagamentos` | Depósitos por Pix, boleto e TED: fachada com camada anticorrupção sobre os provedores |
-| `relatorios` | 8088 | `orbita_relatorios` | Relatório gerencial e extrato de investimentos, montados a partir dos eventos |
+| Serviço | IP | Porta | Banco MongoDB | Responsabilidade |
+|---|---|---|---|---|
+| `gateway` | `172.30.0.80` | 8080 | — | Entrada única do front. Roteia, valida sessão (HMAC), exige assinatura por PIN e injeta a identidade |
+| `auth` | `172.30.0.86` | 8086 | `orbita_auth` | Credenciais (PIN), login do cliente e do gerente, tokens de sessão e de assinatura, bloqueio por tentativas |
+| `clientes` | `172.30.0.81` | 8081 | `orbita_clientes` | Cadastro, dados pessoais e situação da conta (bloqueio e desbloqueio) |
+| `contas` | `172.30.0.82` | 8082 | `orbita_contas` | Saldo, extrato, saque, crédito dos depósitos confirmados, débito e crédito das ordens |
+| `ativos` | `172.30.0.83` | 8083 | `orbita_ativos` | Catálogo de ações, bolsas, cotações simuladas ao vivo |
+| `negociacao` | `172.30.0.84` | 8084 | `orbita_negociacao` | Ordens de compra e venda (saga), oferta disponível por ativo |
+| `carteira` | `172.30.0.85` | 8085 | `orbita_carteira` | Custódia: posições, preço médio, reservas de venda |
+| `pagamentos` | `172.30.0.87` | 8087 | `orbita_pagamentos` | Depósitos por Pix, boleto e TED: fachada com camada anticorrupção sobre os provedores |
+| `relatorios` | `172.30.0.88` | 8088 | `orbita_relatorios` | Relatório gerencial e extrato de investimentos, montados a partir dos eventos |
+
+Todos ficam na rede Docker `orbita` (`172.30.0.0/24`) com IP fixo: o final do IP é a porta do serviço. A lista completa, com RabbitMQ, painel e bancos, está em [docs/enderecos.md](docs/enderecos.md).
 
 Cada pasta em `backend/` é um projeto Maven **independente** (Spring Boot 4.0 / Java 21): `pom.xml`, `Dockerfile`, `application.yaml` e banco próprios. Não existe código nem banco compartilhado. Os microserviços usam o sufixo `-micro` no `artifactId` e no `spring.application.name` (`clientes-micro`, `contas-micro`…); a pasta e o serviço do compose levam só o nome do contexto (`clientes`, `contas`…).
 
 ### Camadas de cada serviço
 
-Por dentro, cada serviço tem dois módulos Maven. Os casos de uso são **classes concretas**, chamadas diretamente pelos controllers e listeners, sem interfaces de "porta de entrada". Só continua sendo interface o que o núcleo em Java puro precisa que a infraestrutura implemente: os repositórios e alguns serviços técnicos, como publicar eventos ou codificar o PIN.
+Por dentro, cada serviço tem dois módulos Maven e segue o **SOLID** ([docs/solid.md](docs/solid.md)): cada caso de uso é uma **classe com uma única ação** (`Sacar`, `DebitarCompra`, `ConfirmarCompra`…), chamada diretamente pelos controllers e listeners, sem interfaces de "porta de entrada". Só continua sendo interface o que o núcleo em Java puro precisa que a infraestrutura implemente: os repositórios e alguns serviços técnicos, como publicar eventos ou codificar o PIN.
 
 | Módulo | Pacotes | Dependências |
 |---|---|---|
@@ -51,9 +57,10 @@ OrbitaPay/
 │   ├── pagamentos/
 │   └── relatorios/
 ├── mobile/                  app Expo / React Native em TypeScript (expo-router)
-├── k6/                      testes de fumaça, carga, jornada e concorrência
+├── k6/concorrencia.js       teste de compra simultânea (lock pessimista)
+├── rabbit-ui/               painel simples do RabbitMQ (nginx + uma página HTML)
 ├── scripts/rodar-tudo.sh    sobe o ecossistema e roda todos os testes
-├── docs/                    context-map.md e diagramas PlantUML
+├── docs/                    comunicação, endereços, SOLID, context map, lock pessimista e PlantUML
 └── docker-compose.yml
 ```
 
@@ -64,13 +71,13 @@ OrbitaPay/
 Requisito: Docker Desktop (e Maven, opcional, para os testes unitários). No Windows, rode pelo Git Bash.
 
 ```bash
-scripts/rodar-tudo.sh                 # testes unitários + sobe o ecossistema + testes k6
-scripts/rodar-tudo.sh --limpar        # apaga os dados antes (resultados exatos do teste de concorrência)
+scripts/rodar-tudo.sh                 # testes unitários + sobe o ecossistema + teste k6
+scripts/rodar-tudo.sh --limpar        # apaga os dados antes (volta às 10 ações de ORBT3)
 scripts/rodar-tudo.sh --sem-unitarios # pula o Maven
 scripts/rodar-tudo.sh --derrubar      # derruba os containers no final
 ```
 
-O script roda os testes unitários dos 9 serviços, sobe tudo com `docker compose up --build --wait`, executa os testes k6 de fumaça, concorrência, jornada do investidor e carga, e termina com um resumo. Ele sai com código diferente de zero se alguma etapa falhar.
+O script roda os testes unitários dos 9 serviços, sobe tudo com `docker compose up --build --wait`, executa o teste de concorrência do k6 e termina com um resumo. Ele sai com código diferente de zero se alguma etapa falhar.
 
 ### Tudo em containers (recomendado)
 
@@ -80,15 +87,19 @@ Requisito: Docker Desktop.
 docker compose up --build -d
 ```
 
-O compose sobe o RabbitMQ (painel em http://localhost:15672, usuário e senha `orbita`), **um MongoDB por serviço**, os 8 microserviços e o gateway. Só a porta **8080** (gateway) fica exposta para o front. A ordem de subida garante que os consumidores declarem suas filas antes que Clientes e Ativos publiquem os dados iniciais.
+O compose sobe o RabbitMQ, o painel simples do RabbitMQ, **um MongoDB por serviço**, os 8 microserviços e o gateway, todos na rede `orbita` com IP fixo. Ficam expostos no seu computador: **8080** (gateway, usado pelo app), **8090** (painel simples do RabbitMQ), **15672** (painel completo do RabbitMQ, usuário e senha `orbita`) e **5672** (AMQP). A ordem de subida garante que os consumidores declarem suas filas antes que Clientes e Ativos publiquem os dados iniciais.
 
 > **Atualizando de uma versão anterior:** o PIN saiu do contexto de Clientes e passou para o `auth`, os serviços do compose perderam o sufixo `-service` e os projetos Maven passaram de `<contexto>-service` para `<contexto>-micro`. Recrie os dados de demonstração com `docker compose down -v --remove-orphans && docker compose up --build -d`.
 
-Para escalar um serviço e ver o lock funcionando entre instâncias:
+### Painel do RabbitMQ
 
-```bash
-docker compose up -d --scale negociacao=2 --scale contas=2
-```
+Abra http://localhost:8090. A página mostra, em português e atualizando a cada 5 segundos:
+
+- **Tópicos:** cada tópico da exchange `orbita.eventos`, quem publica e quais filas (de quais serviços) recebem;
+- **Filas:** mensagens esperando e em processamento, consumidores, tópicos assinados e para onde a mensagem vai se falhar (DLQ). Clique numa fila para ver todas as configurações dela;
+- **Exchanges:** `orbita.eventos` e `orbita.eventos.mortos`.
+
+Ela é só um `nginx` servindo [`rabbit-ui/index.html`](rabbit-ui/index.html) e repassando `/api` para a API de gerenciamento do RabbitMQ.
 
 ### Cada serviço na sua máquina
 
@@ -110,7 +121,8 @@ mobile/src/
 ├── app/           rotas: _layout, login, cadastro e (tabs)/ index · mercado · globo · banco · perfil
 ├── components/    ui/ (primitivas visuais), folhas/ (bottom sheets), Globo, Splash, barra de abas…
 ├── constants/     tema, bolsas, ícones, abas, dados de demonstração e formatação
-├── context/       Toast, Sessao, Mercado, Gerente e Operacoes (estado e regras do app)
+├── context/       Toast, Sessao, Mercado, Gerente e Operacoes (estado do app)
+│   └── operacoes/ ações separadas por assunto: banco, negociacao, gerencia e perfil
 └── integration/   cliente HTTP, API do gateway, mapeadores DTO → modelo e sessão salva
 ```
 
@@ -187,20 +199,29 @@ O ativo `ORBT3` (Órbita Holding) foi emitido com apenas **10 ações** justamen
 
 ## Testes com k6
 
-Os scripts em [`k6/`](k6/README.md) usam o gateway, como o app. Sem k6 instalado, rode pelo container do compose:
+O teste usa o gateway, como o app. Sem k6 instalado, rode pelo container do compose:
 
 ```bash
-docker compose run --rm k6 run smoke.js          # percorre todos os contextos uma vez
-docker compose run --rm k6 run concorrencia.js   # 20 compras de ORBT3 + 10 saques simultâneos
-docker compose run --rm k6 run carga-mercado.js  # leituras públicas em taxa constante
-docker compose run --rm k6 run jornada-investidor.js
+docker compose run --rm k6 run concorrencia.js
+k6 run k6/concorrencia.js                                   # com o k6 instalado na máquina
+k6 run -e QTD_REQUISICOES=30 -e TICKER=ORBT3 k6/concorrencia.js
 ```
 
-O teste de concorrência dispara, ao mesmo tempo:
-- 20 ordens de compra de 1 `ORBT3` para 10 ações disponíveis. Esperado: 10 executadas, oferta final 0;
-- 10 saques de R$ 500 numa conta com R$ 3.150. Esperado: 6 aprovados e saldo final R$ 150, nunca negativo.
+O [`concorrencia.js`](k6/concorrencia.js) dispara **20 compras simultâneas** de 1 `ORBT3` (que tem só 10 ações) e acompanha cada ordem consultando `GET /api/ordens/{id}` até ela sair de `PENDENTE`:
 
-No fim, ele confere o estado real dos serviços (oferta, ordens e extrato) e grava um relatório `relatorio-concorrencia-<data>.txt`.
+1. `setup`: entra como a cliente Ana, gera a assinatura com o PIN e lê o estoque inicial em `GET /api/ofertas/ORBT3`;
+2. cada usuário virtual envia `POST /api/ordens`. A resposta é `202` (ordem aceita) ou `422` (sem oferta disponível);
+3. as ordens aceitas são consultadas até ficarem `EXECUTADA` ou `REJEITADA`;
+4. `teardown`: lê o estoque final e confere se bate com o esperado.
+
+| Métrica | Esperado num ambiente novo |
+|---|---|
+| `ordens_executadas` | 10 (o estoque inicial) |
+| `ordens_rejeitadas` | 10 (requisições − estoque) |
+| `ordens_timeout_polling` | 0 (se não for, aumente `POLL_TENTATIVAS`) |
+| `estoque_inconsistente` | 0 (o estoque final nunca fica negativo nem diferente do esperado) |
+
+As variáveis `BASE_URL`, `EMAIL`, `PIN`, `TICKER`, `QTD_REQUISICOES`, `POLL_TENTATIVAS` e `POLL_INTERVALO` mudam os padrões. As ações compradas ficam na carteira da Ana, então a oferta diminui a cada execução: rode `scripts/rodar-tudo.sh --limpar` (ou `docker compose down -v`) para voltar às 10 ações.
 
 ## Endpoints do gateway
 

@@ -17,11 +17,5 @@ public interface ContaRepository {
 
     void inserir(Conta conta);
 
-    ContaTravada travarPorCliente(String clienteId);
-
-    void salvarELiberar(ContaTravada contaTravada);
-
-    void liberar(ContaTravada contaTravada);
-
     void removerPorCliente(String clienteId);
 }

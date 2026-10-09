@@ -9,6 +9,7 @@ import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
 
 import com.orbitapay.relatorios.application.usecase.RegistrarFato;
+import com.orbitapay.relatorios.application.usecase.RenomearCliente;
 import com.orbitapay.relatorios.domain.model.Fato;
 import com.orbitapay.relatorios.domain.model.TipoDeFato;
 import com.orbitapay.relatorios.messaging.mensagem.EventoDeClienteMensagem;
@@ -21,16 +22,18 @@ public class EventosListener {
     private static final Logger LOG = LoggerFactory.getLogger(EventosListener.class);
 
     private final RegistrarFato registrarFato;
+    private final RenomearCliente renomearCliente;
 
-    public EventosListener(RegistrarFato registrarFato) {
+    public EventosListener(RegistrarFato registrarFato, RenomearCliente renomearCliente) {
         this.registrarFato = registrarFato;
+        this.renomearCliente = renomearCliente;
     }
 
     @RabbitListener(queues = "${mensageria.assinaturas.cliente-eventos.fila}", concurrency = "1")
     public void cliente(@Payload EventoDeClienteMensagem mensagem) {
         LOG.info("RECEBIDO {} {}", mensagem.evento(), mensagem.clienteId());
         if ("CLIENTE_ATUALIZADO".equals(mensagem.evento())) {
-            registrarFato.renomearCliente(mensagem.clienteId(), mensagem.nome());
+            renomearCliente.executar(mensagem.clienteId(), mensagem.nome());
             return;
         }
         TipoDeFato tipo = switch (mensagem.evento()) {

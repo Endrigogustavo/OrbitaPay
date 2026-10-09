@@ -1,0 +1,417 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RabbitMQ · OrbitaPay</title>
+<style>
+  :root {
+    --fundo: #f5f6f8;
+    --cartao: #ffffff;
+    --texto: #1d2330;
+    --suave: #667085;
+    --borda: #e3e6eb;
+    --destaque: #ff6a00;
+    --azul: #2563eb;
+    --verde: #12805c;
+    --vermelho: #c0392b;
+    --chip: #eef2ff;
+    --chip-texto: #3730a3;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --fundo: #0f1218;
+      --cartao: #171b23;
+      --texto: #e7eaf0;
+      --suave: #98a2b3;
+      --borda: #2a303c;
+      --chip: #232a45;
+      --chip-texto: #c7d2fe;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", system-ui, -apple-system, sans-serif;
+    background: var(--fundo);
+    color: var(--texto);
+    font-size: 14px;
+  }
+  header {
+    background: var(--cartao);
+    border-bottom: 1px solid var(--borda);
+    padding: 16px 24px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+    justify-content: space-between;
+  }
+  header h1 { margin: 0; font-size: 20px; }
+  header h1 span { color: var(--destaque); }
+  header p { margin: 2px 0 0; color: var(--suave); }
+  .status { display: flex; gap: 10px; align-items: center; color: var(--suave); }
+  .bolinha { width: 10px; height: 10px; border-radius: 50%; background: var(--suave); display: inline-block; }
+  .bolinha.ok { background: var(--verde); }
+  .bolinha.erro { background: var(--vermelho); }
+  a { color: var(--azul); }
+  main { max-width: 1200px; margin: 0 auto; padding: 20px 16px 48px; }
+  .resumo { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+  .numero { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; padding: 14px 16px; }
+  .numero strong { display: block; font-size: 24px; }
+  .numero span { color: var(--suave); }
+  .fluxo {
+    background: var(--cartao);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 20px;
+    line-height: 1.6;
+  }
+  .fluxo b { color: var(--destaque); }
+  nav { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  nav button, .filtros select, .filtros input {
+    font: inherit;
+    border: 1px solid var(--borda);
+    background: var(--cartao);
+    color: var(--texto);
+    padding: 8px 14px;
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  nav button.ativo { background: var(--destaque); border-color: var(--destaque); color: #fff; }
+  .filtros { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  .filtros input { cursor: text; min-width: 220px; }
+  section { display: none; }
+  section.visivel { display: block; }
+  .tabela { background: var(--cartao); border: 1px solid var(--borda); border-radius: 10px; overflow-x: auto; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--borda); vertical-align: top; }
+  th { color: var(--suave); font-weight: 600; font-size: 12px; text-transform: uppercase; letter-spacing: .03em; }
+  tr:last-child td { border-bottom: none; }
+  tbody tr.clicavel { cursor: pointer; }
+  tbody tr.clicavel:hover { background: var(--fundo); }
+  code { font-family: Consolas, "Cascadia Code", monospace; font-size: 13px; white-space: nowrap; }
+  .chip {
+    display: inline-block;
+    background: var(--chip);
+    color: var(--chip-texto);
+    border-radius: 999px;
+    padding: 2px 10px;
+    margin: 2px 4px 2px 0;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+  .servico { font-weight: 600; }
+  .alerta { color: var(--vermelho); font-weight: 600; }
+  .vazio { color: var(--suave); }
+  .detalhe {
+    margin-top: 12px;
+    background: var(--cartao);
+    border: 1px solid var(--borda);
+    border-radius: 10px;
+    padding: 16px;
+    display: none;
+  }
+  .detalhe.visivel { display: block; }
+  .detalhe h3 { margin: 0 0 8px; }
+  .detalhe pre {
+    background: var(--fundo);
+    border: 1px solid var(--borda);
+    border-radius: 8px;
+    padding: 12px;
+    overflow-x: auto;
+  }
+  .ajuda { color: var(--suave); margin: 0 0 12px; }
+</style>
+</head>
+<body>
+<header>
+  <div>
+    <h1>RabbitMQ · <span>OrbitaPay</span></h1>
+    <p>Tópicos, filas e configurações da mensageria entre os microserviços</p>
+  </div>
+  <div class="status">
+    <span class="bolinha" id="bolinha"></span>
+    <span id="situacao">conectando…</span>
+    <a href="http://localhost:15672" target="_blank" rel="noopener">painel completo do RabbitMQ</a>
+  </div>
+</header>
+
+<main>
+  <div class="resumo">
+    <div class="numero"><strong id="total-topicos">–</strong><span>tópicos assinados</span></div>
+    <div class="numero"><strong id="total-filas">–</strong><span>filas</span></div>
+    <div class="numero"><strong id="total-consumidores">–</strong><span>consumidores conectados</span></div>
+    <div class="numero"><strong id="total-mensagens">–</strong><span>mensagens esperando</span></div>
+    <div class="numero"><strong id="total-mortas">–</strong><span>mensagens nas DLQs</span></div>
+  </div>
+
+  <div class="fluxo">
+    Como uma mensagem anda: o <b>serviço que publica</b> envia o evento para a exchange
+    <code>orbita.eventos</code> com um <b>tópico</b> (ex.: <code>ordem.executada</code>). Cada fila que
+    <b>assina</b> aquele tópico recebe uma cópia, e o <b>serviço dono da fila</b> consome. Se o consumo falhar
+    3 vezes, a mensagem vai para a exchange <code>orbita.eventos.mortos</code> e cai na <b>DLQ</b> do serviço.
+  </div>
+
+  <nav>
+    <button data-aba="topicos" class="ativo">Tópicos</button>
+    <button data-aba="filas">Filas</button>
+    <button data-aba="exchanges">Exchanges</button>
+  </nav>
+
+  <section id="topicos" class="visivel">
+    <p class="ajuda">Cada linha é um tópico da exchange <code>orbita.eventos</code>: quem publica e quais filas recebem.</p>
+    <div class="tabela">
+      <table>
+        <thead><tr><th>Tópico</th><th>Quem publica</th><th>Filas que recebem (serviço que consome)</th></tr></thead>
+        <tbody id="linhas-topicos"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="filas">
+    <div class="filtros">
+      <select id="filtro-servico"><option value="">Todos os serviços</option></select>
+      <input id="filtro-texto" type="search" placeholder="Buscar fila ou tópico…">
+    </div>
+    <p class="ajuda">Clique em uma fila para ver todas as configurações dela.</p>
+    <div class="tabela">
+      <table>
+        <thead>
+          <tr>
+            <th>Fila</th><th>Serviço</th><th>Tipo</th><th>Tópicos assinados</th>
+            <th>Esperando</th><th>Processando</th><th>Consumidores</th><th>Se falhar vai para</th>
+          </tr>
+        </thead>
+        <tbody id="linhas-filas"></tbody>
+      </table>
+    </div>
+    <div class="detalhe" id="detalhe"></div>
+  </section>
+
+  <section id="exchanges">
+    <p class="ajuda">A exchange recebe as mensagens publicadas e distribui para as filas conforme o tópico.</p>
+    <div class="tabela">
+      <table>
+        <thead><tr><th>Exchange</th><th>Tipo</th><th>Durável</th><th>Para que serve</th></tr></thead>
+        <tbody id="linhas-exchanges"></tbody>
+      </table>
+    </div>
+  </section>
+</main>
+
+<script>
+  const SERVICOS = {
+    auth: 'Auth',
+    credencial: 'Auth',
+    clientes: 'Clientes',
+    cliente: 'Clientes',
+    contas: 'Contas',
+    conta: 'Contas',
+    ativos: 'Ativos',
+    ativo: 'Ativos',
+    negociacao: 'Negociação',
+    ordem: 'Negociação',
+    carteira: 'Carteira',
+    pagamentos: 'Pagamentos',
+    pagamento: 'Pagamentos',
+    relatorios: 'Relatórios'
+  };
+
+  const FILAS_DE_CONSULTA = {
+    'ativos.consultas': 'Negociação e Carteira perguntam dados de um ativo',
+    'auth.registros-de-credencial': 'Clientes pede a criação da credencial (PIN)'
+  };
+
+  const EXCHANGES_DO_SISTEMA = {
+    'orbita.eventos': 'Todos os eventos de negócio entre os microserviços',
+    'orbita.eventos.mortos': 'Recebe mensagens que falharam 3 vezes e entrega na DLQ de cada serviço'
+  };
+
+  let filas = [];
+  let ligacoes = [];
+
+  function servicoDe(nome) {
+    return SERVICOS[nome.split('.')[0]] || '—';
+  }
+
+  function texto(valor) {
+    return String(valor ?? '').replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  }
+
+  async function buscar(caminho) {
+    const resposta = await fetch('/api/' + caminho);
+    if (!resposta.ok) {
+      throw new Error('HTTP ' + resposta.status);
+    }
+    return resposta.json();
+  }
+
+  function tipoDaFila(fila) {
+    if (FILAS_DE_CONSULTA[fila.name]) {
+      return 'consulta (request/reply)';
+    }
+    if (fila.name.endsWith('.dlq')) {
+      return 'DLQ (mensagens com erro)';
+    }
+    return 'eventos';
+  }
+
+  function topicosDaFila(nomeDaFila) {
+    return ligacoes
+      .filter(l => l.destination === nomeDaFila && l.source === 'orbita.eventos')
+      .map(l => l.routing_key);
+  }
+
+  function desenharTopicos() {
+    const porTopico = {};
+    for (const ligacao of ligacoes) {
+      if (ligacao.source !== 'orbita.eventos') {
+        continue;
+      }
+      if (!porTopico[ligacao.routing_key]) {
+        porTopico[ligacao.routing_key] = [];
+      }
+      porTopico[ligacao.routing_key].push(ligacao.destination);
+    }
+    const topicos = Object.keys(porTopico).sort();
+    document.getElementById('total-topicos').textContent = topicos.length;
+    document.getElementById('linhas-topicos').innerHTML = topicos.map(topico => `
+      <tr>
+        <td><code>${texto(topico)}</code></td>
+        <td class="servico">${texto(servicoDe(topico))}</td>
+        <td>${porTopico[topico].sort().map(fila =>
+          `<span class="chip">${texto(fila)} → ${texto(servicoDe(fila))}</span>`).join('')}</td>
+      </tr>`).join('') || '<tr><td colspan="3" class="vazio">Nenhum tópico assinado ainda.</td></tr>';
+  }
+
+  function desenharFilas() {
+    const servico = document.getElementById('filtro-servico').value;
+    const busca = document.getElementById('filtro-texto').value.trim().toLowerCase();
+    const visiveis = filas.filter(fila => {
+      const topicos = topicosDaFila(fila.name).join(' ');
+      const confereServico = !servico || servicoDe(fila.name) === servico;
+      const confereBusca = !busca || fila.name.includes(busca) || topicos.includes(busca);
+      return confereServico && confereBusca;
+    });
+    document.getElementById('linhas-filas').innerHTML = visiveis.map(fila => {
+      const destinoDoErro = fila.arguments['x-dead-letter-exchange'];
+      const esperando = fila.messages_ready ?? 0;
+      return `
+        <tr class="clicavel" data-fila="${texto(fila.name)}">
+          <td><code>${texto(fila.name)}</code></td>
+          <td class="servico">${texto(servicoDe(fila.name))}</td>
+          <td>${texto(tipoDaFila(fila))}</td>
+          <td>${topicosDaFila(fila.name).map(t => `<span class="chip">${texto(t)}</span>`).join('')
+            || `<span class="vazio">${texto(FILAS_DE_CONSULTA[fila.name] || '—')}</span>`}</td>
+          <td class="${fila.name.endsWith('.dlq') && esperando > 0 ? 'alerta' : ''}">${esperando}</td>
+          <td>${fila.messages_unacknowledged ?? 0}</td>
+          <td>${fila.consumers ?? 0}</td>
+          <td>${destinoDoErro ? `<code>${texto(destinoDoErro)}</code>` : '<span class="vazio">—</span>'}</td>
+        </tr>`;
+    }).join('') || '<tr><td colspan="8" class="vazio">Nenhuma fila encontrada.</td></tr>';
+  }
+
+  function mostrarDetalhe(nome) {
+    const fila = filas.find(f => f.name === nome);
+    if (!fila) {
+      return;
+    }
+    const configuracoes = {
+      nome: fila.name,
+      servico: servicoDe(fila.name),
+      tipo: tipoDaFila(fila),
+      duravel: fila.durable,
+      apagaSozinha: fila.auto_delete,
+      topicosAssinados: topicosDaFila(fila.name),
+      argumentos: fila.arguments,
+      mensagensEsperando: fila.messages_ready,
+      mensagensProcessando: fila.messages_unacknowledged,
+      consumidores: fila.consumers,
+      estado: fila.state
+    };
+    const detalhe = document.getElementById('detalhe');
+    detalhe.innerHTML = `<h3>${texto(fila.name)}</h3><pre><code>${texto(JSON.stringify(configuracoes, null, 2))}</code></pre>`;
+    detalhe.classList.add('visivel');
+  }
+
+  function desenharExchanges(exchanges) {
+    const doSistema = exchanges.filter(e => EXCHANGES_DO_SISTEMA[e.name]);
+    document.getElementById('linhas-exchanges').innerHTML = doSistema.map(exchange => `
+      <tr>
+        <td><code>${texto(exchange.name)}</code></td>
+        <td>${texto(exchange.type)}</td>
+        <td>${exchange.durable ? 'sim' : 'não'}</td>
+        <td>${texto(EXCHANGES_DO_SISTEMA[exchange.name])}</td>
+      </tr>`).join('') || '<tr><td colspan="4" class="vazio">As exchanges ainda não foram criadas.</td></tr>';
+  }
+
+  function atualizarFiltroDeServicos() {
+    const select = document.getElementById('filtro-servico');
+    const escolhido = select.value;
+    const servicos = [...new Set(filas.map(f => servicoDe(f.name)))].sort();
+    select.innerHTML = '<option value="">Todos os serviços</option>'
+      + servicos.map(s => `<option ${s === escolhido ? 'selected' : ''}>${texto(s)}</option>`).join('');
+  }
+
+  async function atualizar() {
+    try {
+      const [listaDeFilas, listaDeLigacoes, exchanges] = await Promise.all([
+        buscar('queues/%2F'), buscar('bindings/%2F'), buscar('exchanges/%2F')
+      ]);
+      filas = listaDeFilas.filter(f => !f.name.startsWith('amq.')).sort((a, b) => a.name.localeCompare(b.name));
+      ligacoes = listaDeLigacoes.filter(l => l.destination_type === 'queue');
+
+      document.getElementById('total-filas').textContent = filas.length;
+      document.getElementById('total-consumidores').textContent = filas.reduce((soma, f) => soma + (f.consumers || 0), 0);
+      document.getElementById('total-mensagens').textContent = filas
+        .filter(f => !f.name.endsWith('.dlq'))
+        .reduce((soma, f) => soma + (f.messages || 0), 0);
+      document.getElementById('total-mortas').textContent = filas
+        .filter(f => f.name.endsWith('.dlq'))
+        .reduce((soma, f) => soma + (f.messages || 0), 0);
+
+      desenharTopicos();
+      atualizarFiltroDeServicos();
+      desenharFilas();
+      desenharExchanges(exchanges);
+
+      document.getElementById('bolinha').className = 'bolinha ok';
+      document.getElementById('situacao').textContent = 'atualizado às ' + new Date().toLocaleTimeString('pt-BR');
+    } catch (erro) {
+      document.getElementById('bolinha').className = 'bolinha erro';
+      document.getElementById('situacao').textContent = 'sem conexão com o RabbitMQ (' + erro.message + ')';
+    }
+  }
+
+  function mostrarAba(aba) {
+    document.querySelectorAll('nav button').forEach(b => b.classList.toggle('ativo', b.dataset.aba === aba));
+    document.querySelectorAll('section').forEach(s => s.classList.toggle('visivel', s.id === aba));
+  }
+
+  document.querySelectorAll('nav button').forEach(botao => {
+    botao.addEventListener('click', () => {
+      mostrarAba(botao.dataset.aba);
+      history.replaceState(null, '', '#' + botao.dataset.aba);
+    });
+  });
+
+  if (['topicos', 'filas', 'exchanges'].includes(location.hash.slice(1))) {
+    mostrarAba(location.hash.slice(1));
+  }
+
+  document.getElementById('filtro-servico').addEventListener('change', desenharFilas);
+  document.getElementById('filtro-texto').addEventListener('input', desenharFilas);
+  document.getElementById('linhas-filas').addEventListener('click', evento => {
+    const linha = evento.target.closest('tr[data-fila]');
+    if (linha) {
+      mostrarDetalhe(linha.dataset.fila);
+    }
+  });
+
+  atualizar();
+  setInterval(atualizar, 5000);
+</script>
+</body>
+</html>

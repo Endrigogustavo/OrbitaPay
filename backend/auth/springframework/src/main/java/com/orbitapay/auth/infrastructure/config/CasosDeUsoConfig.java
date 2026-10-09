@@ -9,12 +9,14 @@ import com.orbitapay.auth.application.service.EmissorDeToken;
 import com.orbitapay.auth.application.service.PublicadorDeEventosDeCredencial;
 import com.orbitapay.auth.application.usecase.AlterarPin;
 import com.orbitapay.auth.application.usecase.AssinarOperacao;
+import com.orbitapay.auth.application.usecase.AtualizarEmailDaCredencial;
 import com.orbitapay.auth.application.usecase.AutenticarCliente;
 import com.orbitapay.auth.application.usecase.AutenticarGerente;
 import com.orbitapay.auth.application.usecase.ConferenciaDePin;
 import com.orbitapay.auth.application.usecase.ConsultarCredencial;
 import com.orbitapay.auth.application.usecase.RegistrarCredencial;
-import com.orbitapay.auth.application.usecase.SincronizarCliente;
+import com.orbitapay.auth.application.usecase.RemoverCredencial;
+import com.orbitapay.auth.application.usecase.ZerarTentativasDePin;
 import com.orbitapay.auth.domain.repository.CredencialRepository;
 
 @Configuration
@@ -60,7 +62,17 @@ public class CasosDeUsoConfig {
     }
 
     @Bean
-    public SincronizarCliente sincronizarCliente(CredencialRepository repositorio) {
-        return new SincronizarCliente(repositorio);
+    public AtualizarEmailDaCredencial atualizarEmailDaCredencial(CredencialRepository repositorio) {
+        return new AtualizarEmailDaCredencial(repositorio);
+    }
+
+    @Bean
+    public ZerarTentativasDePin zerarTentativasDePin(CredencialRepository repositorio) {
+        return new ZerarTentativasDePin(repositorio);
+    }
+
+    @Bean
+    public RemoverCredencial removerCredencial(CredencialRepository repositorio) {
+        return new RemoverCredencial(repositorio);
     }
 }

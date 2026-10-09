@@ -7,26 +7,26 @@ import com.orbitapay.contas.application.dto.Comprovante;
 import com.orbitapay.contas.domain.model.Conta;
 import com.orbitapay.contas.domain.model.Dinheiro;
 import com.orbitapay.contas.domain.model.Lancamento;
-import com.orbitapay.contas.domain.repository.ContaRepository;
 import com.orbitapay.contas.domain.repository.ContaTravada;
+import com.orbitapay.contas.domain.repository.TravaDeConta;
 
 public class Sacar {
 
-    private final ContaRepository repositorio;
+    private final TravaDeConta trava;
 
-    public Sacar(ContaRepository repositorio) {
-        this.repositorio = repositorio;
+    public Sacar(TravaDeConta trava) {
+        this.trava = trava;
     }
 
     public Comprovante executar(String clienteId, BigDecimal valor) {
-        ContaTravada travada = repositorio.travarPorCliente(clienteId);
+        ContaTravada travada = trava.travar(clienteId);
         try {
             Conta conta = travada.conta();
             Lancamento saque = conta.sacar(new Dinheiro(valor), Instant.now());
-            repositorio.salvarELiberar(travada);
+            trava.salvarELiberar(travada);
             return new Comprovante(conta, saque);
         } catch (RuntimeException erro) {
-            repositorio.liberar(travada);
+            trava.liberar(travada);
             throw erro;
         }
     }

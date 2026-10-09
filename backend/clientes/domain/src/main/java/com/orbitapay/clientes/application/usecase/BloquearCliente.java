@@ -1,7 +1,6 @@
 package com.orbitapay.clientes.application.usecase;
 
 import java.time.Instant;
-import java.util.Optional;
 
 import com.orbitapay.clientes.application.service.PublicadorDeEventosDeCliente;
 import com.orbitapay.clientes.domain.event.ClienteSituacaoAlterada;
@@ -27,12 +26,5 @@ public class BloquearCliente {
         repositorio.salvar(cliente);
         publicador.publicar(new ClienteSituacaoAlterada(cliente.id(), true, motivo, Instant.now()));
         return cliente;
-    }
-
-    public void porExcessoDeTentativasDePin(String clienteId) {
-        Optional<Cliente> cliente = repositorio.buscarPorId(clienteId);
-        if (cliente.isPresent() && !cliente.get().bloqueado()) {
-            executar(clienteId, MotivoBloqueio.PIN);
-        }
     }
 }

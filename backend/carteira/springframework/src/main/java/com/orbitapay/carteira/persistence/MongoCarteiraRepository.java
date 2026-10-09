@@ -15,12 +15,13 @@ import com.orbitapay.carteira.domain.model.Carteira;
 import com.orbitapay.carteira.domain.model.Posicao;
 import com.orbitapay.carteira.domain.repository.CarteiraRepository;
 import com.orbitapay.carteira.domain.repository.CarteiraTravada;
+import com.orbitapay.carteira.domain.repository.TravaDeCarteira;
 import com.orbitapay.carteira.persistence.CarteiraDocument.PosicaoDocument;
 import com.orbitapay.carteira.persistence.CarteiraDocument.ReservaDocument;
 import com.orbitapay.carteira.persistence.trava.TravaPessimistaMongo;
 
 @Component
-public class MongoCarteiraRepository implements CarteiraRepository {
+public class MongoCarteiraRepository implements CarteiraRepository, TravaDeCarteira {
 
     private final CarteiraDocumentRepository mongo;
     private final TravaPessimistaMongo trava;
@@ -36,7 +37,7 @@ public class MongoCarteiraRepository implements CarteiraRepository {
     }
 
     @Override
-    public CarteiraTravada travarPorCliente(String clienteId) {
+    public CarteiraTravada travar(String clienteId) {
         criarSeNaoExistir(clienteId);
         String dono = UUID.randomUUID().toString();
         CarteiraDocument documento = trava.travar(clienteId, dono);

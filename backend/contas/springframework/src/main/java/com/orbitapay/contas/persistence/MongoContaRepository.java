@@ -15,10 +15,11 @@ import com.orbitapay.contas.domain.model.Lancamento;
 import com.orbitapay.contas.domain.model.TipoLancamento;
 import com.orbitapay.contas.domain.repository.ContaRepository;
 import com.orbitapay.contas.domain.repository.ContaTravada;
+import com.orbitapay.contas.domain.repository.TravaDeConta;
 import com.orbitapay.contas.persistence.trava.TravaPessimistaMongo;
 
 @Component
-public class MongoContaRepository implements ContaRepository {
+public class MongoContaRepository implements ContaRepository, TravaDeConta {
 
     private final ContaDocumentRepository mongo;
     private final TravaPessimistaMongo trava;
@@ -54,7 +55,7 @@ public class MongoContaRepository implements ContaRepository {
     }
 
     @Override
-    public ContaTravada travarPorCliente(String clienteId) {
+    public ContaTravada travar(String clienteId) {
         String dono = UUID.randomUUID().toString();
         ContaDocument documento = trava.travar(clienteId, dono);
         return new ContaTravada(paraDominio(documento), dono);

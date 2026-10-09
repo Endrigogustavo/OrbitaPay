@@ -17,6 +17,7 @@ import com.orbitapay.negociacao.domain.repository.AtivoNegociavelRepository;
 import com.orbitapay.negociacao.domain.repository.AtivoTravado;
 import com.orbitapay.negociacao.domain.repository.InvestidorRepository;
 import com.orbitapay.negociacao.domain.repository.OrdemRepository;
+import com.orbitapay.negociacao.domain.repository.TravaDeAtivo;
 
 public class EnviarOrdem {
 
@@ -27,14 +28,16 @@ public class EnviarOrdem {
     private final AtivoNegociavelRepository ativos;
     private final InvestidorRepository investidores;
     private final CatalogoDeAtivos catalogo;
+    private final TravaDeAtivo trava;
     private final PublicadorDeEventosDeOrdem publicador;
 
     public EnviarOrdem(OrdemRepository ordens, AtivoNegociavelRepository ativos, InvestidorRepository investidores,
-            CatalogoDeAtivos catalogo, PublicadorDeEventosDeOrdem publicador) {
+            CatalogoDeAtivos catalogo, TravaDeAtivo trava, PublicadorDeEventosDeOrdem publicador) {
         this.ordens = ordens;
         this.ativos = ativos;
         this.investidores = investidores;
         this.catalogo = catalogo;
+        this.trava = trava;
         this.publicador = publicador;
     }
 
@@ -51,16 +54,16 @@ public class EnviarOrdem {
     }
 
     private Ordem comprar(Comando comando, String ticker) {
-        AtivoTravado travado = ativos.travar(ticker);
+        AtivoTravado travado = trava.travar(ticker);
         Ordem ordem;
         try {
             AtivoNegociavel ativo = travado.ativo();
             ativo.reservarParaCompra(comando.quantidade());
             ordem = Ordem.abrir(ordens.proximoId(), comando.clienteId(), ativo, TipoOrdem.COMPRA,
                     comando.quantidade(), Instant.now());
-            ativos.salvarELiberar(travado);
+            trava.salvarELiberar(travado);
         } catch (RuntimeException erro) {
-            ativos.liberar(travado);
+            trava.liberar(travado);
             throw erro;
         }
         ordens.salvar(ordem);

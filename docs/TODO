@@ -1,7 +1,0 @@
-* Atv DMP
-
-- Implementar K6 para requisões (JS)
-- Implementar Bounded Context de Auth
-- Tirar Hexagonal do código (Ports In Out)
-- Implementar bounded context de pagamento com Anti corruption layer, para ser uma fachada para APIs de pagamento que pode ter pix, boleto, etc.
-- Implementar bounded context de relatório

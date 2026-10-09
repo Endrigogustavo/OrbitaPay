@@ -205,7 +205,7 @@ O projeto de referência usa `@Lock(PESSIMISTIC_WRITE)` com `SELECT ... FOR UPDA
 3. **Liberar sem alterar:** se a regra de negócio falhar (saldo ou oferta insuficiente), um `$unset` remove a trava.
 4. **Validade da trava** (30 s): evita *deadlock* se uma instância cair segurando a trava.
 
-Como a trava fica **no banco**, ela funciona entre **várias instâncias** do mesmo serviço, que é o cenário do teste de concorrência do projeto de referência (duas instâncias disputando o mesmo estoque). Cada caso de uso chama explicitamente `travar…`, `salvarELiberar` e, em caso de erro, `liberar` da interface do repositório (`ContaRepository`, `AtivoNegociavelRepository`, `CarteiraRepository`), e não sabe que existe MongoDB por trás.
+Como a trava fica **no banco**, ela funciona entre **várias instâncias** do mesmo serviço, que é o cenário do teste de concorrência do projeto de referência (duas instâncias disputando o mesmo estoque). Cada caso de uso chama explicitamente `travar…`, `salvarELiberar` e, em caso de erro, `liberar` das interfaces de trava (`TravaDeConta`, `TravaDeAtivo`, `TravaDeCarteira`), e não sabe que existe MongoDB por trás.
 
 Agregados protegidos:
 

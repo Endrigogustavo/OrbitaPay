@@ -24,14 +24,6 @@ public class RegistrarFato {
         }
     }
 
-    public void renomearCliente(String clienteId, String nome) {
-        Optional<PerfilDeCliente> perfil = perfis.buscar(clienteId);
-        if (perfil.isPresent()) {
-            perfil.get().renomear(nome);
-            perfis.salvar(perfil.get());
-        }
-    }
-
     private void atualizarPerfil(Fato fato, String nome) {
         Optional<PerfilDeCliente> perfil = perfis.buscar(fato.clienteId());
         if (fato.tipo() == TipoDeFato.CLIENTE_CADASTRADO && perfil.isEmpty()) {

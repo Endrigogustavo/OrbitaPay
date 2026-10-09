@@ -4,28 +4,28 @@ import java.math.BigDecimal;
 import java.time.Instant;
 
 import com.orbitapay.contas.domain.model.Dinheiro;
-import com.orbitapay.contas.domain.repository.ContaRepository;
 import com.orbitapay.contas.domain.repository.ContaTravada;
+import com.orbitapay.contas.domain.repository.TravaDeConta;
 
 public class CreditarDeposito {
 
     public record Comando(String pagamentoId, String clienteId, BigDecimal valor, String metodo) {
     }
 
-    private final ContaRepository repositorio;
+    private final TravaDeConta trava;
 
-    public CreditarDeposito(ContaRepository repositorio) {
-        this.repositorio = repositorio;
+    public CreditarDeposito(TravaDeConta trava) {
+        this.trava = trava;
     }
 
     public void executar(Comando comando) {
-        ContaTravada travada = repositorio.travarPorCliente(comando.clienteId());
+        ContaTravada travada = trava.travar(comando.clienteId());
         try {
             travada.conta().creditarDeposito(comando.pagamentoId(), new Dinheiro(comando.valor()), comando.metodo(),
                     Instant.now());
-            repositorio.salvarELiberar(travada);
+            trava.salvarELiberar(travada);
         } catch (RuntimeException erro) {
-            repositorio.liberar(travada);
+            trava.liberar(travada);
             throw erro;
         }
     }

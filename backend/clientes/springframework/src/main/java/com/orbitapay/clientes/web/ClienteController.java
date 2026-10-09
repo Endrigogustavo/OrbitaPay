@@ -18,7 +18,7 @@ import com.orbitapay.clientes.application.usecase.AtualizarDadosDoCliente;
 import com.orbitapay.clientes.application.usecase.BloquearCliente;
 import com.orbitapay.clientes.application.usecase.CadastrarCliente;
 import com.orbitapay.clientes.application.usecase.ConsultarClientes;
-import com.orbitapay.clientes.application.usecase.DesbloquearCliente;
+import com.orbitapay.clientes.application.usecase.DesbloquearPeloCliente;
 import com.orbitapay.clientes.application.usecase.RemoverCliente;
 import com.orbitapay.clientes.domain.model.Cliente;
 import com.orbitapay.clientes.domain.model.MotivoBloqueio;
@@ -34,17 +34,17 @@ public class ClienteController {
     private final ConsultarClientes consultarClientes;
     private final AtualizarDadosDoCliente atualizarDados;
     private final BloquearCliente bloquearCliente;
-    private final DesbloquearCliente desbloquearCliente;
+    private final DesbloquearPeloCliente desbloquearPeloCliente;
     private final RemoverCliente removerCliente;
 
     public ClienteController(CadastrarCliente cadastrarCliente, ConsultarClientes consultarClientes,
             AtualizarDadosDoCliente atualizarDados, BloquearCliente bloquearCliente,
-            DesbloquearCliente desbloquearCliente, RemoverCliente removerCliente) {
+            DesbloquearPeloCliente desbloquearPeloCliente, RemoverCliente removerCliente) {
         this.cadastrarCliente = cadastrarCliente;
         this.consultarClientes = consultarClientes;
         this.atualizarDados = atualizarDados;
         this.bloquearCliente = bloquearCliente;
-        this.desbloquearCliente = desbloquearCliente;
+        this.desbloquearPeloCliente = desbloquearPeloCliente;
         this.removerCliente = removerCliente;
     }
 
@@ -76,7 +76,7 @@ public class ClienteController {
 
     @PostMapping("/me/desbloqueio")
     public ClienteResponse desbloquearMinhaConta(@RequestHeader(CabecalhosDoGateway.CLIENTE_ID) String clienteId) {
-        return ClienteResponse.de(desbloquearCliente.peloCliente(clienteId));
+        return ClienteResponse.de(desbloquearPeloCliente.executar(clienteId));
     }
 
     @DeleteMapping("/me")
