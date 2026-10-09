@@ -45,24 +45,6 @@ services:
       timeout: 5s
       retries: 30
 
-  rabbit-ui:
-    image: nginx:alpine
-    restart: unless-stopped
-    volumes:
-      - ./rabbit-ui/index.html:/usr/share/nginx/html/index.html:ro
-      - ./rabbit-ui/nginx.conf:/etc/nginx/conf.d/default.conf:ro
-    ports:
-      - "8090:80"
-    networks:
-      orbita: { ipv4_address: 172.30.0.90 }
-    healthcheck:
-      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1/"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-
   mongo-auth:
     <<: *mongo
     volumes: [mongo-auth:/data/db]

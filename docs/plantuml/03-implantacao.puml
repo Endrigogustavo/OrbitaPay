@@ -14,10 +14,7 @@ node "Host Docker · rede orbita" {
   note right of gw : localhost:**8080**
 
   node "rabbitmq\n172.30.0.10" as mq <<container>>
-  note right of mq : localhost:5672 (AMQP) · localhost:15672 (painel completo)
-
-  node "rabbit-ui (nginx)\n172.30.0.90" as ui <<container>>
-  note right of ui : localhost:**8090** (painel simples)
+  note right of mq : localhost:5672 (AMQP) · localhost:15672 (painel)
 
   node "auth\n172.30.0.86" as aut <<container>>
   node "clientes\n172.30.0.81" as cli <<container>>
@@ -39,8 +36,7 @@ node "Host Docker · rede orbita" {
 }
 
 app --> gw : HTTP :8080
-nav --> ui : HTTP :8090
-ui --> mq : API de gerenciamento :15672
+nav --> mq : painel :15672
 gw --> aut : :8086
 gw --> cli : :8081
 gw --> con : :8082

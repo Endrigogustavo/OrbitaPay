@@ -89,7 +89,7 @@ for linha in "${RESULTADOS[@]}"; do
 done
 echo
 if [ "$FALHAS" -eq 0 ]; then
-  echo "Tudo certo. Gateway em http://localhost:8080 e painel do RabbitMQ em http://localhost:8090 (completo em http://localhost:15672, orbita/orbita)."
+  echo "Tudo certo. Gateway em http://localhost:8080 e painel do RabbitMQ em http://localhost:15672 (orbita/orbita)."
 else
   echo "$FALHAS etapa(s) falharam."
 fi

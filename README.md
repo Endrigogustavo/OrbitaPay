@@ -5,7 +5,7 @@ Ecossistema de **microserviços** para o banco e a corretora Órbita. Cada servi
 - **Diagrama de comunicação** do ecossistema inteiro (HTTP, eventos e consultas): [docs/comunicacao.md](docs/comunicacao.md)
 - **Endereços e IPs** de todos os containers: [docs/enderecos.md](docs/enderecos.md)
 - **SOLID** no código, com exemplos: [docs/solid.md](docs/solid.md)
-- **Painel do RabbitMQ** (tópicos, filas e configurações): http://localhost:8090
+- **Painel do RabbitMQ** (exchanges, filas e tópicos): http://localhost:15672 (usuário e senha `orbita`)
 - Documentação do Context Map, da saga, das camadas anticorrupção e do lock pessimista: [docs/context-map.md](docs/context-map.md)
 - Por que o MongoDB não tem lock pessimista e como ele foi implementado: [docs/lock-pessimista.md](docs/lock-pessimista.md)
 - Diagramas UML em PlantUML: [docs/plantuml/](docs/plantuml/README.md)
@@ -58,7 +58,6 @@ OrbitaPay/
 │   └── relatorios/
 ├── mobile/                  app Expo / React Native em TypeScript (expo-router)
 ├── k6/concorrencia.js       teste de compra simultânea (lock pessimista)
-├── rabbit-ui/               painel simples do RabbitMQ (nginx + uma página HTML)
 ├── scripts/rodar-tudo.sh    sobe o ecossistema e roda todos os testes
 ├── docs/                    comunicação, endereços, SOLID, context map, lock pessimista e PlantUML
 └── docker-compose.yml
@@ -87,19 +86,16 @@ Requisito: Docker Desktop.
 docker compose up --build -d
 ```
 
-O compose sobe o RabbitMQ, o painel simples do RabbitMQ, **um MongoDB por serviço**, os 8 microserviços e o gateway, todos na rede `orbita` com IP fixo. Ficam expostos no seu computador: **8080** (gateway, usado pelo app), **8090** (painel simples do RabbitMQ), **15672** (painel completo do RabbitMQ, usuário e senha `orbita`) e **5672** (AMQP). A ordem de subida garante que os consumidores declarem suas filas antes que Clientes e Ativos publiquem os dados iniciais.
+O compose sobe o RabbitMQ, **um MongoDB por serviço**, os 8 microserviços e o gateway, todos na rede `orbita` com IP fixo. Ficam expostos no seu computador: **8080** (gateway, usado pelo app), **15672** (painel do RabbitMQ, usuário e senha `orbita`) e **5672** (AMQP). A ordem de subida garante que os consumidores declarem suas filas antes que Clientes e Ativos publiquem os dados iniciais.
 
 > **Atualizando de uma versão anterior:** o PIN saiu do contexto de Clientes e passou para o `auth`, os serviços do compose perderam o sufixo `-service` e os projetos Maven passaram de `<contexto>-service` para `<contexto>-micro`. Recrie os dados de demonstração com `docker compose down -v --remove-orphans && docker compose up --build -d`.
 
 ### Painel do RabbitMQ
 
-Abra http://localhost:8090. A página mostra, em português e atualizando a cada 5 segundos:
+Abra http://localhost:15672 (usuário e senha `orbita`):
 
-- **Tópicos:** cada tópico da exchange `orbita.eventos`, quem publica e quais filas (de quais serviços) recebem;
-- **Filas:** mensagens esperando e em processamento, consumidores, tópicos assinados e para onde a mensagem vai se falhar (DLQ). Clique numa fila para ver todas as configurações dela;
-- **Exchanges:** `orbita.eventos` e `orbita.eventos.mortos`.
-
-Ela é só um `nginx` servindo [`rabbit-ui/index.html`](rabbit-ui/index.html) e repassando `/api` para a API de gerenciamento do RabbitMQ.
+- **Exchanges** → `orbita.eventos` → *Bindings*: cada tópico e a fila que o assina;
+- **Queues**: mensagens esperando, consumidores e os argumentos de cada fila (como a DLQ em `x-dead-letter-exchange`).
 
 ### Cada serviço na sua máquina
 

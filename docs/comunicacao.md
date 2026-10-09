@@ -8,7 +8,7 @@ Existem só três formas de comunicação no OrbitaPay:
 | **Evento (publica/assina)** | microserviço → RabbitMQ → microserviços | Quem publica envia para a exchange `orbita.eventos` com um tópico. Cada serviço interessado tem uma fila que assina aquele tópico. Quem publica não sabe quem vai receber. |
 | **Consulta (request/reply)** | microserviço → RabbitMQ → microserviço | Quando um serviço precisa de uma resposta na hora, ele envia uma pergunta para uma fila e espera a resposta (*direct reply-to*). Também passa pelo RabbitMQ, nunca por HTTP. |
 
-Os IPs e portas de cada container estão em [enderecos.md](enderecos.md). As filas e tópicos podem ser vistos ao vivo no painel http://localhost:8090.
+Os IPs e portas de cada container estão em [enderecos.md](enderecos.md). As filas, os tópicos e as ligações entre eles podem ser vistos ao vivo no painel do RabbitMQ: http://localhost:15672 (usuário e senha `orbita`), abas *Exchanges* e *Queues*.
 
 ## 1. Visão geral
 

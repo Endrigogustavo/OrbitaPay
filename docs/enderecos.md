@@ -6,13 +6,12 @@ Regra para decorar: **o final do IP de cada microserviço é a porta dele** (Cli
 
 ## Acessos a partir do seu computador
 
-Só estes quatro endereços são publicados para fora do Docker. O resto só é acessível de dentro da rede `orbita`.
+Só estes três endereços são publicados para fora do Docker. O resto só é acessível de dentro da rede `orbita`.
 
 | O que é | Endereço no seu computador | Usuário / senha |
 |---|---|---|
 | API Gateway (usado pelo app) | http://localhost:8080 | — |
-| Painel simples do RabbitMQ (tópicos e filas) | http://localhost:8090 | — |
-| Painel completo do RabbitMQ | http://localhost:15672 | `orbita` / `orbita` |
+| Painel do RabbitMQ (exchanges, filas e tópicos) | http://localhost:15672 | `orbita` / `orbita` |
 | RabbitMQ (protocolo AMQP) | `localhost:5672` | `orbita` / `orbita` |
 
 No celular físico, troque `localhost` pelo IP da sua máquina na rede Wi-Fi (veja [Como rodar](../README.md#app-mobile)).
@@ -22,7 +21,6 @@ No celular físico, troque `localhost` pelo IP da sua máquina na rede Wi-Fi (ve
 | Container | IP | Porta interna | Porta no seu computador |
 |---|---|---|---|
 | `rabbitmq` | `172.30.0.10` | `5672` (AMQP) · `15672` (painel) | `5672` · `15672` |
-| `rabbit-ui` | `172.30.0.90` | `80` | `8090` |
 | `gateway` | `172.30.0.80` | `8080` | `8080` |
 
 ## Microserviços
@@ -48,7 +46,6 @@ Todos os MongoDB escutam na porta `27017` e cada serviço tem o seu banco: `orbi
 | Gateway | cada microserviço | `http://<container>:<porta>` (ex.: `http://clientes:8081`) | HTTP |
 | Cada microserviço | RabbitMQ | `rabbitmq:5672` | AMQP |
 | Cada microserviço | o próprio MongoDB | `mongodb://mongo-<serviço>:27017/orbita_<serviço>` | MongoDB |
-| Painel `rabbit-ui` | RabbitMQ | `http://rabbitmq:15672/api` | HTTP |
 | k6 (testes) | Gateway | `http://gateway:8080` | HTTP |
 
 Dentro da rede, os serviços se chamam pelo **nome do container** (o Docker resolve o nome para o IP da tabela). Microserviços **nunca** se chamam por HTTP entre si: toda conversa entre eles passa pelo RabbitMQ (veja o [diagrama de comunicação](comunicacao.md)).
