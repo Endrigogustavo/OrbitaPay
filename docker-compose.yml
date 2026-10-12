@@ -92,6 +92,15 @@ services:
     networks:
       orbita: { ipv4_address: 172.30.0.188 }
 
+  mongo-local:
+    <<: *mongo
+    profiles: ["local"]
+    ports:
+      - "27018:27017"
+    volumes: [mongo-local:/data/db]
+    networks:
+      orbita: { ipv4_address: 172.30.0.189 }
+
   auth:
     <<: *servico
     build: ./backend/auth
@@ -280,3 +289,4 @@ volumes:
   mongo-carteira:
   mongo-pagamentos:
   mongo-relatorios:
+  mongo-local:

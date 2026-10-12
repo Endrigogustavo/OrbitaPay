@@ -5,7 +5,7 @@ spring:
   application:
     name: negociacao-micro
   mongodb:
-    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_negociacao}
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_negociacao?directConnection=true}
   data:
     mongodb:
       auto-index-creation: true

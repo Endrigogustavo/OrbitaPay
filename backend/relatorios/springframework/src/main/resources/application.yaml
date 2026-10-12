@@ -5,7 +5,7 @@ spring:
   application:
     name: relatorios-micro
   mongodb:
-    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_relatorios}
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_relatorios?directConnection=true}
   data:
     mongodb:
       auto-index-creation: true

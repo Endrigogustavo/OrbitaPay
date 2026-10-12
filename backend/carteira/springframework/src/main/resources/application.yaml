@@ -5,7 +5,7 @@ spring:
   application:
     name: carteira-micro
   mongodb:
-    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_carteira}
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_carteira?directConnection=true}
   data:
     mongodb:
       auto-index-creation: true

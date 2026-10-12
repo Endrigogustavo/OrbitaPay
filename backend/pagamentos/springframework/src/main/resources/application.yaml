@@ -5,7 +5,7 @@ spring:
   application:
     name: pagamentos-micro
   mongodb:
-    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_pagamentos}
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_pagamentos?directConnection=true}
   data:
     mongodb:
       auto-index-creation: true

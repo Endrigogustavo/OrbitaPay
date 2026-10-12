@@ -5,7 +5,7 @@ spring:
   application:
     name: contas-micro
   mongodb:
-    uri: ${MONGODB_URI:mongodb://localhost:27017/orbita_contas}
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_contas?directConnection=true}
   data:
     mongodb:
       auto-index-creation: true

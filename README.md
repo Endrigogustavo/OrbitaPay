@@ -61,7 +61,8 @@ OrbitaPay/
 │   └── relatorios/
 ├── mobile/                  app Expo / React Native em TypeScript (expo-router)
 ├── k6/concorrencia.js       teste de compra simultânea (lock pessimista)
-├── scripts/rodar-tudo.sh    sobe o ecossistema e roda todos os testes
+├── scripts/orbita.sh        modo local: infraestrutura no Docker, serviços com mvn spring-boot:run e o app
+├── scripts/rodar-tudo.sh    tudo em containers + todos os testes
 ├── docs/                    comunicação, endereços, SOLID, context map, lock pessimista e PlantUML
 └── docker-compose.yml
 ```
@@ -69,6 +70,29 @@ OrbitaPay/
 ## Como rodar
 
 O passo a passo completo (pré-requisitos, testes pela linha de comando, app e problemas comuns) está em [docs/como-rodar.md](docs/como-rodar.md). Resumo:
+
+### Jeito mais fácil: `scripts/orbita.sh`
+
+Requisitos: Docker Desktop, Java 21, Maven 3.9 e Node.js 20. No Windows, rode pelo Git Bash.
+
+```bash
+scripts/orbita.sh subir            # sobe tudo e abre o app em http://localhost:19006
+scripts/orbita.sh subir --limpar   # o mesmo, apagando os dados (volta aos dados de demonstração)
+scripts/orbita.sh status           # o que está no ar
+scripts/orbita.sh abas             # reabre as abas de log no Windows Terminal
+scripts/orbita.sh logs clientes    # log de um serviço no terminal atual (sem nome: todos)
+scripts/orbita.sh parar            # desliga serviços, app e containers (os dados ficam)
+```
+
+O `subir` faz 5 passos, sempre na mesma ordem:
+
+1. confere se Docker, Java, Maven e Node estão instalados;
+2. sobe no Docker **só a infraestrutura**: RabbitMQ (5672, painel em 15672) e um MongoDB replica set (27018);
+3. compila os 9 serviços com `mvn install` (se algum estiver rodando de antes, por exemplo pelo VS Code, ele é parado);
+4. roda cada serviço com `mvn spring-boot:run`, em três ondas: primeiro quem só consome eventos (`auth`, `contas`, `negociacao`, `carteira`, `relatorios`), depois `pagamentos` e `ativos`, e por fim `clientes` e o `gateway`. Assim as filas já existem quando os dados de demonstração são publicados;
+5. sobe o app com `npm run web` e abre http://localhost:19006 no navegador.
+
+No fim, abre uma janela **OrbitaPay** no Windows Terminal com **uma aba por aplicação** (app, gateway e os 8 serviços), cada uma mostrando o log ao vivo. A aba fecha sozinha quando o serviço para. Sem o Windows Terminal, os logs de todos aparecem no próprio terminal. Se algo falhar, a janela espera um Enter antes de fechar, para dar tempo de ler o erro. Os serviços ficam em segundo plano e os logs também ficam em `.orbita-local/logs/`.
 
 ### Um comando para subir e testar tudo
 
@@ -104,31 +128,7 @@ Abra http://localhost:15672 (usuário e senha `orbita`):
 
 ### Cada serviço na sua máquina
 
-**Antes de tudo, desligue o ecossistema em Docker** (`docker compose down`). Se ele continuar no ar, o gateway do Docker ocupa a porta 8080 e os serviços do Docker disputam as mesmas filas do RabbitMQ com os que você subir na mão, cada um com um banco diferente.
-
-Suba só a infraestrutura: o RabbitMQ e um MongoDB **só do OrbitaPay** rodando como **replica set**, que é o requisito do MongoDB para as transações de Negociação e Relatórios. Não use o MongoDB de outro projeto: num MongoDB comum (sem replica set), a compra de ações falha.
-
-```bash
-docker compose down
-docker compose up -d rabbitmq
-docker run -d --name orbitapay-mongo -p 27017:27017 mongo:8 --replSet rs0
-docker exec orbitapay-mongo mongosh --quiet --eval "rs.initiate()"
-```
-
-Cada serviço cria o próprio banco (`orbita_auth`, `orbita_contas`…) nesse MongoDB. Se a porta 27017 já estiver em uso por outro MongoDB, publique o do OrbitaPay em outra porta (`-p 27018:27017`) e informe a URI em cada terminal antes de subir o serviço:
-
-```bash
-export MONGODB_URI=mongodb://localhost:27018/orbita_contas      # Git Bash
-$env:MONGODB_URI="mongodb://localhost:27018/orbita_contas"      # PowerShell
-```
-
-Depois, em cada pasta, rode `mvn install -DskipTests` e em seguida `mvn -f springframework spring-boot:run`, um terminal por serviço, nesta ordem:
-
-1. `auth`, `contas`, `negociacao`, `carteira`, `relatorios` (consumidores; declaram as filas)
-2. `pagamentos`, `ativos`, `clientes` (publicam; o cadastro dos clientes de demonstração precisa do `auth` no ar)
-3. `gateway`
-
-Cada serviço sobe em cerca de 15 segundos. Para conferir, `http://localhost:8080/api/ativos` deve listar os ativos. Para desligar, `Ctrl+C` em cada terminal e `docker rm -f orbitapay-mongo`.
+Use `scripts/orbita.sh` (veja [Jeito mais fácil](#jeito-mais-fácil-scriptsorbitash)). Ele sobe o RabbitMQ e um MongoDB **replica set** (porta 27018, exigido pelas transações de Negociação e Relatórios) no Docker e roda cada serviço com `mvn spring-boot:run` na ordem certa. Os `application.yaml` já apontam para esse MongoDB, então rodar um serviço pelo VS Code ou com `mvn -f backend/<servico>/springframework spring-boot:run` também funciona, desde que a infraestrutura esteja no ar (`docker compose --profile local up -d rabbitmq mongo-local`).
 
 As variáveis `MONGODB_URI`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` e `ORBITA_TOKEN_SEGREDO` sobrescrevem os padrões.
 
