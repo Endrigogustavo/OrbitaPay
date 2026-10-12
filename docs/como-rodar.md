@@ -23,6 +23,8 @@ git clone https://github.com/Endrigogustavo/OrbitaPay.git
 cd OrbitaPay
 ```
 
+No Windows, clone numa pasta de caminho curto (por exemplo, `C:\projetos`): pastas muito profundas estouram o limite de 260 caracteres do Windows (veja [Problemas comuns](#10-problemas-comuns)).
+
 ## 3. Subir tudo com um comando
 
 Com o Docker Desktop aberto:
@@ -210,6 +212,7 @@ docker compose down -v     # desliga e apaga os dados (volta aos dados de demons
 
 | Sintoma | Causa | O que fazer |
 |---|---|---|
+| `Filename too long` no `git clone` (Windows) | o Windows limita caminhos a 260 caracteres e o projeto tem arquivos com até 130 caracteres de caminho | clone numa pasta curta (ex.: `C:\projetos`) ou rode `git config --global core.longpaths true` antes de clonar |
 | `Bind for 0.0.0.0:8080 failed: port is already allocated` | outro programa usa a porta 8080, 5672 ou 15672 | feche o programa ou pare o outro container |
 | `Pool overlaps with other one on this address space` | outra rede Docker já usa a faixa `172.30.0.0/24` | `docker network ls` e remova a rede que conflita, ou troque a faixa no `docker-compose.yml` |
 | O build falha com `Could not transfer artifact ... from/to central` | instabilidade de rede ao baixar dependências Maven | rode o mesmo comando de novo (o que já foi baixado fica em cache) |
