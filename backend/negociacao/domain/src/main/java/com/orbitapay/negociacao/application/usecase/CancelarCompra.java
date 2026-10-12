@@ -32,14 +32,13 @@ public class CancelarCompra {
         AtivoTravado travado = trava.travar(ordem.ticker());
         try {
             travado.ativo().cancelarReserva(ordem.quantidade());
-            trava.salvarELiberar(travado);
+            ordem.rejeitar(motivo, Instant.now());
+            trava.salvarComOrdemELiberar(travado, ordem);
         } catch (RuntimeException erro) {
             trava.liberar(travado);
             throw erro;
         }
 
-        ordem.rejeitar(motivo, Instant.now());
-        ordens.salvar(ordem);
         publicador.publicar(new OrdemRejeitada(ordem, Instant.now()));
     }
 }

@@ -61,12 +61,11 @@ public class EnviarOrdem {
             ativo.reservarParaCompra(comando.quantidade());
             ordem = Ordem.abrir(ordens.proximoId(), comando.clienteId(), ativo, TipoOrdem.COMPRA,
                     comando.quantidade(), Instant.now());
-            trava.salvarELiberar(travado);
+            trava.salvarComOrdemELiberar(travado, ordem);
         } catch (RuntimeException erro) {
             trava.liberar(travado);
             throw erro;
         }
-        ordens.salvar(ordem);
         publicador.publicar(new OrdemDeCompraSolicitada(ordem, Instant.now()));
         return ordem;
     }

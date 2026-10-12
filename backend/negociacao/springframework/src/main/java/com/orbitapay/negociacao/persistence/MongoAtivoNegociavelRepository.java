@@ -10,10 +10,13 @@ import org.springframework.data.mongodb.core.query.Criteria;
 import org.springframework.data.mongodb.core.query.Query;
 import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.orbitapay.negociacao.domain.model.AtivoNegociavel;
+import com.orbitapay.negociacao.domain.model.Ordem;
 import com.orbitapay.negociacao.domain.repository.AtivoNegociavelRepository;
 import com.orbitapay.negociacao.domain.repository.AtivoTravado;
+import com.orbitapay.negociacao.domain.repository.OrdemRepository;
 import com.orbitapay.negociacao.domain.repository.TravaDeAtivo;
 import com.orbitapay.negociacao.persistence.trava.TravaPessimistaMongo;
 
@@ -23,12 +26,14 @@ public class MongoAtivoNegociavelRepository implements AtivoNegociavelRepository
     private final AtivoNegociavelDocumentRepository mongo;
     private final MongoTemplate template;
     private final TravaPessimistaMongo trava;
+    private final OrdemRepository ordens;
 
     public MongoAtivoNegociavelRepository(AtivoNegociavelDocumentRepository mongo, MongoTemplate template,
-            TravaPessimistaMongo trava) {
+            TravaPessimistaMongo trava, OrdemRepository ordens) {
         this.mongo = mongo;
         this.template = template;
         this.trava = trava;
+        this.ordens = ordens;
     }
 
     @Override
@@ -56,6 +61,13 @@ public class MongoAtivoNegociavelRepository implements AtivoNegociavelRepository
     @Override
     public void salvarELiberar(AtivoTravado travado) {
         trava.salvarELiberar(paraDocumento(travado.ativo()), travado.dono());
+    }
+
+    @Override
+    @Transactional
+    public void salvarComOrdemELiberar(AtivoTravado travado, Ordem ordem) {
+        trava.salvarELiberar(paraDocumento(travado.ativo()), travado.dono());
+        ordens.salvar(ordem);
     }
 
     @Override

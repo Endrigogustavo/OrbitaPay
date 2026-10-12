@@ -2,7 +2,6 @@ package com.orbitapay.relatorios.persistence;
 
 import java.util.List;
 
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
 import com.orbitapay.relatorios.domain.model.Fato;
@@ -21,13 +20,12 @@ public class MongoFatoRepository implements FatoRepository {
 
     @Override
     public boolean registrar(Fato fato) {
-        try {
-            mongo.insert(new FatoDocument(fato.eventoId(), fato.tipo().name(), fato.clienteId(), fato.ticker(),
-                    fato.quantidade(), fato.valor(), fato.detalhe(), fato.ocorridoEm()));
-            return true;
-        } catch (DuplicateKeyException e) {
+        if (mongo.existsById(fato.eventoId())) {
             return false;
         }
+        mongo.insert(new FatoDocument(fato.eventoId(), fato.tipo().name(), fato.clienteId(), fato.ticker(),
+                fato.quantidade(), fato.valor(), fato.detalhe(), fato.ocorridoEm()));
+        return true;
     }
 
     @Override

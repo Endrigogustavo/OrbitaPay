@@ -5,6 +5,7 @@ import java.time.Instant;
 import com.orbitapay.gateway.domain.Credencial;
 import com.orbitapay.gateway.domain.Decisao;
 import com.orbitapay.gateway.domain.Perfil;
+import com.orbitapay.gateway.domain.TipoDeCredencial;
 import com.orbitapay.gateway.domain.VerificadorDeCredencial;
 
 public class ControleDeAcesso {
@@ -16,7 +17,7 @@ public class ControleDeAcesso {
     }
 
     public Decisao decidir(String metodo, String caminho, String tokenDeSessao, String tokenDeAssinatura) {
-        Credencial sessao = credencialValida(tokenDeSessao);
+        Credencial sessao = credencialValida(tokenDeSessao, TipoDeCredencial.SESSAO);
         switch (MapaDeAcesso.nivel(metodo, caminho)) {
             case PUBLICO:
                 return Decisao.liberadoAnonimo();
@@ -51,19 +52,19 @@ public class ControleDeAcesso {
         if (!decisao.liberado()) {
             return decisao;
         }
-        Credencial assinatura = credencialValida(tokenDeAssinatura);
+        Credencial assinatura = credencialValida(tokenDeAssinatura, TipoDeCredencial.ASSINATURA);
         if (assinatura == null || !assinatura.assinaturaDe(sessao.sujeito())) {
             return Decisao.semAssinatura();
         }
         return decisao;
     }
 
-    private Credencial credencialValida(String token) {
+    private Credencial credencialValida(String token, TipoDeCredencial tipoEsperado) {
         if (token == null || token.isBlank()) {
             return null;
         }
         Credencial credencial = verificador.verificar(token);
-        if (credencial == null || !credencial.validaEm(Instant.now())) {
+        if (credencial == null || credencial.tipo() != tipoEsperado || !credencial.validaEm(Instant.now())) {
             return null;
         }
         return credencial;

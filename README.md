@@ -2,9 +2,12 @@
 
 Ecossistema de **microserviços** para o banco e a corretora Órbita. Cada serviço corresponde a um **bounded context (DDD)** e é organizado em **camadas** (domínio, aplicação e infraestrutura). A comunicação entre serviços é feita exclusivamente por **mensageria (RabbitMQ)**. O app **React Native (Expo)** fala somente com o **API Gateway**.
 
+> **Primeira vez rodando o projeto?** Siga o guia passo a passo: [docs/como-rodar.md](docs/como-rodar.md).
+
 - **Diagrama de comunicação** do ecossistema inteiro (HTTP, eventos e consultas): [docs/comunicacao.md](docs/comunicacao.md)
 - **Endereços e IPs** de todos os containers: [docs/enderecos.md](docs/enderecos.md)
 - **SOLID** no código, com exemplos: [docs/solid.md](docs/solid.md)
+- **Transações e consistência** (onde há `@Transactional`, saga e idempotência): [docs/transacoes.md](docs/transacoes.md)
 - **Painel do RabbitMQ** (exchanges, filas e tópicos): http://localhost:15672 (usuário e senha `orbita`)
 - Documentação do Context Map, da saga, das camadas anticorrupção e do lock pessimista: [docs/context-map.md](docs/context-map.md)
 - Por que o MongoDB não tem lock pessimista e como ele foi implementado: [docs/lock-pessimista.md](docs/lock-pessimista.md)
@@ -65,6 +68,8 @@ OrbitaPay/
 
 ## Como rodar
 
+O passo a passo completo (pré-requisitos, testes pela linha de comando, app e problemas comuns) está em [docs/como-rodar.md](docs/como-rodar.md). Resumo:
+
 ### Um comando para subir e testar tudo
 
 Requisito: Docker Desktop (e Maven, opcional, para os testes unitários). No Windows, rode pelo Git Bash.
@@ -99,7 +104,7 @@ Abra http://localhost:15672 (usuário e senha `orbita`):
 
 ### Cada serviço na sua máquina
 
-Suba só a infraestrutura com `docker compose up -d rabbitmq`, mais um MongoDB em `localhost:27017`. Depois, em cada pasta, rode `mvn install -DskipTests` e em seguida `mvn -f springframework spring-boot:run`, nesta ordem:
+Suba só a infraestrutura com `docker compose up -d rabbitmq`, mais um MongoDB em `localhost:27017` rodando como **replica set** (`mongod --replSet rs0` e depois `rs.initiate()` no `mongosh`), que é o requisito do MongoDB para as transações de Negociação e Relatórios. Depois, em cada pasta, rode `mvn install -DskipTests` e em seguida `mvn -f springframework spring-boot:run`, nesta ordem:
 
 1. `auth`, `contas`, `negociacao`, `carteira`, `relatorios` (consumidores; declaram as filas)
 2. `pagamentos`, `ativos`, `clientes` (publicam; o cadastro dos clientes de demonstração precisa do `auth` no ar)

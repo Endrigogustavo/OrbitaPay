@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.orbitapay.relatorios.application.usecase.RegistrarFato;
 import com.orbitapay.relatorios.application.usecase.RenomearCliente;
@@ -29,6 +30,7 @@ public class EventosListener {
         this.renomearCliente = renomearCliente;
     }
 
+    @Transactional
     @RabbitListener(queues = "${mensageria.assinaturas.cliente-eventos.fila}", concurrency = "1")
     public void cliente(@Payload EventoDeClienteMensagem mensagem) {
         LOG.info("RECEBIDO {} {}", mensagem.evento(), mensagem.clienteId());
@@ -49,6 +51,7 @@ public class EventosListener {
         }
     }
 
+    @Transactional
     @RabbitListener(queues = "${mensageria.assinaturas.ordem-eventos.fila}")
     public void ordem(@Payload OrdemMensagem mensagem) {
         LOG.info("RECEBIDO {} {}", mensagem.evento(), mensagem.ordemId());
@@ -64,6 +67,7 @@ public class EventosListener {
         }
     }
 
+    @Transactional
     @RabbitListener(queues = "${mensageria.assinaturas.pagamento-eventos.fila}")
     public void pagamento(@Payload PagamentoMensagem mensagem) {
         LOG.info("RECEBIDO {} {}", mensagem.evento(), mensagem.pagamentoId());

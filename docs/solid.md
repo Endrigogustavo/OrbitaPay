@@ -28,6 +28,8 @@ O módulo `domain` **não tem nenhuma dependência** no `pom.xml`. Se alguém te
 | Clientes | `CadastrarCliente`, `AtualizarDadosDoCliente`, `BloquearCliente`, `BloquearPorExcessoDeTentativas`, `DesbloquearPeloCliente`, `DesbloquearPeloGerente`, `RemoverCliente` |
 | Auth | `RegistrarCredencial`, `AutenticarCliente`, `AutenticarGerente`, `AssinarOperacao`, `AlterarPin`, `ConferenciaDePin`, `AtualizarEmailDaCredencial`, `ZerarTentativasDePin`, `RemoverCredencial` |
 
+A `ConferenciaDePin` (Auth) é a única regra usada por dois casos de uso, `AutenticarCliente` e `AssinarOperacao`: conferir o PIN e contar as tentativas é uma regra só, e duplicá-la faria as duas telas divergirem.
+
 As classes `Consultar...` (`ConsultarContas`, `ConsultarOrdens`, `ConsultarAtivos`…) reúnem **apenas leituras** de um mesmo assunto. A única responsabilidade delas é responder consultas, sem alterar nada.
 
 As demais camadas também têm uma responsabilidade cada:

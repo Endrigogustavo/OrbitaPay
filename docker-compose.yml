@@ -14,8 +14,14 @@ x-servico: &servico
 x-mongo: &mongo
   image: mongo:8
   restart: unless-stopped
+  command: ["--replSet", "rs0", "--bind_ip_all"]
   healthcheck:
-    test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping')"]
+    test:
+      - CMD
+      - mongosh
+      - --quiet
+      - --eval
+      - "try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }) } if (!db.hello().isWritablePrimary) { quit(1) }"
     interval: 5s
     timeout: 3s
     retries: 20
@@ -91,7 +97,7 @@ services:
     build: ./backend/auth
     environment:
       <<: *ambiente
-      MONGODB_URI: mongodb://mongo-auth:27017/orbita_auth
+      MONGODB_URI: mongodb://mongo-auth:27017/orbita_auth?directConnection=true
     expose: ["8086"]
     networks:
       orbita: { ipv4_address: 172.30.0.86 }
@@ -107,7 +113,7 @@ services:
     build: ./backend/contas
     environment:
       <<: *ambiente
-      MONGODB_URI: mongodb://mongo-contas:27017/orbita_contas
+      MONGODB_URI: mongodb://mongo-contas:27017/orbita_contas?directConnection=true
     expose: ["8082"]
     networks:
       orbita: { ipv4_address: 172.30.0.82 }
@@ -123,7 +129,7 @@ services:
     build: ./backend/negociacao
     environment:
       <<: *ambiente
-      MONGODB_URI: mongodb://mongo-negociacao:27017/orbita_negociacao
+      MONGODB_URI: mongodb://mongo-negociacao:27017/orbita_negociacao?directConnection=true
     expose: ["8084"]
     networks:
       orbita: { ipv4_address: 172.30.0.84 }
@@ -139,7 +145,7 @@ services:
     build: ./backend/carteira
     environment:
       <<: *ambiente
-      MONGODB_URI: mongodb://mongo-carteira:27017/orbita_carteira
+      MONGODB_URI: mongodb://mongo-carteira:27017/orbita_carteira?directConnection=true
     expose: ["8085"]
     networks:
       orbita: { ipv4_address: 172.30.0.85 }
@@ -155,7 +161,7 @@ services:
     build: ./backend/relatorios
     environment:
       <<: *ambiente
-      MONGODB_URI: mongodb://mongo-relatorios:27017/orbita_relatorios
+      MONGODB_URI: mongodb://mongo-relatorios:27017/orbita_relatorios?directConnection=true
     expose: ["8088"]
     networks:
       orbita: { ipv4_address: 172.30.0.88 }
@@ -171,7 +177,7 @@ services:
     build: ./backend/pagamentos
     environment:
       <<: *ambiente
-      MONGODB_URI: mongodb://mongo-pagamentos:27017/orbita_pagamentos
+      MONGODB_URI: mongodb://mongo-pagamentos:27017/orbita_pagamentos?directConnection=true
     expose: ["8087"]
     networks:
       orbita: { ipv4_address: 172.30.0.87 }
@@ -189,7 +195,7 @@ services:
     build: ./backend/ativos
     environment:
       <<: *ambiente
-      MONGODB_URI: mongodb://mongo-ativos:27017/orbita_ativos
+      MONGODB_URI: mongodb://mongo-ativos:27017/orbita_ativos?directConnection=true
     expose: ["8083"]
     networks:
       orbita: { ipv4_address: 172.30.0.83 }
@@ -207,7 +213,7 @@ services:
     build: ./backend/clientes
     environment:
       <<: *ambiente
-      MONGODB_URI: mongodb://mongo-clientes:27017/orbita_clientes
+      MONGODB_URI: mongodb://mongo-clientes:27017/orbita_clientes?directConnection=true
     expose: ["8081"]
     networks:
       orbita: { ipv4_address: 172.30.0.81 }

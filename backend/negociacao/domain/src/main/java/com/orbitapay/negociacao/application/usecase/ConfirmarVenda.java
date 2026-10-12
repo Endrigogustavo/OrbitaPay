@@ -32,14 +32,13 @@ public class ConfirmarVenda {
         AtivoTravado travado = trava.travar(ordem.ticker());
         try {
             travado.ativo().receberVenda(ordem.quantidade());
-            trava.salvarELiberar(travado);
+            ordem.executar(Instant.now());
+            trava.salvarComOrdemELiberar(travado, ordem);
         } catch (RuntimeException erro) {
             trava.liberar(travado);
             throw erro;
         }
 
-        ordem.executar(Instant.now());
-        ordens.salvar(ordem);
         publicador.publicar(new OrdemExecutada(ordem, Instant.now()));
     }
 }

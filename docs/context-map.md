@@ -196,7 +196,7 @@ A **venda** é simétrica:
 
 ## 6. Lock pessimista no MongoDB
 
-> Explicação completa, com o passo a passo e a comparação com o `SELECT ... FOR UPDATE`: [lock-pessimista.md](lock-pessimista.md).
+> Explicação completa, com o passo a passo e a comparação com o `SELECT ... FOR UPDATE`: [lock-pessimista.md](lock-pessimista.md). Onde o projeto usa transação do MongoDB (Negociação e Relatórios) e onde não precisa: [transacoes.md](transacoes.md).
 
 O projeto de referência usa `@Lock(PESSIMISTIC_WRITE)` com `SELECT ... FOR UPDATE` no H2. O MongoDB não tem esse recurso, então cada serviço que altera saldo ou quantidade implementa a trava explicitamente em `persistence/trava/TravaPessimistaMongo`, no módulo `springframework`:
 

@@ -43,8 +43,8 @@ public class CasosDeUsoConfig {
 
     @Bean
     public BloquearPorExcessoDeTentativas bloquearPorExcessoDeTentativas(ClienteRepository repositorio,
-            BloquearCliente bloquearCliente) {
-        return new BloquearPorExcessoDeTentativas(repositorio, bloquearCliente);
+            PublicadorDeEventosDeCliente publicador) {
+        return new BloquearPorExcessoDeTentativas(repositorio, publicador);
     }
 
     @Bean
