@@ -1,12 +1,11 @@
 import type { ErroDto } from '@/@types/api';
 
-export type Perfil = 'cliente' | 'gerente';
-export type Credenciais = Record<Perfil, () => string | null>;
+export type LerToken = () => string | null;
 export type MetodoHttp = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 export interface OpcoesDaRequisicao {
   corpo?: unknown;
-  autenticacao?: Perfil;
+  autenticado?: boolean;
   assinatura?: string;
 }
 
@@ -33,12 +32,12 @@ const lerJson = (texto: string): unknown => {
 
 export type Requisitar = <T>(metodo: MetodoHttp, caminho: string, opcoes?: OpcoesDaRequisicao) => Promise<T>;
 
-export function criarClienteHttp(urlBase: string, credenciais: Credenciais): Requisitar {
+export function criarClienteHttp(urlBase: string, lerToken: LerToken): Requisitar {
   return async function requisitar<T>(metodo: MetodoHttp, caminho: string, opcoes: OpcoesDaRequisicao = {}): Promise<T> {
-    const { corpo, autenticacao, assinatura } = opcoes;
+    const { corpo, autenticado, assinatura } = opcoes;
     const cabecalhos: Record<string, string> = { Accept: 'application/json' };
     if (corpo !== undefined) cabecalhos['Content-Type'] = 'application/json';
-    const token = autenticacao ? credenciais[autenticacao]() : null;
+    const token = autenticado ? lerToken() : null;
     if (token) cabecalhos.Authorization = 'Bearer ' + token;
     if (assinatura) cabecalhos['X-Assinatura'] = assinatura;
 

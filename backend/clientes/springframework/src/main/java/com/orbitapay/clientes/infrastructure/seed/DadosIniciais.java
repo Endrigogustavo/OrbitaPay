@@ -40,12 +40,20 @@ public class DadosIniciais implements ApplicationRunner {
         cadastrar("Ana Ribeiro", "ana@orbita.com", "123.456.789-09", "1234", "12480.55");
         cadastrar("Bruno Tavares", "bruno@orbita.com", "987.654.321-00", "4321", "3150.00");
         Cliente carla = cadastrar("Carla Mendes", "carla@orbita.com", "456.123.789-55", "1111", "890.20");
-        bloquearCliente.executar(carla.id(), MotivoBloqueio.PIN);
-        LOG.info("Clientes de demonstração cadastrados");
+        if (carla != null) {
+            bloquearCliente.executar(carla.id(), MotivoBloqueio.PIN);
+        }
+        LOG.info("Carga dos clientes de demonstração concluída");
     }
 
     private Cliente cadastrar(String nome, String email, String cpf, String pin, String deposito) {
-        return cadastrarCliente.executar(
-                new CadastrarCliente.Comando(nome, email, cpf, pin, new BigDecimal(deposito)));
+        try {
+            return cadastrarCliente.executar(
+                    new CadastrarCliente.Comando(nome, email, cpf, pin, new BigDecimal(deposito)));
+        } catch (RuntimeException erro) {
+            LOG.warn("Cliente de demonstração {} não cadastrado: {}. Se o Auth já tem esse e-mail, os bancos de "
+                    + "Clientes e Auth estão de execuções diferentes: recrie os dois.", email, erro.getMessage());
+            return null;
+        }
     }
 }

@@ -1,6 +1,5 @@
 package com.orbitapay.auth.infrastructure.config;
 
-import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -11,13 +10,16 @@ import com.orbitapay.auth.application.usecase.AlterarPin;
 import com.orbitapay.auth.application.usecase.AssinarOperacao;
 import com.orbitapay.auth.application.usecase.AtualizarEmailDaCredencial;
 import com.orbitapay.auth.application.usecase.AutenticarCliente;
-import com.orbitapay.auth.application.usecase.AutenticarGerente;
+import com.orbitapay.auth.application.usecase.AutenticarFuncionario;
+import com.orbitapay.auth.application.usecase.CadastrarFuncionario;
 import com.orbitapay.auth.application.usecase.ConferenciaDePin;
 import com.orbitapay.auth.application.usecase.ConsultarCredencial;
+import com.orbitapay.auth.application.usecase.Entrar;
 import com.orbitapay.auth.application.usecase.RegistrarCredencial;
 import com.orbitapay.auth.application.usecase.RemoverCredencial;
 import com.orbitapay.auth.application.usecase.ZerarTentativasDePin;
 import com.orbitapay.auth.domain.repository.CredencialRepository;
+import com.orbitapay.auth.domain.repository.FuncionarioRepository;
 
 @Configuration
 public class CasosDeUsoConfig {
@@ -29,8 +31,9 @@ public class CasosDeUsoConfig {
     }
 
     @Bean
-    public RegistrarCredencial registrarCredencial(CredencialRepository repositorio, CodificadorDePin codificador) {
-        return new RegistrarCredencial(repositorio, codificador);
+    public RegistrarCredencial registrarCredencial(CredencialRepository repositorio,
+            FuncionarioRepository funcionarios, CodificadorDePin codificador) {
+        return new RegistrarCredencial(repositorio, funcionarios, codificador);
     }
 
     @Bean
@@ -40,9 +43,21 @@ public class CasosDeUsoConfig {
     }
 
     @Bean
-    public AutenticarGerente autenticarGerente(@Value("${orbita.gerente.codigo}") String codigo,
-            EmissorDeToken emissor) {
-        return new AutenticarGerente(codigo, emissor);
+    public AutenticarFuncionario autenticarFuncionario(FuncionarioRepository repositorio,
+            CodificadorDePin codificador, EmissorDeToken emissor) {
+        return new AutenticarFuncionario(repositorio, codificador, emissor);
+    }
+
+    @Bean
+    public Entrar entrar(FuncionarioRepository funcionarios, AutenticarFuncionario autenticarFuncionario,
+            AutenticarCliente autenticarCliente) {
+        return new Entrar(funcionarios, autenticarFuncionario, autenticarCliente);
+    }
+
+    @Bean
+    public CadastrarFuncionario cadastrarFuncionario(FuncionarioRepository funcionarios,
+            CredencialRepository credenciais, CodificadorDePin codificador) {
+        return new CadastrarFuncionario(funcionarios, credenciais, codificador);
     }
 
     @Bean

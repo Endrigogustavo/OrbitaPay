@@ -72,7 +72,7 @@ export default function Login() {
                 </Btn>
               ))}
             </View>
-            <T style={{ fontSize: 12, color: C.n600 }}>Demo: carla@orbita.com está bloqueada · código do gerente 0000</T>
+            <T style={{ fontSize: 12, color: C.n600 }}>Demo: Carla está bloqueada · Gerente (PIN 0000) e Admin (PIN 9999) veem a aba Banco</T>
           </View>
           <View style={{ marginTop: 'auto', gap: 6 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderTopWidth: 1, borderTopColor: C.divider, paddingTop: 16 }}>

@@ -22,14 +22,16 @@ public class ControleDeAcesso {
             case PUBLICO:
                 return Decisao.liberadoAnonimo();
             case PUBLICO_COM_SESSAO_OPCIONAL:
-                if (sessao != null && sessao.sessaoDe(Perfil.GERENTE)) {
+                if (sessao != null && sessao.sessaoDaEquipe()) {
                     return Decisao.liberado(sessao);
                 }
                 return Decisao.liberadoAnonimo();
             case CLIENTE:
                 return exigirSessao(sessao, Perfil.CLIENTE);
             case GERENTE:
-                return exigirSessao(sessao, Perfil.GERENTE);
+                return exigirSessao(sessao, Perfil.GERENTE, Perfil.ADMIN);
+            case ADMIN:
+                return exigirSessao(sessao, Perfil.ADMIN);
             case CLIENTE_COM_ASSINATURA:
                 return exigirAssinatura(sessao, tokenDeAssinatura);
             default:
@@ -37,14 +39,16 @@ public class ControleDeAcesso {
         }
     }
 
-    private Decisao exigirSessao(Credencial sessao, Perfil perfil) {
+    private Decisao exigirSessao(Credencial sessao, Perfil... perfisAceitos) {
         if (sessao == null) {
             return Decisao.naoAutenticado();
         }
-        if (!sessao.sessaoDe(perfil)) {
-            return Decisao.proibido();
+        for (Perfil perfil : perfisAceitos) {
+            if (sessao.sessaoDe(perfil)) {
+                return Decisao.liberado(sessao);
+            }
         }
-        return Decisao.liberado(sessao);
+        return Decisao.proibido();
     }
 
     private Decisao exigirAssinatura(Credencial sessao, String tokenDeAssinatura) {

@@ -34,7 +34,7 @@ public class CarteiraController {
     @GetMapping("/{clienteId}")
     public ResponseEntity<CarteiraValorizada> carteiraDoCliente(@PathVariable String clienteId,
             @RequestHeader(value = PERFIL, required = false) String perfil) {
-        if (!"GERENTE".equals(perfil)) {
+        if (!"GERENTE".equals(perfil) && !"ADMIN".equals(perfil)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
         return ResponseEntity.ok(consultarCarteira.doCliente(clienteId));

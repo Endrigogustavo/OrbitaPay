@@ -179,7 +179,6 @@ export function OperacoesProvider({ children }: { children: ReactNode }) {
   async function verificarPin(p: string) {
     const atual = folhaAtual.current;
     if (!atual || atual.kind !== 'pin') return;
-    if (atual.purpose === 'manager') return gerencia.entrarComoGerente(p);
     if (atual.purpose === 'unblock') return perfil.desbloquearComPin(p);
     let assinatura: string;
     try {

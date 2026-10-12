@@ -19,7 +19,7 @@ Ecossistema de **microserviços** para o banco e a corretora Órbita. Cada servi
 | Serviço | IP | Porta | Banco MongoDB | Responsabilidade |
 |---|---|---|---|---|
 | `gateway` | `172.30.0.80` | 8080 | — | Entrada única do front. Roteia, valida sessão (HMAC), exige assinatura por PIN e injeta a identidade |
-| `auth` | `172.30.0.86` | 8086 | `orbita_auth` | Credenciais (PIN), login do cliente e do gerente, tokens de sessão e de assinatura, bloqueio por tentativas |
+| `auth` | `172.30.0.86` | 8086 | `orbita_auth` | Credenciais (PIN), contas da equipe (gerente e admin), login único, tokens de sessão e de assinatura, bloqueio por tentativas |
 | `clientes` | `172.30.0.81` | 8081 | `orbita_clientes` | Cadastro, dados pessoais e situação da conta (bloqueio e desbloqueio) |
 | `contas` | `172.30.0.82` | 8082 | `orbita_contas` | Saldo, extrato, saque, crédito dos depósitos confirmados, débito e crédito das ordens |
 | `ativos` | `172.30.0.83` | 8083 | `orbita_ativos` | Catálogo de ações, bolsas, cotações simuladas ao vivo |
@@ -104,11 +104,31 @@ Abra http://localhost:15672 (usuário e senha `orbita`):
 
 ### Cada serviço na sua máquina
 
-Suba só a infraestrutura com `docker compose up -d rabbitmq`, mais um MongoDB em `localhost:27017` rodando como **replica set** (`mongod --replSet rs0` e depois `rs.initiate()` no `mongosh`), que é o requisito do MongoDB para as transações de Negociação e Relatórios. Depois, em cada pasta, rode `mvn install -DskipTests` e em seguida `mvn -f springframework spring-boot:run`, nesta ordem:
+**Antes de tudo, desligue o ecossistema em Docker** (`docker compose down`). Se ele continuar no ar, o gateway do Docker ocupa a porta 8080 e os serviços do Docker disputam as mesmas filas do RabbitMQ com os que você subir na mão, cada um com um banco diferente.
+
+Suba só a infraestrutura: o RabbitMQ e um MongoDB **só do OrbitaPay** rodando como **replica set**, que é o requisito do MongoDB para as transações de Negociação e Relatórios. Não use o MongoDB de outro projeto: num MongoDB comum (sem replica set), a compra de ações falha.
+
+```bash
+docker compose down
+docker compose up -d rabbitmq
+docker run -d --name orbitapay-mongo -p 27017:27017 mongo:8 --replSet rs0
+docker exec orbitapay-mongo mongosh --quiet --eval "rs.initiate()"
+```
+
+Cada serviço cria o próprio banco (`orbita_auth`, `orbita_contas`…) nesse MongoDB. Se a porta 27017 já estiver em uso por outro MongoDB, publique o do OrbitaPay em outra porta (`-p 27018:27017`) e informe a URI em cada terminal antes de subir o serviço:
+
+```bash
+export MONGODB_URI=mongodb://localhost:27018/orbita_contas      # Git Bash
+$env:MONGODB_URI="mongodb://localhost:27018/orbita_contas"      # PowerShell
+```
+
+Depois, em cada pasta, rode `mvn install -DskipTests` e em seguida `mvn -f springframework spring-boot:run`, um terminal por serviço, nesta ordem:
 
 1. `auth`, `contas`, `negociacao`, `carteira`, `relatorios` (consumidores; declaram as filas)
 2. `pagamentos`, `ativos`, `clientes` (publicam; o cadastro dos clientes de demonstração precisa do `auth` no ar)
 3. `gateway`
+
+Cada serviço sobe em cerca de 15 segundos. Para conferir, `http://localhost:8080/api/ativos` deve listar os ativos. Para desligar, `Ctrl+C` em cada terminal e `docker rm -f orbitapay-mongo`.
 
 As variáveis `MONGODB_URI`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` e `ORBITA_TOKEN_SEGREDO` sobrescrevem os padrões.
 
@@ -130,11 +150,13 @@ mobile/src/
 ```bash
 cd mobile
 npm install
-npx expo start
+npm run web         # abre o app no navegador em http://localhost:19006
 npm run typecheck   # tsc --noEmit
 ```
 
-O app usa módulos nativos (Skia, Reanimated, react-native-screens), então roda em um *development build* e não no Expo Go: `npx expo run:android`.
+**No navegador** (`npm run web`), o app fala com o gateway em `http://localhost:8080` e funciona por completo: login, depósito, saque, compra de ações com PIN, carteira, globo 3D e, para gerente e admin, a aba Banco. O script copia o `canvaskit.wasm` do Skia para `public/` e sobe o servidor web na porta 19006 (a 8081 é do serviço Clientes).
+
+No **Android**, o app usa módulos nativos (Skia, Reanimated, react-native-screens), então roda em um *development build* e não no Expo Go: `npx expo run:android`.
 
 Por padrão o app aponta para `http://10.0.2.2:8080` no emulador Android e para `http://localhost:8080` nas demais plataformas. Em um celular físico, defina o IP da sua máquina:
 
@@ -149,16 +171,31 @@ Contas de demonstração:
 | ana@orbita.com | 1234 | saldo R$ 12.480,55 |
 | bruno@orbita.com | 4321 | saldo R$ 3.150,00 |
 | carla@orbita.com | 1111 | bloqueada por PIN |
-| código do gerente | 0000 | aba Banco |
+| gerente@orbita.com | 0000 | gerente: aba Banco com a gestão de clientes |
+| admin@orbita.com | 9999 | admin: aba Banco com clientes e ações da bolsa |
 
 ## Autenticação
 
 O contexto `auth` é o dono da credencial: e-mail de login, hash PBKDF2 do PIN e tentativas. Os demais contextos nunca veem o PIN.
 
 - **Cadastro:** `POST /api/clientes` chega em Clientes, que pede a criação da credencial ao `auth` por **request/reply** na fila ponto a ponto `auth.registros-de-credencial`. O cliente só é anunciado (`cliente.cadastrado`) depois que a credencial existe. Se o `auth` recusar o PIN, o cadastro é desfeito.
-- **Login e assinatura:** `POST /api/autenticacao/clientes` devolve o token de sessão. `POST /api/autenticacao/assinaturas` confere o PIN e devolve a assinatura de 120 s exigida em saques, ordens e no desbloqueio pelo próprio cliente.
+- **Login e assinatura:** `POST /api/autenticacao/sessoes` (e-mail e PIN) é o login de todas as contas e devolve o token de sessão e o `perfil` (`CLIENTE`, `GERENTE` ou `ADMIN`). `POST /api/autenticacao/assinaturas` confere o PIN e devolve a assinatura de 120 s exigida em saques, ordens e no desbloqueio pelo próprio cliente.
 - **Bloqueio por PIN:** na 3ª tentativa errada o `auth` publica `credencial.bloqueada-por-pin`, Clientes bloqueia a conta com motivo `PIN` e publica `cliente.situacao-alterada` para Contas e Negociação. Quando a conta é desbloqueada, o `auth` zera as tentativas.
 - O gateway continua validando os tokens localmente (HMAC com o segredo compartilhado), sem chamar o `auth` a cada requisição.
+
+### Níveis de acesso
+
+Cada conta tem um perfil. O perfil vai dentro do token, o gateway decide pela tabela de regras (`MapaDeAcesso`) e cada serviço confere de novo o cabeçalho `X-Perfil` (defesa em profundidade).
+
+| Perfil | Quem é | O que pode | Abas no app |
+|---|---|---|---|
+| `CLIENTE` | quem abre conta no banco | a própria conta: saldo, depósito, saque, ordens, carteira, PIN | Início, Mercado, Globo, Perfil |
+| `GERENTE` | funcionário do banco | listar, cadastrar, editar, bloquear e desbloquear clientes; ver contas, carteiras e o relatório gerencial | Banco, Mercado, Globo |
+| `ADMIN` | administrador do banco | tudo do gerente + **excluir clientes** e **cadastrar, editar e remover ações** da bolsa | Banco, Mercado, Globo |
+
+- As contas da equipe ficam na coleção `funcionarios` do `auth`, separadas das credenciais dos clientes, e são criadas na subida (`EquipeInicial`). Um e-mail da equipe não pode ser usado para abrir conta de cliente.
+- A aba **Banco não existe para o cliente**: o app monta as abas pelo perfil da sessão (`Tabs.Protected`), então ela nem aparece e o endereço `/banco` volta para o Início. Mesmo que alguém chame a API direto, o gateway responde `403`.
+- A equipe acompanha o Mercado e o Globo, mas não compra nem vende ações (as rotas de cliente respondem `403` para gerente e admin).
 
 ## Depósitos (Pagamentos + camada anticorrupção)
 
@@ -228,19 +265,20 @@ As variáveis `BASE_URL`, `EMAIL`, `PIN`, `TICKER`, `QTD_REQUISICOES`, `POLL_TEN
 
 | Método | Caminho | Acesso |
 |---|---|---|
-| POST | `/api/autenticacao/clientes` · `/api/autenticacao/gerente` | público |
+| POST | `/api/autenticacao/sessoes` (login de cliente, gerente e admin) | público |
 | POST | `/api/autenticacao/assinaturas` · PUT `/api/autenticacao/pin` · GET `/api/autenticacao/me` | cliente |
-| POST | `/api/clientes` | público (gerente pode informar `depositoInicial`) |
+| POST | `/api/clientes` | público (gerente e admin podem informar `depositoInicial`) |
 | GET/PUT/DELETE | `/api/clientes/me` · POST `/api/clientes/me/bloqueio` | cliente |
 | POST | `/api/clientes/me/desbloqueio` | cliente + `X-Assinatura` |
-| GET/PUT/DELETE | `/api/clientes`, `/api/clientes/{id}`, `/bloqueio`, `/desbloqueio` | gerente |
+| GET/PUT | `/api/clientes`, `/api/clientes/{id}` · POST `/bloqueio`, `/desbloqueio` | gerente ou admin |
+| DELETE | `/api/clientes/{id}` | admin |
 | GET | `/api/contas/me` | cliente |
 | POST | `/api/contas/me/saques` | cliente + `X-Assinatura` |
-| GET | `/api/contas` | gerente |
+| GET | `/api/contas` | gerente ou admin |
 | POST/GET | `/api/pagamentos` · GET `/api/pagamentos/{id}` | cliente |
 | GET | `/api/ativos`, `/api/ativos/{ticker}`, `/api/bolsas`, `/api/ofertas/{ticker}` | público |
-| POST/PUT/DELETE | `/api/ativos[/{ticker}]` | gerente |
+| POST/PUT/DELETE | `/api/ativos[/{ticker}]` | admin |
 | POST | `/api/ordens` | cliente + `X-Assinatura` |
 | GET | `/api/ordens`, `/api/ordens/{id}` | cliente |
-| GET | `/api/carteiras/me` · `/api/carteiras/{clienteId}` | cliente · gerente |
-| GET | `/api/relatorios/me` · `/api/relatorios/gerencial` | cliente · gerente |
+| GET | `/api/carteiras/me` · `/api/carteiras/{clienteId}` | cliente · gerente ou admin |
+| GET | `/api/relatorios/me` · `/api/relatorios/gerencial` | cliente · gerente ou admin |

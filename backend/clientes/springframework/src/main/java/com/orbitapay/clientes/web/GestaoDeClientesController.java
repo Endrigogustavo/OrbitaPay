@@ -82,7 +82,7 @@ public class GestaoDeClientesController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remover(@PathVariable String clienteId,
             @RequestHeader(value = CabecalhosDoGateway.PERFIL, required = false) String perfil) {
-        CabecalhosDoGateway.exigirGerente(perfil);
+        CabecalhosDoGateway.exigirAdmin(perfil);
         removerCliente.executar(clienteId);
     }
 }

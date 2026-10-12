@@ -57,7 +57,7 @@ export function FolhaContaBloqueada() {
   const max = u?.maxFails || MAX_ATTEMPTS;
   const why = u?.blocked ? (u.reason === 'pin' ? 'Detectamos ' + max + ' tentativas de PIN incorretas e bloqueamos a conta para proteger seu dinheiro.'
     : u.reason === 'admin' ? 'O gerente da sua conta aplicou um bloqueio preventivo.' : 'Você mesmo bloqueou a conta. Desbloqueie com o seu PIN quando quiser.') : '';
-  const how = u?.blocked && u.reason !== 'user' ? 'Desbloqueio pelo gerente: aba Banco → cliente → Desbloquear (código 0000).' : '';
+  const how = u?.blocked && u.reason !== 'user' ? 'Desbloqueio pelo gerente: ele entra com a conta de gerente, abre a aba Banco → cliente → Desbloquear.' : '';
   return (
     <View style={{ gap: 16, paddingTop: 8 }}>
       <IconeGrande d={IC.lock} icon={46} bg={C.a900} color={C.bg} sw={1.4} />

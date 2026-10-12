@@ -14,6 +14,7 @@ import org.springframework.stereotype.Component;
 
 import com.orbitapay.auth.application.dto.TokenDeAcesso;
 import com.orbitapay.auth.application.service.EmissorDeToken;
+import com.orbitapay.auth.domain.model.Perfil;
 
 @Component
 public class HmacEmissorDeToken implements EmissorDeToken {
@@ -38,8 +39,8 @@ public class HmacEmissorDeToken implements EmissorDeToken {
     }
 
     @Override
-    public TokenDeAcesso emitirSessaoDeGerente() {
-        return emitir("SESSAO", "gerente", "GERENTE", duracaoSessao);
+    public TokenDeAcesso emitirSessaoDeFuncionario(String funcionarioId, Perfil perfil) {
+        return emitir("SESSAO", funcionarioId, perfil.name(), duracaoSessao);
     }
 
     @Override

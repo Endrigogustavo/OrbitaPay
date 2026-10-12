@@ -6,6 +6,8 @@ export const DEMO = [
   { nome: 'Ana', email: 'ana@orbita.com', pin: '1234' },
   { nome: 'Bruno', email: 'bruno@orbita.com', pin: '4321' },
   { nome: 'Carla', email: 'carla@orbita.com', pin: '1111' },
+  { nome: 'Gerente', email: 'gerente@orbita.com', pin: '0000' },
+  { nome: 'Admin', email: 'admin@orbita.com', pin: '9999' },
 ];
 
 export const REASON: Record<MotivoBloqueio, string> = {

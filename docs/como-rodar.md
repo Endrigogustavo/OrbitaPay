@@ -88,7 +88,7 @@ Uma compra de ação completa, do login até a carteira, só com `curl`. Copie e
 **Entrar como a cliente de demonstração Ana** (e-mail `ana@orbita.com`, PIN `1234`) e guardar o token:
 
 ```bash
-TOKEN=$(curl -s -X POST http://localhost:8080/api/autenticacao/clientes \
+TOKEN=$(curl -s -X POST http://localhost:8080/api/autenticacao/sessoes \
   -H "Content-Type: application/json" -d '{"email":"ana@orbita.com","pin":"1234"}' \
   | sed -E 's/.*"token":"([^"]+)".*/\1/')
 echo "$TOKEN"
@@ -137,7 +137,21 @@ curl -s -o /dev/null -w "sem login: %{http_code}\n" http://localhost:8080/api/co
 curl -s -o /dev/null -w "cliente em rota de gerente: %{http_code}\n" http://localhost:8080/api/clientes -H "Authorization: Bearer $TOKEN"
 ```
 
-O primeiro responde `401` (precisa entrar) e o segundo `403` (o perfil não tem permissão). A lista completa de rotas está no [README](../README.md#endpoints-do-gateway).
+O primeiro responde `401` (precisa entrar) e o segundo `403` (o perfil não tem permissão).
+
+**Ver os níveis de acesso:** o mesmo login devolve o perfil de cada conta. O gerente lista clientes, mas só o admin cadastra ações:
+
+```bash
+GERENTE=$(curl -s -X POST http://localhost:8080/api/autenticacao/sessoes \
+  -H "Content-Type: application/json" -d '{"email":"gerente@orbita.com","pin":"0000"}' \
+  | sed -E 's/.*"token":"([^"]+)".*/\1/')
+curl -s -o /dev/null -w "gerente lista clientes: %{http_code}\n" http://localhost:8080/api/clientes -H "Authorization: Bearer $GERENTE"
+curl -s -o /dev/null -w "gerente cadastra acao: %{http_code}\n" -X POST http://localhost:8080/api/ativos \
+  -H "Authorization: Bearer $GERENTE" -H "Content-Type: application/json" \
+  -d '{"ticker":"TEST3","nome":"Teste","setor":"Teste","bolsa":"B3","cotacao":10}'
+```
+
+O primeiro responde `200` e o segundo `403`. A tabela de perfis está no [README](../README.md#níveis-de-acesso) e a lista completa de rotas em [Endpoints do gateway](../README.md#endpoints-do-gateway).
 
 ## 6. Ver as mensagens no RabbitMQ
 
@@ -176,7 +190,21 @@ Com o k6 instalado na própria máquina, o comando é `k6 run k6/concorrencia.js
 
 ## 8. Rodar o app mobile
 
+### No navegador (o jeito mais simples)
+
 Com o ecossistema no ar:
+
+```bash
+cd mobile
+npm install
+npm run web
+```
+
+Abra http://localhost:19006. Na tela de login, toque em **Ana** (em "Entrar rápido") e depois em **Entrar**. O app web fala com o gateway em `http://localhost:8080` e tem tudo: depósito, saque e compra de ações com PIN, carteira e globo 3D.
+
+Para ver o painel do banco, saia e entre com **Gerente** ou **Admin** (também em "Entrar rápido"). A aba **Banco** só aparece para essas contas: o cliente não a vê. O gerente cuida dos clientes; o admin também exclui clientes e cadastra ações.
+
+### No Android
 
 ```bash
 cd mobile
@@ -199,7 +227,8 @@ Contas de demonstração:
 | ana@orbita.com | 1234 | saldo inicial R$ 12.480,55 |
 | bruno@orbita.com | 4321 | saldo inicial R$ 3.150,00 |
 | carla@orbita.com | 1111 | bloqueada por PIN (para mostrar o desbloqueio) |
-| código do gerente | 0000 | aba Banco |
+| gerente@orbita.com | 0000 | gerente: aba Banco (clientes) |
+| admin@orbita.com | 9999 | admin: aba Banco (clientes e ações) |
 
 ## 9. Parar
 

@@ -26,7 +26,7 @@ O módulo `domain` **não tem nenhuma dependência** no `pom.xml`. Se alguém te
 | Negociação | `EnviarOrdem`, `ConfirmarCompra`, `CancelarCompra`, `ConfirmarVenda`, `CancelarVenda`, `RegistrarAtivo`, `RetirarAtivo`, `AtualizarCotacoes`, `RegistrarInvestidor`, `RemoverInvestidor` |
 | Carteira | `ReservarAcoesParaVenda`, `LiquidarCompra`, `LiquidarVenda`, `CancelarReservaDeVenda`, `EncerrarCarteira`, `RegistrarAtivoCotado`, `RemoverAtivoCotado`, `AtualizarCotacoes` |
 | Clientes | `CadastrarCliente`, `AtualizarDadosDoCliente`, `BloquearCliente`, `BloquearPorExcessoDeTentativas`, `DesbloquearPeloCliente`, `DesbloquearPeloGerente`, `RemoverCliente` |
-| Auth | `RegistrarCredencial`, `AutenticarCliente`, `AutenticarGerente`, `AssinarOperacao`, `AlterarPin`, `ConferenciaDePin`, `AtualizarEmailDaCredencial`, `ZerarTentativasDePin`, `RemoverCredencial` |
+| Auth | `RegistrarCredencial`, `Entrar`, `AutenticarCliente`, `AutenticarFuncionario`, `CadastrarFuncionario`, `AssinarOperacao`, `AlterarPin`, `ConferenciaDePin`, `AtualizarEmailDaCredencial`, `ZerarTentativasDePin`, `RemoverCredencial` |
 
 A `ConferenciaDePin` (Auth) é a única regra usada por dois casos de uso, `AutenticarCliente` e `AssinarOperacao`: conferir o PIN e contar as tentativas é uma regra só, e duplicá-la faria as duas telas divergirem.
 
@@ -103,7 +103,7 @@ O app segue a mesma ideia de responsabilidade única: as ações que o usuário 
 |---|---|
 | `banco.ts` | depósito e saque |
 | `negociacao.ts` | compra e venda de ações |
-| `gerencia.ts` | backoffice do gerente (clientes e ativos) |
+| `gerencia.ts` | backoffice da equipe (clientes; ativos só para o admin) |
 | `perfil.ts` | PIN, bloqueio e encerramento da própria conta |
 | `OperacoesContext.tsx` | só o estado da tela (folha aberta, teclado, erros) e a junção dos módulos acima |
 

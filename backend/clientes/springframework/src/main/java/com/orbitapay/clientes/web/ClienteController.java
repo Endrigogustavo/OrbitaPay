@@ -51,7 +51,7 @@ public class ClienteController {
     @PostMapping
     public ResponseEntity<ClienteResponse> cadastrar(@RequestBody CadastroRequest requisicao,
             @RequestHeader(value = CabecalhosDoGateway.PERFIL, required = false) String perfil) {
-        boolean gerente = CabecalhosDoGateway.PERFIL_GERENTE.equals(perfil);
+        boolean gerente = CabecalhosDoGateway.daEquipe(perfil);
         Cliente cliente = cadastrarCliente.executar(new CadastrarCliente.Comando(requisicao.nome(),
                 requisicao.email(), requisicao.cpf(), requisicao.pin(), gerente ? requisicao.depositoInicial() : null));
         return ResponseEntity.created(URI.create("/clientes/" + cliente.id())).body(ClienteResponse.de(cliente));

@@ -6,5 +6,6 @@ public enum NivelDeAcesso {
     CLIENTE,
     CLIENTE_COM_ASSINATURA,
     GERENTE,
+    ADMIN,
     NEGADO
 }

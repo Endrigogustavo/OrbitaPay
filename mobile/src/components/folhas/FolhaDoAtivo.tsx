@@ -7,15 +7,17 @@ import { IC } from '@/constants/icones';
 import { C } from '@/constants/tema';
 import { useMercado } from '@/context/MercadoContext';
 import { useOperacoes } from '@/context/OperacoesContext';
+import { useSessao } from '@/context/SessaoContext';
 import { usePainel } from '@/context/usePainel';
 import { Anim, Blueprint, Cta, ErrBox, Icon, InfoGrid, Kicker, PulseDot, Seg, T } from '../ui';
 
 export function FolhaDoAtivo({ folha }: { folha: FolhaDo<'stock'> }) {
   const { porTicker } = useMercado();
   const { usuario, posicoes, exibir } = usePainel();
+  const { admin } = useSessao();
   const op = useOperacoes();
   const st = porTicker[folha.ticker];
-  if (!st || !usuario) return null;
+  if (!st) return null;
 
   const b = exibir(st), e = EXM[st.ex], P = pts(st.hist, 316, 120, 8), last = P[P.length - 1];
   const h = posicoes[st.ticker], held = h ? h.qty - h.reserved : 0, buy = folha.mode === 'buy';
@@ -51,32 +53,41 @@ export function FolhaDoAtivo({ folha }: { folha: FolhaDo<'stock'> }) {
         </View>
       </Blueprint>
       <InfoGrid cols={3} pad={8} items={[['Abertura', money(st.hist[0], st.cur)], ['Máxima', money(Math.max(...st.hist), st.cur)], ['Mínima', money(Math.min(...st.hist), st.cur)]]} />
-      <Seg options={[
-        { label: 'Comprar', on: buy, pick: () => op.definirModo('buy') },
-        { label: 'Vender · ' + held + ' un.', on: !buy, pick: () => op.definirModo('sell') },
-      ]} />
-      <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.divider, borderRadius: 14, overflow: 'hidden' }}>
-        <Pressable onPress={botoes[0][1]} style={({ pressed }) => ({ width: 54, height: 54, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? C.a200 : 'transparent', borderColor: C.divider, borderRightWidth: 1 })}>
-          <Icon d={botoes[0][0]} size={20} />
-        </Pressable>
-        <View style={{ flex: 1, alignItems: 'center' }}>
-          <T h num style={{ fontSize: 28, lineHeight: 30 }}>{op.quantidade}</T>
-          <T style={{ fontSize: 11, color: C.n700 }}>ações</T>
-        </View>
-        <Pressable onPress={botoes[1][1]} style={({ pressed }) => ({ width: 54, height: 54, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? C.a200 : 'transparent', borderColor: C.divider, borderLeftWidth: 1 })}>
-          <Icon d={botoes[1][0]} size={20} />
-        </Pressable>
-      </View>
-      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-        <View>
-          <T style={{ fontSize: 12, color: C.n700 }}>Total estimado</T>
-          <T style={{ fontSize: 12, color: C.n700 }}>{st.cur === 'BRL' ? 'Liquidação em D+2' : 'Câmbio 1 ' + st.cur + ' = ' + brl(st.fx)}</T>
-        </View>
-        <T h num style={{ fontSize: 28 }}>{brl(op.quantidade * st.price * st.fx)}</T>
-      </View>
-      <ErrBox icon msg={op.erro} />
-      <Cta label={(buy ? 'Comprar ' : 'Vender ') + op.quantidade + ' ' + st.ticker} icon={buy ? IC.up : IC.down} h={54} onPress={op.confirmarOrdem} />
-      <T style={{ fontSize: 12, color: C.n700 }}>Saldo disponível {brl(usuario.balance)} · ordem confirmada com PIN</T>
+      {!usuario ? (
+        <>
+          {admin && <Cta label={'Editar ' + st.ticker} icon={IC.pencil} h={54} onPress={() => op.editarAtivo(st)} />}
+          <T style={{ fontSize: 12, color: C.n700 }}>Contas da equipe do banco acompanham o mercado, mas não compram nem vendem ações.</T>
+        </>
+      ) : (
+        <>
+          <Seg options={[
+            { label: 'Comprar', on: buy, pick: () => op.definirModo('buy') },
+            { label: 'Vender · ' + held + ' un.', on: !buy, pick: () => op.definirModo('sell') },
+          ]} />
+          <View style={{ flexDirection: 'row', alignItems: 'center', borderWidth: 1, borderColor: C.divider, borderRadius: 14, overflow: 'hidden' }}>
+            <Pressable onPress={botoes[0][1]} style={({ pressed }) => ({ width: 54, height: 54, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? C.a200 : 'transparent', borderColor: C.divider, borderRightWidth: 1 })}>
+              <Icon d={botoes[0][0]} size={20} />
+            </Pressable>
+            <View style={{ flex: 1, alignItems: 'center' }}>
+              <T h num style={{ fontSize: 28, lineHeight: 30 }}>{op.quantidade}</T>
+              <T style={{ fontSize: 11, color: C.n700 }}>ações</T>
+            </View>
+            <Pressable onPress={botoes[1][1]} style={({ pressed }) => ({ width: 54, height: 54, alignItems: 'center', justifyContent: 'center', backgroundColor: pressed ? C.a200 : 'transparent', borderColor: C.divider, borderLeftWidth: 1 })}>
+              <Icon d={botoes[1][0]} size={20} />
+            </Pressable>
+          </View>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+            <View>
+              <T style={{ fontSize: 12, color: C.n700 }}>Total estimado</T>
+              <T style={{ fontSize: 12, color: C.n700 }}>{st.cur === 'BRL' ? 'Liquidação em D+2' : 'Câmbio 1 ' + st.cur + ' = ' + brl(st.fx)}</T>
+            </View>
+            <T h num style={{ fontSize: 28 }}>{brl(op.quantidade * st.price * st.fx)}</T>
+          </View>
+          <ErrBox icon msg={op.erro} />
+          <Cta label={(buy ? 'Comprar ' : 'Vender ') + op.quantidade + ' ' + st.ticker} icon={buy ? IC.up : IC.down} h={54} onPress={op.confirmarOrdem} />
+          <T style={{ fontSize: 12, color: C.n700 }}>Saldo disponível {brl(usuario.balance)} · ordem confirmada com PIN</T>
+        </>
+      )}
     </Anim>
   );
 }

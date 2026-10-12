@@ -13,7 +13,6 @@ function textos(folha: FolhaDo<'pin'>): [string, string, string] {
   switch (folha.purpose) {
     case 'withdraw': return ['Autorizar saque', 'Confirme com seu PIN', 'Saque de ' + brl(folha.v)];
     case 'trade': return ['Confirmar ordem', 'Assinatura digital', (folha.mode === 'buy' ? 'Compra' : 'Venda') + ' de ' + folha.qty + ' ' + folha.ticker + ' · ' + brl(folha.total)];
-    case 'manager': return ['Código do gerente', 'Acesso restrito', 'Digite o código de 4 dígitos · demo 0000'];
     case 'unblock': return ['Desbloquear conta', 'Segurança', 'Confirme seu PIN para reativar saques e ordens'];
   }
 }
@@ -38,12 +37,10 @@ export function FolhaDePin({ folha }: { folha: FolhaDo<'pin'> }) {
             );
           })}
         </View>
-        {folha.purpose !== 'manager' && (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <T style={{ fontSize: 12, color: C.n700 }}>Tentativas</T>
-            {Array.from({ length: max }, (_, i) => <View key={i} style={{ width: 10, height: 10, borderWidth: 1, borderColor: C.a700, backgroundColor: i < fails ? C.a700 : 'transparent' }} />)}
-          </View>
-        )}
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+          <T style={{ fontSize: 12, color: C.n700 }}>Tentativas</T>
+          {Array.from({ length: max }, (_, i) => <View key={i} style={{ width: 10, height: 10, borderWidth: 1, borderColor: C.a700, backgroundColor: i < fails ? C.a700 : 'transparent' }} />)}
+        </View>
       </Anim>
       {!!op.erro && <View style={{ marginTop: 12 }}><ErrBox icon msg={op.erro} /></View>}
       <Teclado tipo="pin" aoPressionar={op.pressionar} />

@@ -29,7 +29,7 @@ function Conteudo({ folha }: { folha: FolhaAtual }) {
 
 export function CamadaDeFolhas() {
   const { folha, fechando, fechar, tremor } = useOperacoes();
-  const { usuario } = useSessao();
+  const { usuario, equipe } = useSessao();
   const insets = useSafeAreaInsets();
 
   useEffect(() => {
@@ -38,7 +38,7 @@ export function CamadaDeFolhas() {
     return () => assinatura.remove();
   }, [folha, fechar]);
 
-  if (!folha || (folha.kind === 'stock' && !usuario)) return null;
+  if (!folha || (folha.kind === 'stock' && !usuario && !equipe)) return null;
   const chave = folha.kind + (folha.kind === 'pin' ? folha.purpose : '');
   return (
     <Folha closing={fechando} onClose={fechar} bottom={insets.bottom}>

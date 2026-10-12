@@ -1,14 +1,9 @@
 import type { Acao, ClienteDoBackoffice } from '@/@types/orbita';
 import { esperar, parseNum } from '@/constants/formatacao';
-import { comoErroDaApi } from '@/integration/http';
 import type { Ferramentas } from './ferramentas';
 
 export function criarOperacoesDeGerencia(f: Ferramentas) {
-  const { api, sessao, carregarCliente, encerrarSessao } = f.sessao;
-
-  function ehOProprioCliente(clienteId: string) {
-    return clienteId === sessao?.clienteId;
-  }
+  const { api, carregarCliente } = f.sessao;
 
   function salvarCliente() {
     const folha = f.folha;
@@ -39,7 +34,6 @@ export function criarOperacoesDeGerencia(f: Ferramentas) {
       f.fechar();
       f.avisar('Dados atualizados');
       await f.gerente.carregarBackoffice();
-      if (ehOProprioCliente(folha.id)) carregarCliente().catch(() => {});
     });
   }
 
@@ -49,14 +43,12 @@ export function criarOperacoesDeGerencia(f: Ferramentas) {
       else await api.clientes.bloquear(cliente.id);
       f.avisar(cliente.name.split(' ')[0] + (cliente.blocked ? ' desbloqueada(o)' : ' bloqueada(o)'));
       await f.gerente.carregarBackoffice();
-      if (ehOProprioCliente(cliente.id)) carregarCliente().catch(() => {});
     });
   }
 
   function removerCliente(cliente: ClienteDoBackoffice) {
     f.ocupar(async () => {
       await api.clientes.remover(cliente.id);
-      if (ehOProprioCliente(cliente.id)) return encerrarSessao('Cliente excluído');
       f.atualizarFolha(() => null);
       f.avisar('Cliente excluído');
       await f.gerente.carregarBackoffice();
@@ -100,15 +92,5 @@ export function criarOperacoesDeGerencia(f: Ferramentas) {
     });
   }
 
-  async function entrarComoGerente(codigo: string) {
-    try {
-      await f.gerente.entrar(codigo);
-      f.fechar();
-    } catch (falha) {
-      const erro = comoErroDaApi(falha);
-      f.falhar(erro.status === 0 ? erro.message : 'Código de gerente inválido');
-    }
-  }
-
-  return { salvarCliente, alternarBloqueio, removerCliente, editarAtivo, salvarAtivo, removerAtivo, entrarComoGerente };
+  return { salvarCliente, alternarBloqueio, removerCliente, editarAtivo, salvarAtivo, removerAtivo };
 }

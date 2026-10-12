@@ -1,7 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import type { SessaoSalva } from '@/@types/orbita';
 
-const CHAVE = 'orbita-sessao-v2';
+const CHAVE = 'orbita-sessao-v3';
 
 export async function lerSessao(): Promise<SessaoSalva | null> {
   try {

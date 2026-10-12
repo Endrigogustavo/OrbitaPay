@@ -52,7 +52,7 @@ public class AtivoController {
     @PostMapping("/ativos")
     public ResponseEntity<AtivoResponse> listarNaBolsa(@RequestBody AtivoRequest requisicao,
             @RequestHeader(value = CabecalhosDoGateway.PERFIL, required = false) String perfil) {
-        CabecalhosDoGateway.exigirGerente(perfil);
+        CabecalhosDoGateway.exigirAdmin(perfil);
         AtivoResponse resposta = AtivoResponse.de(listarAtivo.executar(comando(requisicao.ticker(), requisicao)));
         return ResponseEntity.created(URI.create("/ativos/" + resposta.ticker())).body(resposta);
     }
@@ -60,7 +60,7 @@ public class AtivoController {
     @PutMapping("/ativos/{ticker}")
     public AtivoResponse atualizar(@PathVariable String ticker, @RequestBody AtivoRequest requisicao,
             @RequestHeader(value = CabecalhosDoGateway.PERFIL, required = false) String perfil) {
-        CabecalhosDoGateway.exigirGerente(perfil);
+        CabecalhosDoGateway.exigirAdmin(perfil);
         return AtivoResponse.de(atualizarAtivo.executar(comando(ticker, requisicao)));
     }
 
@@ -68,7 +68,7 @@ public class AtivoController {
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void remover(@PathVariable String ticker,
             @RequestHeader(value = CabecalhosDoGateway.PERFIL, required = false) String perfil) {
-        CabecalhosDoGateway.exigirGerente(perfil);
+        CabecalhosDoGateway.exigirAdmin(perfil);
         removerAtivo.executar(ticker);
     }
 

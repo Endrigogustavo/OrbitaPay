@@ -14,10 +14,11 @@ interface SessaoContextValue {
   fase: Fase;
   sessao: SessaoSalva | null;
   usuario: Usuario | null;
+  equipe: boolean;
+  admin: boolean;
   carregarCliente: () => Promise<ClienteDto>;
   entrar: (email: string, pin: string, mensagem?: string) => Promise<void>;
   encerrarSessao: (mensagem?: string | null) => void;
-  definirTokenDoGerente: (token: string | null) => void;
   definirPausa: (pausado: boolean) => void;
 }
 
@@ -26,6 +27,9 @@ const SessaoContext = createContext<SessaoContextValue | null>(null);
 const DURACAO_DO_SPLASH = 2300;
 const INTERVALO_DA_CONTA = 8000;
 const ESPERA_PELA_CONTA = 1200;
+
+const ehDaEquipe = (sessao: SessaoSalva | null) => sessao?.perfil === 'GERENTE' || sessao?.perfil === 'ADMIN';
+const ROTULO_DO_PERFIL = { CLIENTE: 'Cliente', GERENTE: 'Gerente', ADMIN: 'Admin' };
 
 export function SessaoProvider({ children }: { children: ReactNode }) {
   const { avisar } = useToast();
@@ -37,14 +41,15 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   const [acesso, setAcesso] = useState<AcessoDto | null>(null);
 
   const token = useRef<string | null>(null);
-  const tokenDoGerente = useRef<string | null>(null);
+  const sessaoAtual = useRef<SessaoSalva | null>(null);
   const carteiraAtual = useRef<CarteiraDto | null>(null);
   const faseAtual = useRef<Fase>('splash');
   const pausado = useRef(false);
   const esperaPelaConta = useRef<ReturnType<typeof setTimeout>>(undefined);
 
-  const api = useMemo(() => criarOrbitaApi({ cliente: () => token.current, gerente: () => tokenDoGerente.current }), []);
+  const api = useMemo(() => criarOrbitaApi(() => token.current), []);
 
+  sessaoAtual.current = sessao;
   carteiraAtual.current = carteira;
   faseAtual.current = fase;
 
@@ -68,7 +73,6 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
 
   const encerrarSessao = useCallback((mensagem?: string | null) => {
     token.current = null;
-    tokenDoGerente.current = null;
     clearTimeout(esperaPelaConta.current);
     salvarSessao(null);
     setSessao(null);
@@ -81,12 +85,16 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   }, [avisar]);
 
   const entrar = useCallback(async (email: string, pin: string, mensagem?: string) => {
-    const resposta = await api.autenticacao.cliente(email, pin);
-    const nova: SessaoSalva = { token: resposta.token, clienteId: resposta.clienteId };
+    const resposta = await api.autenticacao.entrar(email, pin);
+    const nova: SessaoSalva = { token: resposta.token, perfil: resposta.perfil, clienteId: resposta.clienteId, nome: resposta.nome };
     token.current = resposta.token;
-    tokenDoGerente.current = null;
     await salvarSessao(nova);
     setSessao(nova);
+    if (ehDaEquipe(nova)) {
+      setFase('app');
+      avisar(mensagem || 'Olá, ' + (nova.nome || '').split(' ')[0] + ' · acesso ' + ROTULO_DO_PERFIL[nova.perfil]);
+      return;
+    }
     const cliente = await carregarCliente();
     setFase('app');
     avisar(mensagem || (cliente.bloqueado ? 'Conta em modo restrito' : 'Bem-vindo(a) de volta, ' + cliente.nome.split(' ')[0]));
@@ -97,6 +105,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     const inicio = lerSessao().then(salva => {
       if (ativo && salva?.token) {
         token.current = salva.token;
+        sessaoAtual.current = salva;
         setSessao(salva);
       }
     });
@@ -104,6 +113,7 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
       inicio.then(async () => {
         if (!ativo) return;
         if (!token.current) return setFase('login');
+        if (ehDaEquipe(sessaoAtual.current)) return setFase('app');
         try {
           await carregarCliente();
           setFase('app');
@@ -114,7 +124,9 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
       });
     }, DURACAO_DO_SPLASH);
     const atualizar = setInterval(() => {
-      if (token.current && faseAtual.current === 'app' && !pausado.current) carregarCliente().catch(() => {});
+      if (token.current && faseAtual.current === 'app' && !pausado.current && !ehDaEquipe(sessaoAtual.current)) {
+        carregarCliente().catch(() => {});
+      }
     }, INTERVALO_DA_CONTA);
     return () => {
       ativo = false;
@@ -124,14 +136,15 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     };
   }, [carregarCliente, encerrarSessao]);
 
-  const definirTokenDoGerente = useCallback((valor: string | null) => { tokenDoGerente.current = valor; }, []);
   const definirPausa = useCallback((valor: boolean) => { pausado.current = valor; }, []);
 
   const usuario = useMemo(() => paraUsuario(me, conta, carteira, acesso), [me, conta, carteira, acesso]);
+  const equipe = ehDaEquipe(sessao);
+  const admin = sessao?.perfil === 'ADMIN';
 
   const value = useMemo<SessaoContextValue>(() => ({
-    api, fase, sessao, usuario, carregarCliente, entrar, encerrarSessao, definirTokenDoGerente, definirPausa,
-  }), [api, fase, sessao, usuario, carregarCliente, entrar, encerrarSessao, definirTokenDoGerente, definirPausa]);
+    api, fase, sessao, usuario, equipe, admin, carregarCliente, entrar, encerrarSessao, definirPausa,
+  }), [api, fase, sessao, usuario, equipe, admin, carregarCliente, entrar, encerrarSessao, definirPausa]);
 
   return <SessaoContext.Provider value={value}>{children}</SessaoContext.Provider>;
 }

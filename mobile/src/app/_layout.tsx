@@ -29,8 +29,8 @@ export default function RootLayout() {
 }
 
 function Navegacao() {
-  const { fase, usuario } = useSessao();
-  const logado = fase === 'app' && !!usuario;
+  const { fase, usuario, equipe } = useSessao();
+  const logado = fase === 'app' && (equipe || !!usuario);
   return (
     <View style={{ flex: 1, backgroundColor: C.bg }}>
       <StatusBar style={fase === 'splash' ? 'light' : 'dark'} />

@@ -8,6 +8,7 @@ import com.orbitapay.auth.domain.model.Credencial;
 import com.orbitapay.auth.domain.model.Email;
 import com.orbitapay.auth.domain.model.Pin;
 import com.orbitapay.auth.domain.repository.CredencialRepository;
+import com.orbitapay.auth.domain.repository.FuncionarioRepository;
 
 public class RegistrarCredencial {
 
@@ -15,10 +16,13 @@ public class RegistrarCredencial {
     }
 
     private final CredencialRepository repositorio;
+    private final FuncionarioRepository funcionarios;
     private final CodificadorDePin codificador;
 
-    public RegistrarCredencial(CredencialRepository repositorio, CodificadorDePin codificador) {
+    public RegistrarCredencial(CredencialRepository repositorio, FuncionarioRepository funcionarios,
+            CodificadorDePin codificador) {
         this.repositorio = repositorio;
+        this.funcionarios = funcionarios;
         this.codificador = codificador;
     }
 
@@ -31,7 +35,7 @@ public class RegistrarCredencial {
         if (repositorio.buscarPorCliente(comando.clienteId()).isPresent()) {
             return;
         }
-        if (repositorio.emailEmUsoPorOutroCliente(email, comando.clienteId())) {
+        if (repositorio.emailEmUsoPorOutroCliente(email, comando.clienteId()) || funcionarios.existePorEmail(email)) {
             throw new RegraDeNegocioException("Este e-mail já tem conta");
         }
         repositorio.salvar(Credencial.nova(comando.clienteId(), email, codificador.codificar(pin),

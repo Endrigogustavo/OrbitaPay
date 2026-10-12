@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo } from 'react';
 import { PixelRatio, Pressable, View } from 'react-native';
 import {
   Canvas, Circle, DashPathEffect, FilterMode, Group, ImageShader, MipmapMode, Path, Rect, Shader, Skia, Text,
-  TwoPointConicalGradient, matchFont, useFont, useImage, vec, type SkFont, type SkPath,
+  TwoPointConicalGradient, useFont, useImage, vec, type SkFont, type SkPath,
 } from '@shopify/react-native-skia';
 import { Gesture, GestureDetector } from 'react-native-gesture-handler';
 import { useDerivedValue, useFrameCallback, useSharedValue, type SharedValue } from 'react-native-reanimated';
@@ -351,8 +351,8 @@ function Globo({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }: 
   const mask = useImage(require('../../assets/land-mask.png'));
   const font = useFont(require('@expo-google-fonts/barlow-condensed/600SemiBold/BarlowCondensed_600SemiBold.ttf'), 12);
 
-  const small = useMemo(() => matchFont({ fontFamily: 'sans-serif', fontSize: 11 }), []);
-  const widths = useMemo(() => EX.map(e => (font ? font.measureText(e.code).width : e.code.length * 6.2)), [font]);
+  const small = useFont(require('@expo-google-fonts/barlow-condensed/600SemiBold/BarlowCondensed_600SemiBold.ttf'), 11);
+  const widths = useMemo(() => EX.map(e => (font ? font.getTextWidth(e.code) : e.code.length * 6.2)), [font]);
 
   const gesture = useMemo(() => {
     const pan = Gesture.Pan().minDistance(3)
@@ -414,7 +414,7 @@ function Globo({ selEx, exN, openKey, onSelect, scrollRef, autoRotate = true }: 
             <Path path={orbitFront} color={C.a500} style="stroke" strokeWidth={0.8} />
             <Group opacity={satFront}><Path path={satPath} color={C.a800} /><Path path={satLine} color={C.a600} style="stroke" strokeWidth={1} /></Group>
           </Group>
-          <Text x={20} y={21} text={coords} font={small} color={C.a800} />
+          {small && <Text x={20} y={21} text={coords} font={small} color={C.a800} />}
         </Canvas>
       </GestureDetector>
       <T pointerEvents="none" style={{ position: 'absolute', left: 20, bottom: 10, fontSize: 11, letterSpacing: 0.9, textTransform: 'uppercase', color: C.n700 }}>Arraste para girar · toque num ponto</T>

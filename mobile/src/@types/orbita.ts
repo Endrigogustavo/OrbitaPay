@@ -1,4 +1,4 @@
-import type { MetodoDeDeposito } from './api';
+import type { MetodoDeDeposito, PerfilDto } from './api';
 
 export type MotivoBloqueio = 'pin' | 'admin' | 'user';
 export type TipoMovimentacao = 'sys' | 'dep' | 'saq' | 'buy' | 'sell';
@@ -84,7 +84,9 @@ export interface InfoDaBolsa {
 
 export interface SessaoSalva {
   token: string;
-  clienteId: string;
+  perfil: PerfilDto;
+  clienteId: string | null;
+  nome: string | null;
 }
 
 export interface AcaoExibida {
@@ -118,7 +120,7 @@ export type Folha =
   | { kind: 'amount'; op: 'dep' | 'saq'; method?: MetodoDeDeposito }
   | { kind: 'pin'; purpose: 'withdraw'; v: number }
   | { kind: 'pin'; purpose: 'trade'; mode: ModoDeOrdem; ticker: string; qty: number; price: number; total: number }
-  | { kind: 'pin'; purpose: 'manager' | 'unblock' }
+  | { kind: 'pin'; purpose: 'unblock' }
   | { kind: 'processing'; ticker: string; mode: ModoDeOrdem; qty: number; total: number; status: string; ordemId?: string }
   | { kind: 'success'; title: string; big: string; lines: LinhaDeComprovante[] }
   | { kind: 'locked' }

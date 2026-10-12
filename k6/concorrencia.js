@@ -36,7 +36,7 @@ export const options = {
 export function setup() {
     const params = { headers: { 'Content-Type': 'application/json' } };
 
-    const resLogin = http.post(`${BASE_URL}/api/autenticacao/clientes`, JSON.stringify({ email: EMAIL, pin: PIN }), params);
+    const resLogin = http.post(`${BASE_URL}/api/autenticacao/sessoes`, JSON.stringify({ email: EMAIL, pin: PIN }), params);
     const token = JSON.parse(resLogin.body).token;
 
     const resAssinatura = http.post(`${BASE_URL}/api/autenticacao/assinaturas`, JSON.stringify({ pin: PIN }), {

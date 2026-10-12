@@ -112,6 +112,7 @@ O mesmo vale para o cliente:
 |---|---|---|
 | Clientes | `Cliente` | nome, e-mail, CPF, bloqueio e motivo do bloqueio |
 | Auth | `Credencial` | `clienteId`, e-mail de login, PIN (hash PBKDF2) e tentativas erradas |
+| Auth | `Funcionario` | conta da equipe: nome, e-mail, PIN (hash PBKDF2) e perfil `GERENTE` ou `ADMIN` |
 | Contas | `Conta.nomeTitular` / `titularBloqueado` | só o necessário para exibir o extrato e barrar saques |
 | Negociação | `Investidor` | só `clienteId` e `bloqueado` |
 | Relatórios | `PerfilDeCliente` | `clienteId`, nome, bloqueado, ativo e data de cadastro, para os rankings e a contagem da base |

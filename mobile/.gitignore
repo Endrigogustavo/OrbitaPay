@@ -31,3 +31,5 @@ yarn-error.*
 /android
 
 *.apk
+
+public/canvaskit.wasm

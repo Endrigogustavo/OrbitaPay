@@ -6,12 +6,14 @@ import { IC } from '@/constants/icones';
 import { C } from '@/constants/tema';
 import { useGerente } from '@/context/GerenteContext';
 import { useOperacoes } from '@/context/OperacoesContext';
+import { useSessao } from '@/context/SessaoContext';
 import { TituloDaFolha } from '../Titulos';
 import { Anim, Cta, ErrBox, Field, InfoGrid, Input, Plain, T } from '../ui';
 
 export function FolhaDoCliente({ folha }: { folha: FolhaDo<'userForm'> }) {
   const op = useOperacoes();
   const { clientes } = useGerente();
+  const { admin } = useSessao();
   const fv = op.form, tu = folha.id ? clientes.find(x => x.id === folha.id) : undefined;
   const isNew = folha.mode === 'new', isAdmin = folha.mode === 'admin';
   return (
@@ -32,8 +34,8 @@ export function FolhaDoCliente({ folha }: { folha: FolhaDo<'userForm'> }) {
       {isAdmin && tu && (
         <View style={{ flexDirection: 'row', gap: 8 }}>
           <Plain style={{ flex: 1 }} icon={tu.blocked ? IC.unlock : IC.lock} label={tu.blocked ? 'Desbloquear' : 'Bloquear'} onPress={() => op.alternarBloqueio(tu)} />
-          <Plain style={{ flex: 1 }} icon={IC.trash} label="Excluir cliente" onPress={() => op.confirmar({ d: IC.trash, title: 'Excluir ' + tu.name.split(' ')[0] + '?', body: 'O cliente, saldo de ' + brl(tu.balance) + ' e todo o histórico serão removidos do banco.', label: 'Excluir cliente', hasGo: true, cancel: 'Cancelar',
-            go: () => op.removerCliente(tu) })} />
+          {admin && <Plain style={{ flex: 1 }} icon={IC.trash} label="Excluir cliente" onPress={() => op.confirmar({ d: IC.trash, title: 'Excluir ' + tu.name.split(' ')[0] + '?', body: 'O cliente, saldo de ' + brl(tu.balance) + ' e todo o histórico serão removidos do banco.', label: 'Excluir cliente', hasGo: true, cancel: 'Cancelar',
+            go: () => op.removerCliente(tu) })} />}
         </View>
       )}
     </Anim>

@@ -16,8 +16,12 @@ export interface CredencialDto {
   expiraEm: string;
 }
 
+export type PerfilDto = 'CLIENTE' | 'GERENTE' | 'ADMIN';
+
 export interface SessaoDto extends CredencialDto {
-  clienteId: string;
+  perfil: PerfilDto;
+  clienteId: string | null;
+  nome: string | null;
 }
 
 export interface AcessoDto {

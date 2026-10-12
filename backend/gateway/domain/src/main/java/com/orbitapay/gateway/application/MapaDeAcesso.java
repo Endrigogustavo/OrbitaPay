@@ -1,5 +1,6 @@
 package com.orbitapay.gateway.application;
 
+import static com.orbitapay.gateway.domain.NivelDeAcesso.ADMIN;
 import static com.orbitapay.gateway.domain.NivelDeAcesso.CLIENTE;
 import static com.orbitapay.gateway.domain.NivelDeAcesso.CLIENTE_COM_ASSINATURA;
 import static com.orbitapay.gateway.domain.NivelDeAcesso.GERENTE;
@@ -17,8 +18,7 @@ public final class MapaDeAcesso {
     private static final List<RegraDeAcesso> REGRAS = List.of(
             new RegraDeAcesso("OPTIONS", "/**", PUBLICO),
 
-            new RegraDeAcesso("POST", "/api/autenticacao/clientes", PUBLICO),
-            new RegraDeAcesso("POST", "/api/autenticacao/gerente", PUBLICO),
+            new RegraDeAcesso("POST", "/api/autenticacao/sessoes", PUBLICO),
             new RegraDeAcesso("POST", "/api/autenticacao/assinaturas", CLIENTE),
             new RegraDeAcesso("PUT", "/api/autenticacao/pin", CLIENTE),
             new RegraDeAcesso("GET", "/api/autenticacao/me", CLIENTE),
@@ -28,6 +28,7 @@ public final class MapaDeAcesso {
             new RegraDeAcesso("*", "/api/clientes/me/desbloqueio", NEGADO),
             new RegraDeAcesso("*", "/api/clientes/me", CLIENTE),
             new RegraDeAcesso("*", "/api/clientes/me/**", CLIENTE),
+            new RegraDeAcesso("DELETE", "/api/clientes/**", ADMIN),
             new RegraDeAcesso("*", "/api/clientes", GERENTE),
             new RegraDeAcesso("*", "/api/clientes/**", GERENTE),
 
@@ -53,8 +54,8 @@ public final class MapaDeAcesso {
 
             new RegraDeAcesso("GET", "/api/ativos", PUBLICO),
             new RegraDeAcesso("GET", "/api/ativos/**", PUBLICO),
-            new RegraDeAcesso("*", "/api/ativos", GERENTE),
-            new RegraDeAcesso("*", "/api/ativos/**", GERENTE),
+            new RegraDeAcesso("*", "/api/ativos", ADMIN),
+            new RegraDeAcesso("*", "/api/ativos/**", ADMIN),
             new RegraDeAcesso("GET", "/api/bolsas", PUBLICO),
             new RegraDeAcesso("GET", "/api/ofertas/**", PUBLICO));
 
