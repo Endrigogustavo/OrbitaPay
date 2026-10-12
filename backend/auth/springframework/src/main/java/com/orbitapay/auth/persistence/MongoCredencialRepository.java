@@ -2,6 +2,7 @@ package com.orbitapay.auth.persistence;
 
 import java.util.Optional;
 
+import org.bson.types.ObjectId;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,11 @@ public class MongoCredencialRepository implements CredencialRepository {
 
     public MongoCredencialRepository(CredencialDocumentRepository mongo) {
         this.mongo = mongo;
+    }
+
+    @Override
+    public String proximoId() {
+        return new ObjectId().toHexString();
     }
 
     @Override

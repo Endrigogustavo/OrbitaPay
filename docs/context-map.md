@@ -66,7 +66,7 @@ flowchart TB
     PAG["<b>Pagamentos</b><br/>(Depósitos)<br/>U · OHS/PL · ACL p/ provedores"]
     REL["<b>Relatórios</b><br/>(Modelo de leitura)"]
 
-    CLI <-->|"Parceria · request/reply auth.registros-de-credencial ⇄ credencial.bloqueada-por-pin"| AUT
+    CLI <-->|"Parceria · cliente.* ⇄ credencial.bloqueada-por-pin"| AUT
     CLI -->|"U → D · eventos cliente.* · ACL: Titular"| CON
     CLI -->|"U → D · eventos cliente.* · ACL: Investidor"| NEG
     CLI -->|"U → D · cliente.removido"| CAR
@@ -84,7 +84,7 @@ Legenda: **U** = upstream, **D** = downstream, **OHS** = Open Host Service, **PL
 
 | Upstream | Downstream | Padrão | Como o downstream se protege |
 |---|---|---|---|
-| Clientes | Auth | Parceria: request/reply na fila `auth.registros-de-credencial` (cadastro) + `cliente.*` (e-mail, desbloqueio, remoção) | O Auth guarda só `clienteId`, e-mail, hash do PIN e tentativas |
+| Clientes | Auth | Parceria: `cliente.*` (e-mail, desbloqueio, remoção). O cadastro não passa pela mensageria: o app cria a credencial no Auth e o gateway injeta o `clienteId` no cadastro em Clientes | O Auth guarda só `clienteId`, e-mail, hash do PIN e tentativas |
 | Auth | Clientes | OHS + PL (`credencial.bloqueada-por-pin`) | Clientes bloqueia a conta com motivo `PIN` |
 | Clientes | Contas | OHS + PL (`cliente.*`) | ACL: o listener traduz a mensagem para `Titular` (nome e se está bloqueado) dentro da `Conta` |
 | Clientes | Negociação | OHS + PL (`cliente.*`) | ACL: projeção `Investidor` (só `clienteId` e `bloqueado`) |
@@ -145,8 +145,9 @@ Exchange: `orbita.eventos` (topic, durável). Toda mensagem carrega `eventoId`, 
 | `pagamento.expirado` | Pagamentos | Relatórios | pagamentoId, clienteId, método, valor |
 
 Consultas síncronas por mensageria (request/reply via *direct reply-to*):
-- `ativos.consultas` recebe `{ticker, solicitante}` e responde `{encontrado, ticker, nome, bolsa, moeda, cambio, cotacao, quantidadeEmitida}`;
-- `auth.registros-de-credencial` recebe `{clienteId, email, pin}` no cadastro do cliente e responde `{registrada, motivo}`.
+- `ativos.consultas` recebe `{ticker, solicitante}` e responde `{encontrado, ticker, nome, bolsa, moeda, cambio, cotacao, quantidadeEmitida}`.
+
+Nenhuma mensagem carrega PIN: credenciais só trafegam por HTTP do app até o Auth, passando pelo gateway.
 
 ### Filas e ordenação
 

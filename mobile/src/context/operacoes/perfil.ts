@@ -1,7 +1,7 @@
 import type { Ferramentas } from './ferramentas';
 
 export function criarOperacoesDoPerfil(f: Ferramentas) {
-  const { api, carregarCliente, encerrarSessao } = f.sessao;
+  const { api, usuario, carregarCliente, assumirSessao, encerrarSessao } = f.sessao;
 
   function salvarPin() {
     const form = f.form;
@@ -46,5 +46,15 @@ export function criarOperacoesDoPerfil(f: Ferramentas) {
     }
   }
 
-  return { salvarPin, bloquearMinhaConta, encerrarMinhaConta, desbloquearComPin };
+  async function tornarGerente(assinatura: string) {
+    try {
+      const sessao = await api.autenticacao.tornarGerente(usuario?.name ?? '', assinatura);
+      f.fechar();
+      await assumirSessao(sessao, 'Agora você é gerente · entre com o mesmo e-mail e PIN');
+    } catch (falha) {
+      f.erroDePin(falha);
+    }
+  }
+
+  return { salvarPin, bloquearMinhaConta, encerrarMinhaConta, desbloquearComPin, tornarGerente };
 }

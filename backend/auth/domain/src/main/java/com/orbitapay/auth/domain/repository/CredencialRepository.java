@@ -7,6 +7,8 @@ import com.orbitapay.auth.domain.model.Email;
 
 public interface CredencialRepository {
 
+    String proximoId();
+
     Optional<Credencial> buscarPorCliente(String clienteId);
 
     Optional<Credencial> buscarPorEmail(Email email);

@@ -6,6 +6,7 @@ export type MetodoHttp = 'GET' | 'POST' | 'PUT' | 'DELETE';
 export interface OpcoesDaRequisicao {
   corpo?: unknown;
   autenticado?: boolean;
+  token?: string;
   assinatura?: string;
 }
 
@@ -34,10 +35,10 @@ export type Requisitar = <T>(metodo: MetodoHttp, caminho: string, opcoes?: Opcoe
 
 export function criarClienteHttp(urlBase: string, lerToken: LerToken): Requisitar {
   return async function requisitar<T>(metodo: MetodoHttp, caminho: string, opcoes: OpcoesDaRequisicao = {}): Promise<T> {
-    const { corpo, autenticado, assinatura } = opcoes;
+    const { corpo, autenticado, token: tokenInformado, assinatura } = opcoes;
     const cabecalhos: Record<string, string> = { Accept: 'application/json' };
     if (corpo !== undefined) cabecalhos['Content-Type'] = 'application/json';
-    const token = autenticado ? lerToken() : null;
+    const token = tokenInformado ?? (autenticado ? lerToken() : null);
     if (token) cabecalhos.Authorization = 'Bearer ' + token;
     if (assinatura) cabecalhos['X-Assinatura'] = assinatura;
 

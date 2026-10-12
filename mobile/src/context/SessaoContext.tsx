@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import type { AcessoDto, CarteiraDto, ClienteDto, ContaDto } from '@/@types/api';
+import type { AcessoDto, CarteiraDto, ClienteDto, ContaDto, SessaoDto } from '@/@types/api';
 import type { SessaoSalva, Usuario } from '@/@types/orbita';
 import { comoErroDaApi } from '@/integration/http';
 import { paraUsuario } from '@/integration/mapeadores';
@@ -18,6 +18,7 @@ interface SessaoContextValue {
   admin: boolean;
   carregarCliente: () => Promise<ClienteDto>;
   entrar: (email: string, pin: string, mensagem?: string) => Promise<void>;
+  assumirSessao: (resposta: SessaoDto, mensagem?: string) => Promise<void>;
   encerrarSessao: (mensagem?: string | null) => void;
   definirPausa: (pausado: boolean) => void;
 }
@@ -84,13 +85,17 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     if (mensagem) avisar(mensagem);
   }, [avisar]);
 
-  const entrar = useCallback(async (email: string, pin: string, mensagem?: string) => {
-    const resposta = await api.autenticacao.entrar(email, pin);
+  const assumirSessao = useCallback(async (resposta: SessaoDto, mensagem?: string) => {
     const nova: SessaoSalva = { token: resposta.token, perfil: resposta.perfil, clienteId: resposta.clienteId, nome: resposta.nome };
     token.current = resposta.token;
     await salvarSessao(nova);
     setSessao(nova);
     if (ehDaEquipe(nova)) {
+      clearTimeout(esperaPelaConta.current);
+      setMe(null);
+      setConta(null);
+      setCarteira(null);
+      setAcesso(null);
       setFase('app');
       avisar(mensagem || 'Olá, ' + (nova.nome || '').split(' ')[0] + ' · acesso ' + ROTULO_DO_PERFIL[nova.perfil]);
       return;
@@ -98,7 +103,11 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
     const cliente = await carregarCliente();
     setFase('app');
     avisar(mensagem || (cliente.bloqueado ? 'Conta em modo restrito' : 'Bem-vindo(a) de volta, ' + cliente.nome.split(' ')[0]));
-  }, [api, carregarCliente, avisar]);
+  }, [carregarCliente, avisar]);
+
+  const entrar = useCallback(async (email: string, pin: string, mensagem?: string) => {
+    await assumirSessao(await api.autenticacao.entrar(email, pin), mensagem);
+  }, [api, assumirSessao]);
 
   useEffect(() => {
     let ativo = true;
@@ -143,8 +152,8 @@ export function SessaoProvider({ children }: { children: ReactNode }) {
   const admin = sessao?.perfil === 'ADMIN';
 
   const value = useMemo<SessaoContextValue>(() => ({
-    api, fase, sessao, usuario, equipe, admin, carregarCliente, entrar, encerrarSessao, definirPausa,
-  }), [api, fase, sessao, usuario, equipe, admin, carregarCliente, entrar, encerrarSessao, definirPausa]);
+    api, fase, sessao, usuario, equipe, admin, carregarCliente, entrar, assumirSessao, encerrarSessao, definirPausa,
+  }), [api, fase, sessao, usuario, equipe, admin, carregarCliente, entrar, assumirSessao, encerrarSessao, definirPausa]);
 
   return <SessaoContext.Provider value={value}>{children}</SessaoContext.Provider>;
 }

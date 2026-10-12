@@ -20,7 +20,7 @@ export function criarOperacoesDeGerencia(f: Ferramentas) {
         if ((form.pin || '').length !== 4) return f.falhar('PIN inicial de 4 dígitos');
         const deposito = form.balance ? parseNum(form.balance) : 0;
         if (isNaN(deposito) || deposito < 0) return f.falhar('Saldo inicial inválido');
-        const cliente = await api.clientes.cadastrarPeloGerente({
+        const { cliente } = await api.clientes.cadastrarPeloGerente({
           nome: form.name ?? '', email: form.email ?? '', cpf: form.cpf ?? '', pin: form.pin ?? '',
           depositoInicial: deposito,
         });

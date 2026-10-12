@@ -1,12 +1,12 @@
 package com.orbitapay.gateway.application;
 
 import static com.orbitapay.gateway.domain.NivelDeAcesso.ADMIN;
+import static com.orbitapay.gateway.domain.NivelDeAcesso.AUTENTICADO;
 import static com.orbitapay.gateway.domain.NivelDeAcesso.CLIENTE;
 import static com.orbitapay.gateway.domain.NivelDeAcesso.CLIENTE_COM_ASSINATURA;
 import static com.orbitapay.gateway.domain.NivelDeAcesso.GERENTE;
 import static com.orbitapay.gateway.domain.NivelDeAcesso.NEGADO;
 import static com.orbitapay.gateway.domain.NivelDeAcesso.PUBLICO;
-import static com.orbitapay.gateway.domain.NivelDeAcesso.PUBLICO_COM_SESSAO_OPCIONAL;
 
 import java.util.List;
 
@@ -19,11 +19,14 @@ public final class MapaDeAcesso {
             new RegraDeAcesso("OPTIONS", "/**", PUBLICO),
 
             new RegraDeAcesso("POST", "/api/autenticacao/sessoes", PUBLICO),
+            new RegraDeAcesso("POST", "/api/autenticacao/credenciais", PUBLICO),
+            new RegraDeAcesso("DELETE", "/api/autenticacao/credenciais/me", CLIENTE),
             new RegraDeAcesso("POST", "/api/autenticacao/assinaturas", CLIENTE),
             new RegraDeAcesso("PUT", "/api/autenticacao/pin", CLIENTE),
             new RegraDeAcesso("GET", "/api/autenticacao/me", CLIENTE),
+            new RegraDeAcesso("POST", "/api/autenticacao/me/gerente", CLIENTE_COM_ASSINATURA),
 
-            new RegraDeAcesso("POST", "/api/clientes", PUBLICO_COM_SESSAO_OPCIONAL),
+            new RegraDeAcesso("POST", "/api/clientes", AUTENTICADO),
             new RegraDeAcesso("POST", "/api/clientes/me/desbloqueio", CLIENTE_COM_ASSINATURA),
             new RegraDeAcesso("*", "/api/clientes/me/desbloqueio", NEGADO),
             new RegraDeAcesso("*", "/api/clientes/me", CLIENTE),

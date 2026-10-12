@@ -178,8 +178,9 @@ Contas de demonstração:
 
 O contexto `auth` é o dono da credencial: e-mail de login, hash PBKDF2 do PIN e tentativas. Os demais contextos nunca veem o PIN.
 
-- **Cadastro:** `POST /api/clientes` chega em Clientes, que pede a criação da credencial ao `auth` por **request/reply** na fila ponto a ponto `auth.registros-de-credencial`. O cliente só é anunciado (`cliente.cadastrado`) depois que a credencial existe. Se o `auth` recusar o PIN, o cadastro é desfeito.
+- **Cadastro:** o PIN nunca passa pelo RabbitMQ. O app cria a credencial em `POST /api/autenticacao/credenciais` (e-mail e PIN), e o `auth` devolve o novo `clienteId` e uma sessão de cliente. Com essa sessão o app chama `POST /api/clientes`: o gateway valida o token e injeta o `X-Cliente-Id`, e Clientes cria o cadastro com esse id e publica `cliente.cadastrado`. Quando quem cadastra é o gerente, a chamada usa a sessão do gerente e leva o `clienteId` no corpo. Se o cadastro for recusado (CPF inválido, e-mail repetido), o app desfaz a credencial com `DELETE /api/autenticacao/credenciais/me`, que só vale nos 10 minutos depois da criação.
 - **Login e assinatura:** `POST /api/autenticacao/sessoes` (e-mail e PIN) é o login de todas as contas e devolve o token de sessão e o `perfil` (`CLIENTE`, `GERENTE` ou `ADMIN`). `POST /api/autenticacao/assinaturas` confere o PIN e devolve a assinatura de 120 s exigida em saques, ordens e no desbloqueio pelo próprio cliente.
+- **Tornar-se gerente:** na aba Perfil, o cliente escolhe *Tornar-me gerente* e confirma com o PIN. O app pede a assinatura e chama `POST /api/autenticacao/me/gerente` com `X-Assinatura`, e o gateway exige sessão de cliente **e** assinatura válidas. O `auth` troca a credencial do cliente por um funcionário `GERENTE` (mesmo e-mail e PIN) e devolve a sessão de gerente. Nada disso passa pelo RabbitMQ.
 - **Bloqueio por PIN:** na 3ª tentativa errada o `auth` publica `credencial.bloqueada-por-pin`, Clientes bloqueia a conta com motivo `PIN` e publica `cliente.situacao-alterada` para Contas e Negociação. Quando a conta é desbloqueada, o `auth` zera as tentativas.
 - O gateway continua validando os tokens localmente (HMAC com o segredo compartilhado), sem chamar o `auth` a cada requisição.
 
@@ -193,7 +194,7 @@ Cada conta tem um perfil. O perfil vai dentro do token, o gateway decide pela ta
 | `GERENTE` | funcionário do banco | listar, cadastrar, editar, bloquear e desbloquear clientes; ver contas, carteiras e o relatório gerencial | Banco, Mercado, Globo |
 | `ADMIN` | administrador do banco | tudo do gerente + **excluir clientes** e **cadastrar, editar e remover ações** da bolsa | Banco, Mercado, Globo |
 
-- As contas da equipe ficam na coleção `funcionarios` do `auth`, separadas das credenciais dos clientes, e são criadas na subida (`EquipeInicial`). Um e-mail da equipe não pode ser usado para abrir conta de cliente.
+- As contas da equipe ficam na coleção `funcionarios` do `auth`, separadas das credenciais dos clientes, e são criadas na subida (`EquipeInicial`) ou quando um cliente se torna gerente. Um e-mail da equipe não pode ser usado para abrir conta de cliente.
 - A aba **Banco não existe para o cliente**: o app monta as abas pelo perfil da sessão (`Tabs.Protected`), então ela nem aparece e o endereço `/banco` volta para o Início. Mesmo que alguém chame a API direto, o gateway responde `403`.
 - A equipe acompanha o Mercado e o Globo, mas não compra nem vende ações (as rotas de cliente respondem `403` para gerente e admin).
 
@@ -266,8 +267,10 @@ As variáveis `BASE_URL`, `EMAIL`, `PIN`, `TICKER`, `QTD_REQUISICOES`, `POLL_TEN
 | Método | Caminho | Acesso |
 |---|---|---|
 | POST | `/api/autenticacao/sessoes` (login de cliente, gerente e admin) | público |
-| POST | `/api/autenticacao/assinaturas` · PUT `/api/autenticacao/pin` · GET `/api/autenticacao/me` | cliente |
-| POST | `/api/clientes` | público (gerente e admin podem informar `depositoInicial`) |
+| POST | `/api/autenticacao/credenciais` (cria e-mail e PIN do novo cliente) | público |
+| POST | `/api/autenticacao/assinaturas` · PUT `/api/autenticacao/pin` · GET `/api/autenticacao/me` · DELETE `/api/autenticacao/credenciais/me` | cliente |
+| POST | `/api/autenticacao/me/gerente` (tornar-se gerente) | cliente + `X-Assinatura` |
+| POST | `/api/clientes` | qualquer sessão: o cliente usa o `X-Cliente-Id` da sessão; gerente e admin informam `clienteId` e `depositoInicial` |
 | GET/PUT/DELETE | `/api/clientes/me` · POST `/api/clientes/me/bloqueio` | cliente |
 | POST | `/api/clientes/me/desbloqueio` | cliente + `X-Assinatura` |
 | GET/PUT | `/api/clientes`, `/api/clientes/{id}` · POST `/bloqueio`, `/desbloqueio` | gerente ou admin |

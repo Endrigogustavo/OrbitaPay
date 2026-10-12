@@ -4,7 +4,6 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 import com.orbitapay.clientes.application.service.PublicadorDeEventosDeCliente;
-import com.orbitapay.clientes.application.service.RegistroDeCredencial;
 import com.orbitapay.clientes.application.usecase.AtualizarDadosDoCliente;
 import com.orbitapay.clientes.application.usecase.BloquearCliente;
 import com.orbitapay.clientes.application.usecase.CadastrarCliente;
@@ -19,9 +18,8 @@ import com.orbitapay.clientes.domain.repository.ClienteRepository;
 public class CasosDeUsoConfig {
 
     @Bean
-    public CadastrarCliente cadastrarCliente(ClienteRepository repositorio, RegistroDeCredencial registroDeCredencial,
-            PublicadorDeEventosDeCliente publicador) {
-        return new CadastrarCliente(repositorio, registroDeCredencial, publicador);
+    public CadastrarCliente cadastrarCliente(ClienteRepository repositorio, PublicadorDeEventosDeCliente publicador) {
+        return new CadastrarCliente(repositorio, publicador);
     }
 
     @Bean

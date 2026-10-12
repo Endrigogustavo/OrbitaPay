@@ -55,7 +55,6 @@ package "domain (módulo Java puro)" {
       --
       + validaEm(instante) : boolean
       + sessaoDe(perfil) : boolean
-      + sessaoDaEquipe() : boolean
       + assinaturaDe(clienteId) : boolean
     }
     class RegraDeAcesso <<record>> {
@@ -75,7 +74,7 @@ package "domain (módulo Java puro)" {
     }
     enum NivelDeAcesso {
       PUBLICO
-      PUBLICO_COM_SESSAO_OPCIONAL
+      AUTENTICADO
       CLIENTE
       CLIENTE_COM_ASSINATURA
       GERENTE

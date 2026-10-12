@@ -29,7 +29,6 @@ mensageria:
   exchange-morta: orbita.eventos.mortos
   fila-morta: auth.dlq
   chave-morta: "auth.#"
-  fila-de-registros: auth.registros-de-credencial
   topicos:
     bloqueada-por-pin: credencial.bloqueada-por-pin
   assinaturas:

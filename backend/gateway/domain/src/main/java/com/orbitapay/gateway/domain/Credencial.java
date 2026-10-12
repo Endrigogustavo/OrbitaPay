@@ -12,10 +12,6 @@ public record Credencial(TipoDeCredencial tipo, String sujeito, Perfil perfil, I
         return tipo == TipoDeCredencial.SESSAO && perfil == esperado;
     }
 
-    public boolean sessaoDaEquipe() {
-        return sessaoDe(Perfil.GERENTE) || sessaoDe(Perfil.ADMIN);
-    }
-
     public boolean assinaturaDe(String clienteId) {
         return tipo == TipoDeCredencial.ASSINATURA && sujeito.equals(clienteId);
     }

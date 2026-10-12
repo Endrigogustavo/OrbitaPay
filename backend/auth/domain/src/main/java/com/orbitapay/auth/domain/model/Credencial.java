@@ -1,5 +1,6 @@
 package com.orbitapay.auth.domain.model;
 
+import java.time.Duration;
 import java.time.Instant;
 
 public class Credencial {
@@ -43,6 +44,10 @@ public class Credencial {
 
     public void alterarEmail(Email email) {
         this.email = email;
+    }
+
+    public boolean criadaHaMenosDe(Duration janela, Instant agora) {
+        return criadaEm.plus(janela).isAfter(agora);
     }
 
     public boolean limiteAtingido() {

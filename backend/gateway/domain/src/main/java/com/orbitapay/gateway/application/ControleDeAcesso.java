@@ -21,11 +21,8 @@ public class ControleDeAcesso {
         switch (MapaDeAcesso.nivel(metodo, caminho)) {
             case PUBLICO:
                 return Decisao.liberadoAnonimo();
-            case PUBLICO_COM_SESSAO_OPCIONAL:
-                if (sessao != null && sessao.sessaoDaEquipe()) {
-                    return Decisao.liberado(sessao);
-                }
-                return Decisao.liberadoAnonimo();
+            case AUTENTICADO:
+                return exigirSessao(sessao, Perfil.values());
             case CLIENTE:
                 return exigirSessao(sessao, Perfil.CLIENTE);
             case GERENTE:

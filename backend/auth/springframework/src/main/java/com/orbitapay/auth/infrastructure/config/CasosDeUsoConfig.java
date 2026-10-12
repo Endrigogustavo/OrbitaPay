@@ -11,12 +11,15 @@ import com.orbitapay.auth.application.usecase.AssinarOperacao;
 import com.orbitapay.auth.application.usecase.AtualizarEmailDaCredencial;
 import com.orbitapay.auth.application.usecase.AutenticarCliente;
 import com.orbitapay.auth.application.usecase.AutenticarFuncionario;
+import com.orbitapay.auth.application.usecase.CadastrarCredencial;
 import com.orbitapay.auth.application.usecase.CadastrarFuncionario;
 import com.orbitapay.auth.application.usecase.ConferenciaDePin;
 import com.orbitapay.auth.application.usecase.ConsultarCredencial;
+import com.orbitapay.auth.application.usecase.DesfazerCadastroDeCredencial;
 import com.orbitapay.auth.application.usecase.Entrar;
 import com.orbitapay.auth.application.usecase.RegistrarCredencial;
 import com.orbitapay.auth.application.usecase.RemoverCredencial;
+import com.orbitapay.auth.application.usecase.TornarGerente;
 import com.orbitapay.auth.application.usecase.ZerarTentativasDePin;
 import com.orbitapay.auth.domain.repository.CredencialRepository;
 import com.orbitapay.auth.domain.repository.FuncionarioRepository;
@@ -34,6 +37,23 @@ public class CasosDeUsoConfig {
     public RegistrarCredencial registrarCredencial(CredencialRepository repositorio,
             FuncionarioRepository funcionarios, CodificadorDePin codificador) {
         return new RegistrarCredencial(repositorio, funcionarios, codificador);
+    }
+
+    @Bean
+    public CadastrarCredencial cadastrarCredencial(CredencialRepository repositorio,
+            RegistrarCredencial registrarCredencial, EmissorDeToken emissor) {
+        return new CadastrarCredencial(repositorio, registrarCredencial, emissor);
+    }
+
+    @Bean
+    public DesfazerCadastroDeCredencial desfazerCadastroDeCredencial(CredencialRepository repositorio) {
+        return new DesfazerCadastroDeCredencial(repositorio);
+    }
+
+    @Bean
+    public TornarGerente tornarGerente(CredencialRepository credenciais, FuncionarioRepository funcionarios,
+            EmissorDeToken emissor) {
+        return new TornarGerente(credenciais, funcionarios, emissor);
     }
 
     @Bean

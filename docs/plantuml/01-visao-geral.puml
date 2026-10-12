@@ -57,7 +57,7 @@ car --> dbcar
 pag --> dbpag
 rel --> dbrel
 
-aut ..> mq : publica credencial.*\nresponde auth.registros-de-credencial
+aut ..> mq : publica credencial.*
 cli ..> mq : publica cliente.*
 atv ..> mq : publica ativo.*\nresponde ativos.consultas
 neg ..> mq : publica ordem.*

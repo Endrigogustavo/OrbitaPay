@@ -100,11 +100,9 @@ flowchart LR
     CAR["Carteira"] -->|"1: pergunta pelo ticker"| Q_ATV
     Q_ATV --> ATV["Ativos"]
     ATV -.->|"2: responde com os dados do ativo"| NEG & CAR
-
-    CLI["Clientes"] -->|"1: pede a credencial (e-mail + PIN)"| Q_REG[("fila auth.registros-de-credencial")]
-    Q_REG --> AUT["Auth"]
-    AUT -.->|"2: responde: registrada ou recusada"| CLI
 ```
+
+Credenciais (e-mail e PIN) **nunca** passam pelo RabbitMQ: elas só vão do app ao Auth por HTTP, sempre pelo gateway.
 
 Cada microserviço também fala com **o seu próprio MongoDB** (`mongo-clientes`, `mongo-contas`…). Nenhum serviço acessa o banco de outro.
 
@@ -116,17 +114,32 @@ Nos diagramas abaixo, cada seta tem um **número de ordem**, como no diagrama de
 
 ```mermaid
 flowchart LR
-    APP["App"] -->|"1: POST /api/clientes"| GW["Gateway"]
-    GW -->|"2: repassa"| CLI["Clientes"]
-    CLI -->|"3: pergunta: criar credencial (auth.registros-de-credencial)"| AUT["Auth"]
-    AUT -.->|"4: responde: credencial criada"| CLI
-    CLI -.->|"5: cliente.cadastrado"| CON["Contas<br/>abre a conta"]
-    CLI -.->|"5: cliente.cadastrado"| NEG["Negociação<br/>registra o investidor"]
-    CLI -.->|"5: cliente.cadastrado"| REL["Relatórios<br/>registra o fato"]
-    CLI -->|"6: 201 Created"| APP
+    APP["App"] -->|"1: POST /api/autenticacao/credenciais {email, pin}"| GW["Gateway"]
+    GW -->|"2: repassa (rota pública)"| AUT["Auth<br/>cria a credencial"]
+    AUT -->|"3: 201 · clienteId + sessão de cliente"| APP
+    APP -->|"4: POST /api/clientes + Bearer da nova sessão"| GW
+    GW -->|"5: valida o token e injeta X-Cliente-Id"| CLI["Clientes"]
+    CLI -.->|"6: cliente.cadastrado"| CON["Contas<br/>abre a conta"]
+    CLI -.->|"6: cliente.cadastrado"| NEG["Negociação<br/>registra o investidor"]
+    CLI -.->|"6: cliente.cadastrado"| REL["Relatórios<br/>registra o fato"]
+    CLI -->|"7: 201 Created"| APP
 ```
 
-Se o Auth recusar o PIN (passo 4), Clientes desfaz o cadastro e nada é publicado.
+Se Clientes recusar o cadastro (passo 5), o app desfaz a credencial com `DELETE /api/autenticacao/credenciais/me` e nada é publicado. Clientes e Auth não trocam mensagens no cadastro.
+
+### 2.1.1 Tornar-se gerente
+
+```mermaid
+flowchart LR
+    APP["App (cliente)"] -->|"1: POST /api/autenticacao/assinaturas {pin}"| GW["Gateway"]
+    GW -->|"2: sessão de cliente válida"| AUT["Auth"]
+    AUT -->|"3: token de assinatura"| APP
+    APP -->|"4: POST /api/autenticacao/me/gerente + X-Assinatura"| GW
+    GW -->|"5: confere sessão e assinatura, injeta X-Cliente-Id"| AUT
+    AUT -->|"6: troca a credencial por funcionário GERENTE · sessão de gerente"| APP
+```
+
+O gateway é quem decide: sem sessão de cliente responde `401 SESSAO_OBRIGATORIA` e sem assinatura válida responde `401 ASSINATURA_OBRIGATORIA`. Não há tópico nem fila nesse fluxo.
 
 ### 2.2 Compra de ações (saga)
 
@@ -194,6 +207,5 @@ flowchart LR
 | Consulta (request/reply) | Pergunta | Responde | Para quê |
 |---|---|---|---|
 | `ativos.consultas` | Negociação, Carteira | Ativos | dados de um ativo que ainda não está na cópia local |
-| `auth.registros-de-credencial` | Clientes | Auth | criar a credencial (PIN) no cadastro |
 
 Se o consumo de uma mensagem falhar 3 vezes, ela vai para a exchange `orbita.eventos.mortos` e cai na **DLQ** do serviço (`contas.dlq`, `negociacao.dlq`…), em vez de ficar em loop.

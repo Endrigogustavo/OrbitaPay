@@ -10,7 +10,6 @@ public record MensageriaProperties(
         String exchangeMorta,
         String filaMorta,
         String chaveMorta,
-        String filaDeRegistrosDeCredencial,
         Map<String, String> topicos,
         Map<String, Assinatura> assinaturas) {
 

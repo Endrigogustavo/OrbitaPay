@@ -29,7 +29,6 @@ mensageria:
   exchange-morta: orbita.eventos.mortos
   fila-morta: clientes.dlq
   chave-morta: "clientes.#"
-  fila-de-registros-de-credencial: auth.registros-de-credencial
   topicos:
     cliente-cadastrado: cliente.cadastrado
     cliente-atualizado: cliente.atualizado

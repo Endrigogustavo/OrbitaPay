@@ -7,7 +7,6 @@ import org.springframework.web.bind.MissingRequestHeaderException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
-import com.orbitapay.clientes.application.service.AutenticacaoIndisponivelException;
 import com.orbitapay.clientes.domain.exception.ClienteNaoEncontradoException;
 import com.orbitapay.clientes.domain.exception.RegraDeNegocioException;
 import com.orbitapay.clientes.web.dto.ErroResponse;
@@ -23,11 +22,6 @@ public class TratadorDeErros {
     @ExceptionHandler(ClienteNaoEncontradoException.class)
     public ResponseEntity<ErroResponse> naoEncontrado(ClienteNaoEncontradoException e) {
         return responder(HttpStatus.NOT_FOUND, ErroResponse.de("CLIENTE_NAO_ENCONTRADO", e.getMessage()));
-    }
-
-    @ExceptionHandler(AutenticacaoIndisponivelException.class)
-    public ResponseEntity<ErroResponse> autenticacaoIndisponivel(AutenticacaoIndisponivelException e) {
-        return responder(HttpStatus.SERVICE_UNAVAILABLE, ErroResponse.de("AUTENTICACAO_INDISPONIVEL", e.getMessage()));
     }
 
     @ExceptionHandler(AcessoNegadoException.class)

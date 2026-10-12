@@ -31,8 +31,7 @@ public class RabbitConfig {
         TopicExchange mortas = new TopicExchange(mensageria.exchangeMorta(), true, false);
         Queue filaMorta = QueueBuilder.durable(mensageria.filaMorta()).build();
         List<Declarable> declaracoes = new ArrayList<>(List.of(eventos, mortas, filaMorta,
-                BindingBuilder.bind(filaMorta).to(mortas).with(mensageria.chaveMorta()),
-                QueueBuilder.durable(mensageria.filaDeRegistros()).build()));
+                BindingBuilder.bind(filaMorta).to(mortas).with(mensageria.chaveMorta())));
         for (MensageriaProperties.Assinatura assinatura : mensageria.assinaturas().values()) {
             Queue fila = QueueBuilder.durable(assinatura.fila())
                     .deadLetterExchange(mensageria.exchangeMorta())

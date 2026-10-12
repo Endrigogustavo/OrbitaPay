@@ -2,7 +2,7 @@ package com.orbitapay.gateway.domain;
 
 public enum NivelDeAcesso {
     PUBLICO,
-    PUBLICO_COM_SESSAO_OPCIONAL,
+    AUTENTICADO,
     CLIENTE,
     CLIENTE_COM_ASSINATURA,
     GERENTE,

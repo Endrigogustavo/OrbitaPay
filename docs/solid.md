@@ -88,7 +88,7 @@ domain (Java puro)                         springframework (detalhes)
 ──────────────────                         ──────────────────────────
 Sacar ──usa──▶ TravaDeConta (interface) ◀──implementa── MongoContaRepository
 DebitarCompra ──usa──▶ PublicadorDeEventosDeConta ◀──implementa── RabbitPublicadorDeEventosDeConta
-CadastrarCliente ──usa──▶ RegistroDeCredencial ◀──implementa── RabbitRegistroDeCredencial
+CadastrarCliente ──usa──▶ PublicadorDeEventosDeCliente ◀──implementa── RabbitPublicadorDeEventosDeCliente
 ```
 
 - As interfaces ficam no `domain`; as implementações com MongoDB e RabbitMQ ficam no `springframework`.

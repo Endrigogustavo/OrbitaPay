@@ -12,13 +12,7 @@ start
 switch (NivelDeAcesso?)
 case (PUBLICO)
   :Liberado anônimo;
-case (PUBLICO_COM_SESSAO_OPCIONAL)
-  if (sessão válida de GERENTE ou ADMIN?) then (sim)
-    :Liberado com o perfil da equipe;
-  else (não)
-    :Liberado anônimo;
-  endif
-case (CLIENTE / GERENTE / ADMIN)
+case (AUTENTICADO / CLIENTE / GERENTE / ADMIN)
   if (sessão válida?) then (não)
     #pink:401 SESSAO_OBRIGATORIA;
     stop

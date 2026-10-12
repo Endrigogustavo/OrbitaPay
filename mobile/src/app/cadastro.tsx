@@ -12,7 +12,7 @@ import { comoErroDaApi } from '@/integration/http';
 const soDigitos = (v: string) => v.replace(/\D/g, '').slice(0, 4);
 
 export default function Cadastro() {
-  const { api, entrar } = useSessao();
+  const { api, assumirSessao } = useSessao();
   const insets = useSafeAreaInsets();
   const [nome, setNome] = useState('');
   const [email, setEmail] = useState('');
@@ -38,8 +38,8 @@ export default function Cadastro() {
     if (ocupado) return;
     setOcupado(true);
     try {
-      const cliente = await api.clientes.cadastrar({ nome, email, cpf, pin });
-      await entrar(cliente.email, pin, 'Conta criada · bem-vindo(a) à Órbita');
+      const { acesso } = await api.clientes.cadastrar({ nome, email, cpf, pin });
+      await assumirSessao(acesso, 'Conta criada · bem-vindo(a) à Órbita');
     } catch (falha) {
       falhar(comoErroDaApi(falha).message);
     } finally {

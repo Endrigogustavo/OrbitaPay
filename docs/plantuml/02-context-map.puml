@@ -16,7 +16,7 @@ rectangle "**Carteira**\nCustódia de ações" as CAR #E8F5E9
 rectangle "**Pagamentos**\nDepósitos\n<<U · OHS/PL · ACL p/ provedores>>" as PAG #E3F2FD
 rectangle "**Relatórios**\nModelo de leitura (CQRS)" as REL #ECEFF1
 
-CLI <--> AUT : Parceria\nauth.registros-de-credencial (request/reply)\n↔ credencial.bloqueada-por-pin
+CLI <--> AUT : Parceria\ncliente.* ↔ credencial.bloqueada-por-pin
 
 CLI --> CON : U → D · cliente.*\nACL: Titular
 CLI --> NEG : U → D · cliente.*\nACL: Investidor

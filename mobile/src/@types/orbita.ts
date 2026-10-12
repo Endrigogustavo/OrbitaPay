@@ -121,6 +121,7 @@ export type Folha =
   | { kind: 'pin'; purpose: 'withdraw'; v: number }
   | { kind: 'pin'; purpose: 'trade'; mode: ModoDeOrdem; ticker: string; qty: number; price: number; total: number }
   | { kind: 'pin'; purpose: 'unblock' }
+  | { kind: 'pin'; purpose: 'promote' }
   | { kind: 'processing'; ticker: string; mode: ModoDeOrdem; qty: number; total: number; status: string; ordemId?: string }
   | { kind: 'success'; title: string; big: string; lines: LinhaDeComprovante[] }
   | { kind: 'locked' }

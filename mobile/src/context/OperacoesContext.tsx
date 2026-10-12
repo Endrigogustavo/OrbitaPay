@@ -188,6 +188,7 @@ export function OperacoesProvider({ children }: { children: ReactNode }) {
     }
     if (atual.purpose === 'withdraw') return banco.sacar(atual.v, assinatura);
     if (atual.purpose === 'trade') return negociacao.negociar(atual, assinatura);
+    if (atual.purpose === 'promote') return perfil.tornarGerente(assinatura);
   }
 
   function pressionar(tecla: string) {

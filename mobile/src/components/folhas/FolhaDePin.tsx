@@ -14,6 +14,7 @@ function textos(folha: FolhaDo<'pin'>): [string, string, string] {
     case 'withdraw': return ['Autorizar saque', 'Confirme com seu PIN', 'Saque de ' + brl(folha.v)];
     case 'trade': return ['Confirmar ordem', 'Assinatura digital', (folha.mode === 'buy' ? 'Compra' : 'Venda') + ' de ' + folha.qty + ' ' + folha.ticker + ' · ' + brl(folha.total)];
     case 'unblock': return ['Desbloquear conta', 'Segurança', 'Confirme seu PIN para reativar saques e ordens'];
+    case 'promote': return ['Tornar-me gerente', 'Assinatura digital', 'Confirme seu PIN para trocar o acesso de cliente pelo de gerente'];
   }
 }
 

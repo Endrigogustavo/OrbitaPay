@@ -9,7 +9,7 @@ Diagramas UML do ecossistema OrbitaPay, derivados do código em `backend/`. Comp
 | [01-visao-geral.puml](01-visao-geral.puml) | Componentes | App, Gateway, 8 microserviços, bancos MongoDB e RabbitMQ |
 | [02-context-map.puml](02-context-map.puml) | Componentes | Bounded contexts e padrões DDD (U/D, OHS/PL, ACL, Parceria) |
 | [03-implantacao.puml](03-implantacao.puml) | Implantação | Containers do `docker-compose.yml`, IPs fixos, portas e ordem de subida |
-| [06-mensageria.puml](06-mensageria.puml) | Componentes | Exchange `orbita.eventos`, filas por serviço, request/reply (`ativos.consultas`, `auth.registros-de-credencial`) e DLQs |
+| [06-mensageria.puml](06-mensageria.puml) | Componentes | Exchange `orbita.eventos`, filas por serviço, request/reply (`ativos.consultas`) e DLQs |
 
 ## Gateway
 

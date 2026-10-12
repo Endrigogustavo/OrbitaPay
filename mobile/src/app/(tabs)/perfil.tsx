@@ -23,6 +23,11 @@ export default function Perfil() {
         go: op.encerrarMinhaConta });
   };
 
+  const tornarGerente = () => op.confirmar(bloqueada
+    ? { d: IC.alert, title: 'Conta bloqueada', body: 'Desbloqueie sua conta antes de virar gerente.', hasGo: false, cancel: 'Entendi' }
+    : { d: IC.shield, title: 'Tornar-me gerente?', body: 'Você passa a entrar como gerente, com o mesmo e-mail e PIN, e ganha acesso ao Banco. Saldo, carteira e ordens de cliente deixam de aparecer neste login.', label: 'Continuar com PIN', hasGo: true, cancel: 'Cancelar',
+      go: () => op.abrir({ kind: 'pin', purpose: 'promote' }) });
+
   const menu = [
     { d: IC.pencil, label: 'Editar dados', sub: 'Nome e e-mail', on: () => op.abrir({ kind: 'userForm', mode: 'self', id: u.id }, { form: { name: u.name, email: u.email } }) },
     { d: IC.key, label: 'Alterar PIN', sub: 'Usado em saques e ordens', on: () => op.abrir({ kind: 'changePin' }, { form: {} }) },
@@ -30,6 +35,7 @@ export default function Perfil() {
       ? { d: IC.unlock, label: 'Desbloquear conta', sub: u.reason ? REASON[u.reason] : '', on: () => op.abrir({ kind: 'locked' }) }
       : { d: IC.lock, label: 'Bloquear minha conta', sub: 'Suspende saques e ordens na hora', on: () => op.confirmar({ d: IC.lock, title: 'Bloquear conta?', body: 'Saques e ordens na bolsa ficam suspensos até você desbloquear com seu PIN. Depósitos continuam liberados.', label: 'Bloquear agora', hasGo: true, cancel: 'Cancelar',
         go: op.bloquearMinhaConta }) },
+    { d: IC.shield, label: 'Tornar-me gerente', sub: 'Troca seu acesso pelo de gerente', on: tornarGerente },
     { d: IC.trash, label: 'Encerrar conta', sub: 'Exclui seus dados da Órbita', on: encerrarConta },
     { d: IC.logout, label: 'Sair', sub: 'Voltar para a tela de acesso', on: () => encerrarSessao() },
   ];

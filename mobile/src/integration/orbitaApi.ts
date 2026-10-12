@@ -10,17 +10,31 @@ const METODOS_DE_PAGAMENTO: Record<MetodoDeDeposito, MetodoDePagamentoDto> = { P
 export function criarOrbitaApi(lerToken: LerToken) {
   const http = criarClienteHttp(URL_DO_GATEWAY, lerToken);
 
+  async function cadastrarCliente({ pin, ...dados }: CadastroDeClienteDto, pelaEquipe: boolean) {
+    const acesso = await http<SessaoDto>('POST', '/api/autenticacao/credenciais', { corpo: { email: dados.email, pin } });
+    try {
+      const cliente = pelaEquipe
+        ? await http<ClienteDto>('POST', '/api/clientes', { corpo: { ...dados, clienteId: acesso.clienteId }, autenticado: true })
+        : await http<ClienteDto>('POST', '/api/clientes', { corpo: dados, token: acesso.token });
+      return { cliente, acesso };
+    } catch (erro) {
+      await http<void>('DELETE', '/api/autenticacao/credenciais/me', { token: acesso.token }).catch(() => {});
+      throw erro;
+    }
+  }
+
   return {
     autenticacao: {
       entrar: (email: string, pin: string) => http<SessaoDto>('POST', '/api/autenticacao/sessoes', { corpo: { email, pin } }),
+      tornarGerente: (nome: string, assinatura: string) => http<SessaoDto>('POST', '/api/autenticacao/me/gerente', { corpo: { nome }, autenticado: true, assinatura }),
       assinar: (pin: string) => http<CredencialDto>('POST', '/api/autenticacao/assinaturas', { corpo: { pin }, autenticado: true }),
       alterarPin: (pinAtual: string, novoPin: string) => http<void>('PUT', '/api/autenticacao/pin', { corpo: { pinAtual, novoPin }, autenticado: true }),
       meuAcesso: () => http<AcessoDto>('GET', '/api/autenticacao/me', { autenticado: true }),
     },
 
     clientes: {
-      cadastrar: (dados: CadastroDeClienteDto) => http<ClienteDto>('POST', '/api/clientes', { corpo: dados }),
-      cadastrarPeloGerente: (dados: CadastroDeClienteDto) => http<ClienteDto>('POST', '/api/clientes', { corpo: dados, autenticado: true }),
+      cadastrar: (dados: CadastroDeClienteDto) => cadastrarCliente(dados, false),
+      cadastrarPeloGerente: (dados: CadastroDeClienteDto) => cadastrarCliente(dados, true),
       meu: () => http<ClienteDto>('GET', '/api/clientes/me', { autenticado: true }),
       atualizarMeu: (dados: AtualizacaoDeClienteDto) => http<ClienteDto>('PUT', '/api/clientes/me', { corpo: dados, autenticado: true }),
       bloquearMinhaConta: () => http<ClienteDto>('POST', '/api/clientes/me/bloqueio', { autenticado: true }),

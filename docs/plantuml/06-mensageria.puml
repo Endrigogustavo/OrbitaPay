@@ -56,7 +56,6 @@ rectangle "Relatórios" as SREL {
 }
 
 queue "ativos.consultas\n(request/reply · direct reply-to)" as qcons
-queue "auth.registros-de-credencial\n(request/reply · direct reply-to)" as qreg
 
 node "orbita.eventos.mortos\n(topic)" as DLX
 queue "auth.dlq" as dlq0
@@ -98,9 +97,6 @@ EX --> qr3
 P_NEG ..> qcons : consulta ticker
 P_CAR ..> qcons : consulta ticker
 qcons ..> P_ATV : ConsultaDeAtivoListener
-
-P_CLI ..> qreg : cadastro do cliente
-qreg ..> P_AUT : RegistroDeCredencialListener
 
 SAUT ..> DLX : após 3 tentativas
 SCLI ..> DLX : após 3 tentativas
