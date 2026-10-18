@@ -71,7 +71,25 @@ public class ClienteService {
         if (digitos.length() != 11) {
             throw new RegraDeNegocioException("CPF precisa de 11 dígitos");
         }
+        if (todosOsDigitosSaoIguais(digitos)
+                || calcularDigitoVerificadorDoCpf(digitos, 9) != digitos.charAt(9) - '0'
+                || calcularDigitoVerificadorDoCpf(digitos, 10) != digitos.charAt(10) - '0') {
+            throw new RegraDeNegocioException("CPF inválido");
+        }
         return digitos.substring(0, 3) + "." + digitos.substring(3, 6) + "." + digitos.substring(6, 9) + "-"
                 + digitos.substring(9);
+    }
+
+    private static boolean todosOsDigitosSaoIguais(String digitos) {
+        return digitos.chars().distinct().count() == 1;
+    }
+
+    private static int calcularDigitoVerificadorDoCpf(String digitos, int quantidadeDeDigitosUsados) {
+        int soma = 0;
+        for (int posicao = 0; posicao < quantidadeDeDigitosUsados; posicao++) {
+            soma += (digitos.charAt(posicao) - '0') * (quantidadeDeDigitosUsados + 1 - posicao);
+        }
+        int resto = (soma * 10) % 11;
+        return resto == 10 ? 0 : resto;
     }
 }

@@ -136,7 +136,15 @@ scripts/orbita.sh logs clientes    # log de um serviço (sem nome: todos)
 scripts/orbita.sh parar            # desliga serviços, app e containers (os dados ficam)
 ```
 
-Para rodar um serviço sozinho (pelo VS Code ou com `mvn -f backend/<servico>/spring/pom.xml spring-boot:run`), suba antes a infraestrutura: `docker compose --profile local up -d rabbitmq mongo-local`. As variáveis `MONGODB_URI`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `AUTH_URL`, `CLIENTES_URL`, `ATIVOS_URL`, `NEGOCIACAO_URL`, `PAGAMENTOS_URL` e `ORBITA_COOKIE_SEGURO` (use `true` atrás de HTTPS) sobrescrevem os padrões.
+Para rodar um serviço sozinho (pelo VS Code ou pelo terminal):
+
+```bash
+docker compose --profile local up -d rabbitmq mongo-local      # infraestrutura
+mvn -f backend/<servico>/pom.xml install -DskipTests           # instala o módulo domain, do qual o spring depende
+mvn -f backend/<servico>/spring/pom.xml spring-boot:run
+```
+
+As variáveis `MONGODB_URI`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `AUTH_URL`, `CLIENTES_URL`, `ATIVOS_URL`, `NEGOCIACAO_URL`, `PAGAMENTOS_URL`, `ORBITA_COOKIE_SEGURO` (use `true` atrás de HTTPS) e `ORBITA_DADOS_INICIAIS` (use `false` para não criar os dados de demonstração) sobrescrevem os padrões.
 
 ### App mobile
 
@@ -163,8 +171,10 @@ Contas de demonstração:
 
 ```bash
 k6 run k6/concorrencia.js                          # com o k6 instalado e o gateway em localhost:9000
-docker compose run --rm k6 run concorrencia.js     # pelo container do compose
+docker compose run --rm k6 run concorrencia.js     # pelo container, com o stack do docker compose no ar
 ```
+
+Com o `scripts/orbita.sh` use o k6 instalado: o container do compose depende do gateway do compose, que disputa a porta 9000 com o gateway local. Se o PIN do cliente mudou, informe com `-e PIN=...`; com o PIN errado o teste para logo no início com a mensagem do login (e três tentativas erradas bloqueiam o cliente, como no app).
 
 O [`concorrencia.js`](k6/concorrencia.js) entra como o Bruno, lê o saldo e a cotação de `PETR4` em `GET /api/ativos/PETR4` e dispara **50 compras simultâneas** que, juntas, custam cerca de 4 vezes o saldo. Cada ordem cabe no saldo sozinha, mas não todas juntas. No fim, confere pelo extrato:
 

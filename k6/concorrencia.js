@@ -1,6 +1,7 @@
 import http from 'k6/http';
 import { check, sleep } from 'k6';
 import { Counter } from 'k6/metrics';
+import exec from 'k6/execution';
 
 const BASE_URL = __ENV.BASE_URL || 'http://localhost:9000';
 const EMAIL = __ENV.EMAIL || 'bruno@orbita.com';
@@ -62,9 +63,15 @@ export function setup() {
     const params = { headers: { 'Content-Type': 'application/json' } };
 
     const resLogin = http.post(`${BASE_URL}/api/autenticacao/sessoes`, JSON.stringify({ email: EMAIL, pin: PIN }), params);
+    if (resLogin.status !== 200 || !resLogin.cookies.orbita_sessao) {
+        exec.test.abort(`Não foi possível entrar como ${EMAIL} (HTTP ${resLogin.status}: ${resLogin.body}). Confira -e EMAIL e -e PIN.`);
+    }
     const sessao = resLogin.cookies.orbita_sessao[0].value;
 
     const resAssinatura = http.post(`${BASE_URL}/api/autenticacao/assinaturas`, JSON.stringify({ pin: PIN }), params);
+    if (resAssinatura.status !== 200) {
+        exec.test.abort(`Não foi possível assinar com o PIN de ${EMAIL} (HTTP ${resAssinatura.status}: ${resAssinatura.body}).`);
+    }
     const assinatura = JSON.parse(resAssinatura.body).token;
 
     const ativo = JSON.parse(http.get(`${BASE_URL}/api/ativos/${TICKER}`).body);
