@@ -1,12 +1,9 @@
 import type { ErroDto } from '@/@types/api';
 
-export type LerToken = () => string | null;
 export type MetodoHttp = 'GET' | 'POST' | 'PUT' | 'DELETE';
 
 export interface OpcoesDaRequisicao {
   corpo?: unknown;
-  autenticado?: boolean;
-  token?: string;
   assinatura?: string;
 }
 
@@ -33,13 +30,11 @@ const lerJson = (texto: string): unknown => {
 
 export type Requisitar = <T>(metodo: MetodoHttp, caminho: string, opcoes?: OpcoesDaRequisicao) => Promise<T>;
 
-export function criarClienteHttp(urlBase: string, lerToken: LerToken): Requisitar {
+export function criarClienteHttp(urlBase: string): Requisitar {
   return async function requisitar<T>(metodo: MetodoHttp, caminho: string, opcoes: OpcoesDaRequisicao = {}): Promise<T> {
-    const { corpo, autenticado, token: tokenInformado, assinatura } = opcoes;
+    const { corpo, assinatura } = opcoes;
     const cabecalhos: Record<string, string> = { Accept: 'application/json' };
     if (corpo !== undefined) cabecalhos['Content-Type'] = 'application/json';
-    const token = tokenInformado ?? (autenticado ? lerToken() : null);
-    if (token) cabecalhos.Authorization = 'Bearer ' + token;
     if (assinatura) cabecalhos['X-Assinatura'] = assinatura;
 
     let resposta: Response;
@@ -47,6 +42,7 @@ export function criarClienteHttp(urlBase: string, lerToken: LerToken): Requisita
       resposta = await fetch(urlBase + caminho, {
         method: metodo,
         headers: cabecalhos,
+        credentials: 'include',
         body: corpo === undefined ? undefined : JSON.stringify(corpo),
       });
     } catch {

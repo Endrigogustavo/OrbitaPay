@@ -11,6 +11,7 @@ const TIPOS_DE_LANCAMENTO: Record<TipoLancamentoDto, TipoMovimentacao> = {
   SAQUE: 'saq',
   COMPRA_DE_ACOES: 'buy',
   VENDA_DE_ACOES: 'sell',
+  ESTORNO: 'dep',
 };
 
 const numero = (valor: number | string | null | undefined): number => Number(valor || 0);

@@ -1,0 +1,28 @@
+server:
+  port: 9004
+
+spring:
+  application:
+    name: negociacao
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_negociacao?directConnection=true}
+  data:
+    mongodb:
+      auto-index-creation: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+
+orbita:
+  servicos:
+    ativos: ${ATIVOS_URL:http://localhost:9003}
+    clientes: ${CLIENTES_URL:http://localhost:9002}

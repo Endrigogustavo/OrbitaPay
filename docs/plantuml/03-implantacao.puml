@@ -10,66 +10,46 @@ node "Dispositivo do usuário" {
 }
 
 node "Host Docker · rede orbita" {
-  node "gateway\n172.30.0.80" as gw <<container>>
-  note right of gw : localhost:**8080**
+  node "gateway\n172.30.0.90:9000" as gw <<container>>
+  note right of gw : exposto em localhost:**9000**
+
+  node "auth\n172.30.0.91:9001" as aut <<container>>
+  node "clientes\n172.30.0.92:9002" as cli <<container>>
+  node "ativos\n172.30.0.93:9003" as atv <<container>>
+  node "negociacao\n172.30.0.94:9004" as neg <<container>>
+  node "pagamentos\n172.30.0.95:9005" as pag <<container>>
 
   node "rabbitmq\n172.30.0.10" as mq <<container>>
-  note right of mq : localhost:5672 (AMQP) · localhost:15672 (painel)
+  note right of mq : localhost:**5672** (AMQP)\nlocalhost:**15672** (painel)
 
-  node "auth\n172.30.0.86" as aut <<container>>
-  node "clientes\n172.30.0.81" as cli <<container>>
-  node "contas\n172.30.0.82" as con <<container>>
-  node "ativos\n172.30.0.83" as atv <<container>>
-  node "negociacao\n172.30.0.84" as neg <<container>>
-  node "carteira\n172.30.0.85" as car <<container>>
-  node "pagamentos\n172.30.0.87" as pag <<container>>
-  node "relatorios\n172.30.0.88" as rel <<container>>
-
-  database "mongo-auth\n172.30.0.186" as m0
-  database "mongo-clientes\n172.30.0.181" as m1
-  database "mongo-contas\n172.30.0.182" as m2
-  database "mongo-ativos\n172.30.0.183" as m3
-  database "mongo-negociacao\n172.30.0.184" as m4
-  database "mongo-carteira\n172.30.0.185" as m5
-  database "mongo-pagamentos\n172.30.0.187" as m6
-  database "mongo-relatorios\n172.30.0.188" as m7
+  database "mongo-auth\n172.30.0.191" as mauth
+  database "mongo-clientes\n172.30.0.192" as mcli
+  database "mongo-ativos\n172.30.0.193" as matv
+  database "mongo-negociacao\n172.30.0.194" as mneg
+  database "mongo-pagamentos\n172.30.0.195" as mpag
 }
 
-app --> gw : HTTP :8080
-nav --> mq : painel :15672
-gw --> aut : :8086
-gw --> cli : :8081
-gw --> con : :8082
-gw --> atv : :8083
-gw --> neg : :8084
-gw --> car : :8085
-gw --> pag : :8087
-gw --> rel : :8088
+app --> gw
+nav --> gw
+gw --> aut
+gw --> cli
+gw --> atv
+gw --> neg
+gw --> pag
 
-aut --> m0
-cli --> m1
-con --> m2
-atv --> m3
-neg --> m4
-car --> m5
-pag --> m6
-rel --> m7
+aut --> mauth
+cli --> mcli
+atv --> matv
+neg --> mneg
+pag --> mpag
 
-aut ..> mq : AMQP
-cli ..> mq : AMQP
-con ..> mq : AMQP
-atv ..> mq : AMQP
-neg ..> mq : AMQP
-car ..> mq : AMQP
-pag ..> mq : AMQP
-rel ..> mq : AMQP
+aut --> mq
+cli --> mq
+neg --> mq
+pag --> mq
 
-note bottom of neg
-  Ordem de subida (depends_on):
-  1. rabbitmq + mongos
-  2. auth, contas, negociacao, carteira, relatorios (declaram filas)
-  3. pagamentos, ativos, clientes (publicam; clientes precisa do auth)
-  4. gateway
-  Regra dos IPs: o final do IP é a porta do serviço.
+note bottom of mcli
+  cada MongoDB roda como replica set (rs0)
+  para permitir transações
 end note
 @enduml

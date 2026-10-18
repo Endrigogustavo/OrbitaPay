@@ -1,0 +1,28 @@
+server:
+  port: 9002
+
+spring:
+  application:
+    name: clientes
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_clientes?directConnection=true}
+  data:
+    mongodb:
+      auto-index-creation: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+
+orbita:
+  dados-iniciais: ${ORBITA_DADOS_INICIAIS:true}
+  servicos:
+    auth: ${AUTH_URL:http://localhost:9001}

@@ -18,10 +18,15 @@ export interface CredencialDto {
 
 export type PerfilDto = 'CLIENTE' | 'GERENTE' | 'ADMIN';
 
-export interface SessaoDto extends CredencialDto {
+export interface SessaoDto {
+  expiraEm: string;
   perfil: PerfilDto;
   clienteId: string | null;
   nome: string | null;
+}
+
+export interface CredencialCriadaDto {
+  clienteId: string;
 }
 
 export interface AcessoDto {
@@ -31,7 +36,7 @@ export interface AcessoDto {
   tentativasPermitidas: number;
 }
 
-export type TipoLancamentoDto = 'ABERTURA' | 'DEPOSITO' | 'SAQUE' | 'COMPRA_DE_ACOES' | 'VENDA_DE_ACOES';
+export type TipoLancamentoDto = 'ABERTURA' | 'DEPOSITO' | 'SAQUE' | 'COMPRA_DE_ACOES' | 'VENDA_DE_ACOES' | 'ESTORNO';
 
 export interface LancamentoDto {
   id: string;
@@ -45,8 +50,6 @@ export interface LancamentoDto {
 export interface ContaDto {
   id: string;
   clienteId: string;
-  titular: string;
-  titularBloqueado: boolean;
   agencia: string;
   numero: string;
   saldo: number;
@@ -72,6 +75,7 @@ export interface AtivoDto {
   variacaoPercentual: number;
   historico: number[];
   quantidadeEmitida: number;
+  quantidadeDisponivel: number;
 }
 
 export interface PosicaoDto {

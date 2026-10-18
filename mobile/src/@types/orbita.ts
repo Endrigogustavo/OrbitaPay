@@ -82,8 +82,7 @@ export interface InfoDaBolsa {
   open: boolean;
 }
 
-export interface SessaoSalva {
-  token: string;
+export interface SessaoAtiva {
   perfil: PerfilDto;
   clienteId: string | null;
   nome: string | null;

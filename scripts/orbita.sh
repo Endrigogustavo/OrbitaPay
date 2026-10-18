@@ -16,17 +16,16 @@ LOGS="$PASTA_LOCAL/logs"
 
 # Ordem de subida: quem só consome eventos primeiro, quem publica na subida depois,
 # para nenhuma mensagem dos dados de demonstração se perder antes da fila existir.
-ONDA_1="auth contas negociacao carteira relatorios"
-ONDA_2="pagamentos ativos"
-ONDA_3="clientes gateway"
+ONDA_1="auth clientes ativos negociacao"
+ONDA_2="pagamentos"
+ONDA_3="gateway"
 SERVICOS="$ONDA_1 $ONDA_2 $ONDA_3"
 PORTA_DO_APP=19006
 
 porta_de() {
   case "$1" in
-    gateway) echo 8080 ;; clientes) echo 8081 ;; contas) echo 8082 ;; ativos) echo 8083 ;;
-    negociacao) echo 8084 ;; carteira) echo 8085 ;; auth) echo 8086 ;; pagamentos) echo 8087 ;;
-    relatorios) echo 8088 ;; app) echo "$PORTA_DO_APP" ;;
+    gateway) echo 9000 ;; clientes) echo 9002 ;; ativos) echo 9003 ;; negociacao) echo 9004 ;;
+    auth) echo 9001 ;; pagamentos) echo 9005 ;; app) echo "$PORTA_DO_APP" ;;
   esac
 }
 
@@ -117,7 +116,7 @@ esperar_no_ar() {
 iniciar_servico() {
   local servico="$1"
   echo "   $servico -> http://localhost:$(porta_de "$servico")"
-  nohup mvn -q -B -f "$RAIZ/backend/$servico/springframework/pom.xml" spring-boot:run \
+  nohup mvn -q -B -f "$RAIZ/backend/$servico/spring/pom.xml" spring-boot:run \
     -Dspring-boot.run.jvmArguments="-Xmx384m -XX:TieredStopAtLevel=1" \
     > "$LOGS/$servico.log" 2>&1 < /dev/null &
 }
@@ -163,7 +162,7 @@ subir() {
   }
   echo "   RabbitMQ em localhost:5672 (painel http://localhost:15672) e MongoDB em localhost:27018."
 
-  titulo "3/5 Compilando os 9 serviços (mvn install)"
+  titulo "3/5 Compilando os 6 serviços (mvn install)"
   for servico in $SERVICOS; do
     liberar_porta "$(porta_de "$servico")" "$servico"
   done
@@ -247,7 +246,7 @@ abrir_abas() {
   local bash_win script_win servico cor argumentos=()
   bash_win="$(cygpath -w /usr/bin/bash)"
   script_win="$(cygpath -m "$RAIZ/scripts/orbita.sh")"
-  for servico in app gateway $ONDA_1 $ONDA_2 clientes; do
+  for servico in app $SERVICOS; do
     case "$servico" in
       app) cor="#2E7D32" ;; gateway) cor="#1565C0" ;; *) cor="#6A1B9A" ;;
     esac
@@ -304,7 +303,7 @@ status() {
   done
   echo
   echo "   App:              http://localhost:$PORTA_DO_APP"
-  echo "   Gateway:          http://localhost:8080/api/ativos"
+  echo "   Gateway:          http://localhost:9000/api/ativos"
   echo "   Painel RabbitMQ:  http://localhost:15672 (orbita / orbita)"
   echo "   Logs:             scripts/orbita.sh logs <servico>  (pasta .orbita-local/logs)"
 }

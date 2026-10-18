@@ -1,0 +1,31 @@
+server:
+  port: 9005
+
+spring:
+  application:
+    name: pagamentos
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_pagamentos?directConnection=true}
+  data:
+    mongodb:
+      auto-index-creation: true
+  rabbitmq:
+    host: ${RABBITMQ_HOST:localhost}
+    port: ${RABBITMQ_PORT:5672}
+    username: ${RABBITMQ_USERNAME:orbita}
+    password: ${RABBITMQ_PASSWORD:orbita}
+    listener:
+      simple:
+        default-requeue-rejected: false
+        retry:
+          enabled: true
+          max-attempts: 3
+          initial-interval: 500ms
+
+orbita:
+  conciliacao:
+    intervalo: 2s
+  provedor-simulado:
+    confirmacao-pix: 3s
+    confirmacao-ted: 6s
+    confirmacao-boleto: 10s

@@ -1,5 +1,5 @@
 @startuml 02-context-map
-title OrbitaPay — Context Map (DDD)
+title OrbitaPay — Contextos e o que cada um guarda
 
 skinparam shadowing false
 skinparam defaultFontName "Segoe UI"
@@ -7,36 +7,26 @@ skinparam rectangle {
   RoundCorner 12
 }
 
-rectangle "**Auth**\nCredenciais e Tokens\n<<OHS>>" as AUT #F3E5F5
-rectangle "**Clientes**\nCadastro e Situação\n<<U · OHS/PL>>" as CLI #E3F2FD
-rectangle "**Ativos**\nCatálogo e Cotações\n<<U · OHS/PL>>" as ATV #E3F2FD
-rectangle "**Negociação**\nOrdens e Oferta\n<<Orquestrador da saga>>" as NEG #FFF3E0
-rectangle "**Contas**\nSaldo e Extrato" as CON #E8F5E9
-rectangle "**Carteira**\nCustódia de ações" as CAR #E8F5E9
-rectangle "**Pagamentos**\nDepósitos\n<<U · OHS/PL · ACL p/ provedores>>" as PAG #E3F2FD
-rectangle "**Relatórios**\nModelo de leitura (CQRS)" as REL #ECEFF1
+rectangle "**Auth**\nCredencial · Funcionário\nSessão · Assinatura" as AUT #F3E5F5
+rectangle "**Clientes**\nCliente · Conta · Lançamento" as CLI #E3F2FD
+rectangle "**Ativos**\nAtivo (cotação + estoque) · Bolsa" as ATV #E3F2FD
+rectangle "**Negociação**\nOrdem · Carteira · Posição" as NEG #FFF3E0
+rectangle "**Pagamentos**\nPagamento · Cobrança" as PAG #E8F5E9
 
-CLI <--> AUT : Parceria\ncliente.* ↔ credencial.bloqueada-por-pin
-
-CLI --> CON : U → D · cliente.*\nACL: Titular
-CLI --> NEG : U → D · cliente.*\nACL: Investidor
-CLI --> CAR : U → D · cliente.removido
-CLI --> REL : U → D · cliente.#\nACL: Fato
-
-ATV --> NEG : U → D · ativo.* + request/reply\nACL: AtivoNegociavel
-ATV --> CAR : U → D · ativo.* + request/reply\nACL: AtivoCotado
-
-NEG <--> CON : Parceria (saga)\nordem.compra-solicitada ↔ conta.debito-*
-NEG <--> CAR : Parceria (saga)\nordem.venda-solicitada ↔ carteira.acoes-*
-NEG --> REL : U → D · ordem.executada / rejeitada\nACL: Fato
-
-PAG --> CON : U → D · pagamento.confirmado
-PAG --> REL : U → D · pagamento.#\nACL: Fato
+AUT --> CLI : bloqueia por PIN\n(clienteId)
+CLI --> AUT : atualiza e-mail de login\n(clienteId)
+NEG --> ATV : cotação e estoque\n(ticker)
+NEG --> CLI : situação, débito e crédito\n(clienteId · ordemId)
+PAG ..> CLI : pagamento.confirmado\n(clienteId · pagamentoId)
+CLI ..> AUT : cliente.removido
+CLI ..> NEG : cliente.removido
+CLI ..> PAG : cliente.removido
+NEG ..> NEG : ordem.solicitada
+(ordemId)
 
 legend right
-  **U** = upstream · **D** = downstream
-  **OHS** = Open Host Service
-  **PL** = Published Language
-  **ACL** = Anti-Corruption Layer
+  seta contínua = HTTP (resposta na hora)
+  seta tracejada = evento no RabbitMQ
+  entre parênteses = o ID usado para buscar o dado no serviço dono
 endlegend
 @enduml

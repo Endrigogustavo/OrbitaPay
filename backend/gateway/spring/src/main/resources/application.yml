@@ -1,0 +1,61 @@
+server:
+  port: 9000
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      server:
+        webmvc:
+          routes:
+            - id: auth
+              uri: ${orbita.servicos.auth}
+              predicates:
+                - Path=/api/autenticacao/**
+              filters:
+                - StripPrefix=1
+            - id: clientes
+              uri: ${orbita.servicos.clientes}
+              predicates:
+                - Path=/api/clientes,/api/clientes/**
+              filters:
+                - StripPrefix=1
+            - id: contas
+              uri: ${orbita.servicos.clientes}
+              predicates:
+                - Path=/api/contas,/api/contas/**
+              filters:
+                - StripPrefix=1
+            - id: ativos
+              uri: ${orbita.servicos.ativos}
+              predicates:
+                - Path=/api/ativos,/api/ativos/**,/api/bolsas
+              filters:
+                - StripPrefix=1
+            - id: negociacao
+              uri: ${orbita.servicos.negociacao}
+              predicates:
+                - Path=/api/ordens,/api/ordens/**
+              filters:
+                - StripPrefix=1
+            - id: carteira
+              uri: ${orbita.servicos.negociacao}
+              predicates:
+                - Path=/api/carteiras/**
+              filters:
+                - StripPrefix=1
+            - id: pagamentos
+              uri: ${orbita.servicos.pagamentos}
+              predicates:
+                - Path=/api/pagamentos,/api/pagamentos/**
+              filters:
+                - StripPrefix=1
+
+orbita:
+  servicos:
+    auth: ${AUTH_URL:http://localhost:9001}
+    clientes: ${CLIENTES_URL:http://localhost:9002}
+    ativos: ${ATIVOS_URL:http://localhost:9003}
+    negociacao: ${NEGOCIACAO_URL:http://localhost:9004}
+    pagamentos: ${PAGAMENTOS_URL:http://localhost:9005}

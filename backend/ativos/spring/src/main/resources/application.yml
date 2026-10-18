@@ -1,0 +1,13 @@
+server:
+  port: 9003
+
+spring:
+  application:
+    name: ativos
+  mongodb:
+    uri: ${MONGODB_URI:mongodb://localhost:27018/orbita_ativos?directConnection=true}
+
+orbita:
+  dados-iniciais: ${ORBITA_DADOS_INICIAIS:true}
+  cotacoes:
+    intervalo: 3s

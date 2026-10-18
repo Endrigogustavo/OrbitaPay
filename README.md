@@ -1,113 +1,118 @@
 # OrbitaPay
 
-Ecossistema de **microserviços** para o banco e a corretora Órbita. Cada serviço corresponde a um **bounded context (DDD)** e é organizado em **camadas** (domínio, aplicação e infraestrutura). A comunicação entre serviços é feita exclusivamente por **mensageria (RabbitMQ)**. O app **React Native (Expo)** fala somente com o **API Gateway**.
+Banco e corretora de ações em **microserviços**. Cada serviço tem o seu próprio banco MongoDB e segue a **Clean Architecture**. O app **React Native (Expo)** fala somente com o **gateway**.
 
-> **Primeira vez rodando o projeto?** Siga o guia passo a passo: [docs/como-rodar.md](docs/como-rodar.md).
-
-- **Diagrama de comunicação** do ecossistema inteiro (HTTP, eventos e consultas): [docs/comunicacao.md](docs/comunicacao.md)
-- **Endereços e IPs** de todos os containers: [docs/enderecos.md](docs/enderecos.md)
-- **SOLID** no código, com exemplos: [docs/solid.md](docs/solid.md)
-- **Transações e consistência** (onde há `@Transactional`, saga e idempotência): [docs/transacoes.md](docs/transacoes.md)
-- **Painel do RabbitMQ** (exchanges, filas e tópicos): http://localhost:15672 (usuário e senha `orbita`)
-- Documentação do Context Map, da saga, das camadas anticorrupção e do lock pessimista: [docs/context-map.md](docs/context-map.md)
-- Por que o MongoDB não tem lock pessimista e como ele foi implementado: [docs/lock-pessimista.md](docs/lock-pessimista.md)
-- Diagramas UML em PlantUML: [docs/plantuml/](docs/plantuml/README.md)
+- Comunicação entre os serviços (HTTP e RabbitMQ), com diagramas: [docs/comunicacao.md](docs/comunicacao.md)
+- Diagramas UML em PlantUML: [docs/plantuml/](docs/plantuml)
 - Teste de concorrência com k6: [k6/concorrencia.js](k6/concorrencia.js)
 
 ## Serviços
 
-| Serviço | IP | Porta | Banco MongoDB | Responsabilidade |
-|---|---|---|---|---|
-| `gateway` | `172.30.0.80` | 8080 | — | Entrada única do front. Roteia, valida sessão (HMAC), exige assinatura por PIN e injeta a identidade |
-| `auth` | `172.30.0.86` | 8086 | `orbita_auth` | Credenciais (PIN), contas da equipe (gerente e admin), login único, tokens de sessão e de assinatura, bloqueio por tentativas |
-| `clientes` | `172.30.0.81` | 8081 | `orbita_clientes` | Cadastro, dados pessoais e situação da conta (bloqueio e desbloqueio) |
-| `contas` | `172.30.0.82` | 8082 | `orbita_contas` | Saldo, extrato, saque, crédito dos depósitos confirmados, débito e crédito das ordens |
-| `ativos` | `172.30.0.83` | 8083 | `orbita_ativos` | Catálogo de ações, bolsas, cotações simuladas ao vivo |
-| `negociacao` | `172.30.0.84` | 8084 | `orbita_negociacao` | Ordens de compra e venda (saga), oferta disponível por ativo |
-| `carteira` | `172.30.0.85` | 8085 | `orbita_carteira` | Custódia: posições, preço médio, reservas de venda |
-| `pagamentos` | `172.30.0.87` | 8087 | `orbita_pagamentos` | Depósitos por Pix, boleto e TED: fachada com camada anticorrupção sobre os provedores |
-| `relatorios` | `172.30.0.88` | 8088 | `orbita_relatorios` | Relatório gerencial e extrato de investimentos, montados a partir dos eventos |
+| Serviço | Porta | Banco MongoDB | Responsabilidade |
+|---|---|---|---|
+| `gateway` | 9000 | — | Porta de entrada do app. Roteia, confere a sessão e a assinatura no `auth` e injeta a identidade (`X-Cliente-Id`, `X-Perfil`) |
+| `auth` | 9001 | `orbita_auth` | Credenciais (e-mail + PIN), equipe (gerente e admin), sessões por cookie e assinaturas com PIN |
+| `clientes` | 9002 | `orbita_clientes` | Cadastro, bloqueio e desbloqueio do cliente **e a conta**: saldo, extrato, saque, débito/crédito das ordens e crédito dos depósitos |
+| `ativos` | 9003 | `orbita_ativos` | Catálogo de ações, bolsas, cotações simuladas e o **estoque de ações** de cada ativo |
+| `negociacao` | 9004 | `orbita_negociacao` | Ordens de compra e venda e a **carteira** do cliente (posições e preço médio) |
+| `pagamentos` | 9005 | `orbita_pagamentos` | Depósitos por Pix, boleto e TED (provedores simulados) |
 
-Todos ficam na rede Docker `orbita` (`172.30.0.0/24`) com IP fixo: o final do IP é a porta do serviço. A lista completa, com RabbitMQ, painel e bancos, está em [docs/enderecos.md](docs/enderecos.md).
+Infraestrutura: **RabbitMQ** (5672, painel em http://localhost:15672, usuário e senha `orbita`) e **um MongoDB por serviço**, em replica set para permitir transações.
 
-Cada pasta em `backend/` é um projeto Maven **independente** (Spring Boot 4.0 / Java 21): `pom.xml`, `Dockerfile`, `application.yaml` e banco próprios. Não existe código nem banco compartilhado. Os microserviços usam o sufixo `-micro` no `artifactId` e no `spring.application.name` (`clientes-micro`, `contas-micro`…); a pasta e o serviço do compose levam só o nome do contexto (`clientes`, `contas`…).
+## Como os serviços conversam
 
-### Camadas de cada serviço
+- **HTTP** quando um serviço precisa de uma resposta na hora. As rotas `/interno/...` só existem entre serviços: o gateway não as expõe.
+- **RabbitMQ** (exchange `orbita.eventos`) só onde faz sentido ser assíncrono:
 
-Por dentro, cada serviço tem dois módulos Maven e segue o **SOLID** ([docs/solid.md](docs/solid.md)): cada caso de uso é uma **classe com uma única ação** (`Sacar`, `DebitarCompra`, `ConfirmarCompra`…), chamada diretamente pelos controllers e listeners, sem interfaces de "porta de entrada". Só continua sendo interface o que o núcleo em Java puro precisa que a infraestrutura implemente: os repositórios e alguns serviços técnicos, como publicar eventos ou codificar o PIN.
+| Evento | Publica | Consome | Por quê |
+|---|---|---|---|
+| `ordem.solicitada` | negociacao | negociacao | a ordem é aceita na hora (`202`) e executada em segundo plano, uma por vez, sem prender a requisição do app |
+| `pagamento.confirmado` | pagamentos | clientes | o crédito acontece em segundo plano e não pode se perder se `clientes` estiver fora do ar |
+| `cliente.removido` | clientes | auth, negociacao, pagamentos | vários serviços limpam os dados do cliente sem que `clientes` precise conhecer cada um |
 
-| Módulo | Pacotes | Dependências |
+Cada entidade guarda só o que é dela. Quando precisa de outro dado, busca pelo ID no serviço dono: a negociação pede a cotação do ativo pelo `ticker` ao `ativos` e a situação do cliente pelo `clienteId` ao `clientes`.
+
+## Estrutura de cada serviço (Clean Architecture)
+
+Cada pasta em `backend/` é um projeto Maven com dois módulos, no padrão do projeto [introducao](https://github.com/FATEC-Multiplataforma2026/introducao):
+
+```
+backend/<servico>/
+├── domain/                     REGRAS DE NEGÓCIO (da empresa) · Java puro, sem Spring
+│   ├── entity/                 records com os dados de cada entidade
+│   ├── service/                regras da empresa: saldo suficiente, limite de saque, preço médio, CPF válido…
+│   └── exception/              erros de regra de negócio
+└── spring/                     REGRAS DA APLICAÇÃO + frameworks
+    ├── application/
+    │   ├── usecase/            o que a aplicação faz: orquestra serviços de domínio, gateways e transações
+    │   ├── gateway/            interfaces que os casos de uso usam (banco, outros serviços, eventos), sempre com prefixo I (ex.: IAtivoGateway)
+    │   └── exception/          erros da aplicação (não encontrado, PIN incorreto, sessão inválida…)
+    ├── adapter/
+    │   ├── controller/         REST: controllers, dto/request, dto/response e handler/ (erros → HTTP)
+    │   ├── gateway/
+    │   │   ├── http/           chamadas a outros serviços (GatewayHttpBase + implementações, dto/)
+    │   │   ├── mongo/          implementações com MongoDB (document/, repository/)
+    │   │   └── exception/      falha de comunicação com outro serviço
+    │   ├── messaging/          RabbitMQ: listener/, publisher/, dto/ e CanaisDeMensageria (nomes das filas)
+    │   ├── interfaces/         contratos que o adapter precisa da infraestrutura (ex.: ICookieDeSessao)
+    │   └── scheduler/          tarefas agendadas
+    └── infrastructure/
+        ├── config/             monta os casos de uso (UseCaseConfig) e os clientes HTTP
+        ├── messaging/          declara exchange, filas e o conversor JSON do RabbitMQ
+        ├── security/           cookie de sessão, PIN (PBKDF2), hash do token, filtro de acesso do gateway
+        ├── transaction/        transação do MongoDB com nova tentativa em caso de conflito
+        └── seed/               dados de demonstração
+```
+
+**Regra de negócio × regra da aplicação.** O que vale para a empresa em qualquer sistema fica no `domain/service` (ex.: "não sacar mais que o saldo", "limite de R$ 5.000 por saque", "preço médio da posição", "valor mínimo do boleto"). O que só existe nesta aplicação fica em `spring/application/usecase` (ex.: "bloquear o cliente depois de 3 PINs errados", "sessão de 4 h em cookie", "assinatura de 120 s", "desfazer o cadastro em até 10 minutos", compensações entre serviços).
+
+**Regra de dependência.** As setas sempre apontam para dentro: `infrastructure → adapter → application → domain`. O `domain` não tem nenhuma dependência no `pom.xml`. O `application` não importa nada de `adapter` nem de `infrastructure`. Quando o adapter precisa de algo técnico (cookie, hash), ele declara uma interface em `adapter/interfaces` e a `infrastructure` implementa. Toda interface usada para inversão de dependência começa com `I` (`IAtivoGateway`, `ICookieDeSessao`); a implementação diz a tecnologia (`AtivoHttpGateway`, `CookieDeSessaoHttpOnly`).
+
+**Padrões de projeto usados**
+
+| Padrão | Onde |
+|---|---|
+| Template Method | `ExecucaoDeOrdem` (abstrata) com `ExecucaoDeCompra` e `ExecucaoDeVenda`: o esqueleto "movimentar dinheiro e ações → registrar na carteira → executar ou rejeitar" é o mesmo; cada tipo implementa as etapas |
+| Strategy + Template Method | `CobrancaSimulada` (abstrata) com `CobrancaPix`, `CobrancaBoleto` e `CobrancaTed`; o `ProvedorDePagamentoSimuladoGateway` escolhe a estratégia pelo método |
+| Classe abstrata base | `GatewayHttpBase`: toda chamada HTTP entre serviços passa por ela, que traduz `4xx` em recusa de negócio e falhas de rede em `503` |
+| Adapter / Gateway | cada interface de `application/gateway` tem uma implementação em `adapter/gateway` (Mongo, HTTP ou RabbitMQ) |
+| Injeção de dependência | os casos de uso são classes Java puras montadas em `UseCaseConfig` |
+
+## Transação e concorrência
+
+- **Transação do MongoDB** (`infrastructure/transaction/TransacaoMongoGateway`): o cadastro grava cliente e conta juntos; cada movimentação da conta e da carteira e o registro da ordem executada acontecem dentro de uma transação. Se duas transações alteram o mesmo documento ao mesmo tempo, o MongoDB acusa conflito e a operação inteira é repetida, sem perder atualização.
+- **Estoque de ações** (`ativos`): a retirada é uma atualização atômica que só acontece se houver quantidade disponível (`quantidadeDisponivel >= pedido`), então o estoque nunca fica negativo.
+- **Idempotência**: cada lançamento da conta guarda a referência da operação (ordem ou pagamento), então repetir a mesma mensagem não credita nem debita duas vezes.
+
+## Compra e venda de ações
+
+**Compra** (`POST /api/ordens` com `X-Assinatura`):
+
+1. A negociação busca a cotação no `ativos` e a situação do cliente no `clientes` (HTTP), grava a ordem `PENDENTE`, publica `ordem.solicitada` no RabbitMQ e responde `202`.
+2. O `OrdemSolicitadaListener` consome a fila `negociacao.ordens-solicitadas` e retira as ações do **estoque** do ativo (HTTP para `ativos`).
+3. Debita a conta (HTTP para `clientes`). Se faltar saldo, devolve as ações ao estoque e a ordem fica `REJEITADA`.
+4. Em uma transação: soma as ações na carteira (preço médio) e marca a ordem como `EXECUTADA`.
+
+**Venda**: retira as ações da carteira, credita a conta e devolve as ações ao estoque do ativo. Se o crédito falhar, as ações voltam para a carteira.
+
+O app consulta `GET /api/ordens/{id}` até a ordem sair de `PENDENTE` para `EXECUTADA` ou `REJEITADA` (com o motivo). Se a mensagem chegar duas vezes, só a primeira executa, porque a ordem já não está mais pendente. O ativo `ORBT3` foi emitido com apenas **10 ações** para demonstrar o estoque.
+
+## Autenticação
+
+- **Login**: `POST /api/autenticacao/sessoes` grava a sessão no cookie `orbita_sessao` (`HttpOnly`, `SameSite=Lax`). O `auth` guarda só o hash do token, com expiração automática.
+- **Gateway**: em toda requisição com cookie, pergunta ao `auth` (`GET /interno/acessos`) quem é o usuário e se a assinatura é válida. Sair, ser removido ou virar gerente derruba a sessão na hora.
+- **Assinatura**: `POST /api/autenticacao/assinaturas` confere o PIN e devolve um token de 120 s, exigido em saques, ordens, desbloqueio e "tornar-se gerente".
+- **Bloqueio por PIN**: na 3ª tentativa errada o `auth` pede ao `clientes` (HTTP) para bloquear o cliente com motivo `PIN`.
+
+| Perfil | Quem é | O que pode |
 |---|---|---|
-| `domain` | `domain.model` (entidades e value objects), `domain.event`, `domain.exception`, `domain.repository` (interfaces dos repositórios) · `application.usecase` (casos de uso), `application.service` (interfaces de serviços técnicos: publicador, catálogo, codificador…), `application.dto` | **nenhuma**: Java puro, sem Spring, MongoDB, RabbitMQ ou Jackson |
-| `springframework` | `web` (controllers e DTOs HTTP), `messaging` (listeners, publicadores, mensagens), `persistence` (documentos Mongo e implementações dos repositórios), `infrastructure` (configuração, seed) | `domain` + starters do Spring |
-
-O `pom.xml` na raiz de cada serviço só agrega os dois módulos e não herda do Spring, então nada do framework chega ao `domain`. Como o `domain` não declara dependências, qualquer `import org.springframework...` nele quebra a compilação.
-
-```
-OrbitaPay/
-├── backend/
-│   ├── gateway/
-│   ├── auth/
-│   ├── clientes/
-│   │   ├── domain/              núcleo em Java puro (pom sem dependências)
-│   │   ├── springframework/     Spring Boot: web, messaging, persistence e configuração
-│   │   ├── pom.xml              agregador dos módulos
-│   │   └── Dockerfile
-│   ├── contas/
-│   ├── ativos/
-│   ├── negociacao/
-│   ├── carteira/
-│   ├── pagamentos/
-│   └── relatorios/
-├── mobile/                  app Expo / React Native em TypeScript (expo-router)
-├── k6/concorrencia.js       teste de compra simultânea (lock pessimista)
-├── scripts/orbita.sh        modo local: infraestrutura no Docker, serviços com mvn spring-boot:run e o app
-├── scripts/rodar-tudo.sh    tudo em containers + todos os testes
-├── docs/                    comunicação, endereços, SOLID, context map, lock pessimista e PlantUML
-└── docker-compose.yml
-```
+| `CLIENTE` | quem abre conta | a própria conta: saldo, depósito, saque, ordens, carteira, PIN |
+| `GERENTE` | funcionário | listar, cadastrar, editar, bloquear e desbloquear clientes; ver contas e carteiras |
+| `ADMIN` | administrador | tudo do gerente + excluir clientes e cadastrar, editar e remover ações |
 
 ## Como rodar
 
-O passo a passo completo (pré-requisitos, testes pela linha de comando, app e problemas comuns) está em [docs/como-rodar.md](docs/como-rodar.md). Resumo:
-
-### Jeito mais fácil: `scripts/orbita.sh`
-
-Requisitos: Docker Desktop, Java 21, Maven 3.9 e Node.js 20. No Windows, rode pelo Git Bash.
-
-```bash
-scripts/orbita.sh subir            # sobe tudo e abre o app em http://localhost:19006
-scripts/orbita.sh subir --limpar   # o mesmo, apagando os dados (volta aos dados de demonstração)
-scripts/orbita.sh status           # o que está no ar
-scripts/orbita.sh abas             # reabre as abas de log no Windows Terminal
-scripts/orbita.sh logs clientes    # log de um serviço no terminal atual (sem nome: todos)
-scripts/orbita.sh parar            # desliga serviços, app e containers (os dados ficam)
-```
-
-O `subir` faz 5 passos, sempre na mesma ordem:
-
-1. confere se Docker, Java, Maven e Node estão instalados;
-2. sobe no Docker **só a infraestrutura**: RabbitMQ (5672, painel em 15672) e um MongoDB replica set (27018);
-3. compila os 9 serviços com `mvn install` (se algum estiver rodando de antes, por exemplo pelo VS Code, ele é parado);
-4. roda cada serviço com `mvn spring-boot:run`, em três ondas: primeiro quem só consome eventos (`auth`, `contas`, `negociacao`, `carteira`, `relatorios`), depois `pagamentos` e `ativos`, e por fim `clientes` e o `gateway`. Assim as filas já existem quando os dados de demonstração são publicados;
-5. sobe o app com `npm run web` e abre http://localhost:19006 no navegador.
-
-No fim, abre uma janela **OrbitaPay** no Windows Terminal com **uma aba por aplicação** (app, gateway e os 8 serviços), cada uma mostrando o log ao vivo. A aba fecha sozinha quando o serviço para. Sem o Windows Terminal, os logs de todos aparecem no próprio terminal. Se algo falhar, a janela espera um Enter antes de fechar, para dar tempo de ler o erro. Os serviços ficam em segundo plano e os logs também ficam em `.orbita-local/logs/`.
-
-### Um comando para subir e testar tudo
-
-Requisito: Docker Desktop (e Maven, opcional, para os testes unitários). No Windows, rode pelo Git Bash.
-
-```bash
-scripts/rodar-tudo.sh                 # testes unitários + sobe o ecossistema + teste k6
-scripts/rodar-tudo.sh --limpar        # apaga os dados antes (volta às 10 ações de ORBT3)
-scripts/rodar-tudo.sh --sem-unitarios # pula o Maven
-scripts/rodar-tudo.sh --derrubar      # derruba os containers no final
-```
-
-O script roda os testes unitários dos 9 serviços, sobe tudo com `docker compose up --build --wait`, executa o teste de concorrência do k6 e termina com um resumo. Ele sai com código diferente de zero se alguma etapa falhar.
-
-### Tudo em containers (recomendado)
+### Tudo em containers
 
 Requisito: Docker Desktop.
 
@@ -115,54 +120,34 @@ Requisito: Docker Desktop.
 docker compose up --build -d
 ```
 
-O compose sobe o RabbitMQ, **um MongoDB por serviço**, os 8 microserviços e o gateway, todos na rede `orbita` com IP fixo. Ficam expostos no seu computador: **8080** (gateway, usado pelo app), **15672** (painel do RabbitMQ, usuário e senha `orbita`) e **5672** (AMQP). A ordem de subida garante que os consumidores declarem suas filas antes que Clientes e Ativos publiquem os dados iniciais.
+Sobe o RabbitMQ, um MongoDB por serviço e os 6 serviços na rede `orbita`. Ficam expostos: **9000** (gateway, usado pelo app), **15672** (painel do RabbitMQ) e **5672** (AMQP).
 
-> **Atualizando de uma versão anterior:** o PIN saiu do contexto de Clientes e passou para o `auth`, os serviços do compose perderam o sufixo `-service` e os projetos Maven passaram de `<contexto>-service` para `<contexto>-micro`. Recrie os dados de demonstração com `docker compose down -v --remove-orphans && docker compose up --build -d`.
+> Vindo da versão anterior (9 serviços)? Apague os dados antigos antes: `docker compose down -v --remove-orphans`.
 
-### Painel do RabbitMQ
+### Cada serviço na sua máquina: `scripts/orbita.sh`
 
-Abra http://localhost:15672 (usuário e senha `orbita`):
+Requisitos: Docker Desktop, Java 21, Maven 3.9 e Node.js 20. No Windows, rode pelo Git Bash.
 
-- **Exchanges** → `orbita.eventos` → *Bindings*: cada tópico e a fila que o assina;
-- **Queues**: mensagens esperando, consumidores e os argumentos de cada fila (como a DLQ em `x-dead-letter-exchange`).
+```bash
+scripts/orbita.sh subir            # RabbitMQ e MongoDB no Docker, serviços com mvn spring-boot:run e o app web
+scripts/orbita.sh subir --limpar   # o mesmo, apagando os dados (volta aos dados de demonstração)
+scripts/orbita.sh status           # o que está no ar
+scripts/orbita.sh logs clientes    # log de um serviço (sem nome: todos)
+scripts/orbita.sh parar            # desliga serviços, app e containers (os dados ficam)
+```
 
-### Cada serviço na sua máquina
-
-Use `scripts/orbita.sh` (veja [Jeito mais fácil](#jeito-mais-fácil-scriptsorbitash)). Ele sobe o RabbitMQ e um MongoDB **replica set** (porta 27018, exigido pelas transações de Negociação e Relatórios) no Docker e roda cada serviço com `mvn spring-boot:run` na ordem certa. Os `application.yaml` já apontam para esse MongoDB, então rodar um serviço pelo VS Code ou com `mvn -f backend/<servico>/springframework spring-boot:run` também funciona, desde que a infraestrutura esteja no ar (`docker compose --profile local up -d rabbitmq mongo-local`).
-
-As variáveis `MONGODB_URI`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD` e `ORBITA_TOKEN_SEGREDO` sobrescrevem os padrões.
+Para rodar um serviço sozinho (pelo VS Code ou com `mvn -f backend/<servico>/spring/pom.xml spring-boot:run`), suba antes a infraestrutura: `docker compose --profile local up -d rabbitmq mongo-local`. As variáveis `MONGODB_URI`, `RABBITMQ_HOST`, `RABBITMQ_PORT`, `RABBITMQ_USERNAME`, `RABBITMQ_PASSWORD`, `AUTH_URL`, `CLIENTES_URL`, `ATIVOS_URL`, `NEGOCIACAO_URL`, `PAGAMENTOS_URL` e `ORBITA_COOKIE_SEGURO` (use `true` atrás de HTTPS) sobrescrevem os padrões.
 
 ### App mobile
-
-O app é escrito em **TypeScript (`.ts`/`.tsx`)** e usa **expo-router**: cada arquivo em `src/app` é uma rota.
-
-```
-mobile/src/
-├── @types/        contratos do gateway (api.ts) e modelos das telas (orbita.ts)
-├── app/           rotas: _layout, login, cadastro e (tabs)/ index · mercado · globo · banco · perfil
-├── components/    ui/ (primitivas visuais), folhas/ (bottom sheets), Globo, Splash, barra de abas…
-├── constants/     tema, bolsas, ícones, abas, dados de demonstração e formatação
-├── context/       Toast, Sessao, Mercado, Gerente e Operacoes (estado do app)
-│   └── operacoes/ ações separadas por assunto: banco, negociacao, gerencia e perfil
-└── integration/   cliente HTTP, API do gateway, mapeadores DTO → modelo e sessão salva
-```
 
 ```bash
 cd mobile
 npm install
 npm run web         # abre o app no navegador em http://localhost:19006
-npm run typecheck   # tsc --noEmit
+npm run typecheck
 ```
 
-**No navegador** (`npm run web`), o app fala com o gateway em `http://localhost:8080` e funciona por completo: login, depósito, saque, compra de ações com PIN, carteira, globo 3D e, para gerente e admin, a aba Banco. O script copia o `canvaskit.wasm` do Skia para `public/` e sobe o servidor web na porta 19006 (a 8081 é do serviço Clientes).
-
-No **Android**, o app usa módulos nativos (Skia, Reanimated, react-native-screens), então roda em um *development build* e não no Expo Go: `npx expo run:android`.
-
-Por padrão o app aponta para `http://10.0.2.2:8080` no emulador Android e para `http://localhost:8080` nas demais plataformas. Em um celular físico, defina o IP da sua máquina:
-
-```bash
-EXPO_PUBLIC_API_URL=http://192.168.0.10:8080 npx expo start
-```
+O app aponta para `http://localhost:9000` (ou `http://10.0.2.2:9000` no emulador Android). Em um celular físico: `EXPO_PUBLIC_API_URL=http://<ip-da-maquina>:9000 npx expo start`. No Android o app roda em *development build* (`npx expo run:android`), não no Expo Go.
 
 Contas de demonstração:
 
@@ -171,106 +156,35 @@ Contas de demonstração:
 | ana@orbita.com | 1234 | saldo R$ 12.480,55 |
 | bruno@orbita.com | 4321 | saldo R$ 3.150,00 |
 | carla@orbita.com | 1111 | bloqueada por PIN |
-| gerente@orbita.com | 0000 | gerente: aba Banco com a gestão de clientes |
-| admin@orbita.com | 9999 | admin: aba Banco com clientes e ações da bolsa |
+| gerente@orbita.com | 0000 | gerente |
+| admin@orbita.com | 9999 | admin |
 
-## Autenticação
-
-O contexto `auth` é o dono da credencial: e-mail de login, hash PBKDF2 do PIN e tentativas. Os demais contextos nunca veem o PIN.
-
-- **Cadastro:** o PIN nunca passa pelo RabbitMQ. O app cria a credencial em `POST /api/autenticacao/credenciais` (e-mail e PIN), e o `auth` devolve o novo `clienteId` e uma sessão de cliente. Com essa sessão o app chama `POST /api/clientes`: o gateway valida o token e injeta o `X-Cliente-Id`, e Clientes cria o cadastro com esse id e publica `cliente.cadastrado`. Quando quem cadastra é o gerente, a chamada usa a sessão do gerente e leva o `clienteId` no corpo. Se o cadastro for recusado (CPF inválido, e-mail repetido), o app desfaz a credencial com `DELETE /api/autenticacao/credenciais/me`, que só vale nos 10 minutos depois da criação.
-- **Login e assinatura:** `POST /api/autenticacao/sessoes` (e-mail e PIN) é o login de todas as contas e devolve o token de sessão e o `perfil` (`CLIENTE`, `GERENTE` ou `ADMIN`). `POST /api/autenticacao/assinaturas` confere o PIN e devolve a assinatura de 120 s exigida em saques, ordens e no desbloqueio pelo próprio cliente.
-- **Tornar-se gerente:** na aba Perfil, o cliente escolhe *Tornar-me gerente* e confirma com o PIN. O app pede a assinatura e chama `POST /api/autenticacao/me/gerente` com `X-Assinatura`, e o gateway exige sessão de cliente **e** assinatura válidas. O `auth` troca a credencial do cliente por um funcionário `GERENTE` (mesmo e-mail e PIN) e devolve a sessão de gerente. Nada disso passa pelo RabbitMQ.
-- **Bloqueio por PIN:** na 3ª tentativa errada o `auth` publica `credencial.bloqueada-por-pin`, Clientes bloqueia a conta com motivo `PIN` e publica `cliente.situacao-alterada` para Contas e Negociação. Quando a conta é desbloqueada, o `auth` zera as tentativas.
-- O gateway continua validando os tokens localmente (HMAC com o segredo compartilhado), sem chamar o `auth` a cada requisição.
-
-### Níveis de acesso
-
-Cada conta tem um perfil. O perfil vai dentro do token, o gateway decide pela tabela de regras (`MapaDeAcesso`) e cada serviço confere de novo o cabeçalho `X-Perfil` (defesa em profundidade).
-
-| Perfil | Quem é | O que pode | Abas no app |
-|---|---|---|---|
-| `CLIENTE` | quem abre conta no banco | a própria conta: saldo, depósito, saque, ordens, carteira, PIN | Início, Mercado, Globo, Perfil |
-| `GERENTE` | funcionário do banco | listar, cadastrar, editar, bloquear e desbloquear clientes; ver contas, carteiras e o relatório gerencial | Banco, Mercado, Globo |
-| `ADMIN` | administrador do banco | tudo do gerente + **excluir clientes** e **cadastrar, editar e remover ações** da bolsa | Banco, Mercado, Globo |
-
-- As contas da equipe ficam na coleção `funcionarios` do `auth`, separadas das credenciais dos clientes, e são criadas na subida (`EquipeInicial`) ou quando um cliente se torna gerente. Um e-mail da equipe não pode ser usado para abrir conta de cliente.
-- A aba **Banco não existe para o cliente**: o app monta as abas pelo perfil da sessão (`Tabs.Protected`), então ela nem aparece e o endereço `/banco` volta para o Início. Mesmo que alguém chame a API direto, o gateway responde `403`.
-- A equipe acompanha o Mercado e o Globo, mas não compra nem vende ações (as rotas de cliente respondem `403` para gerente e admin).
-
-## Depósitos (Pagamentos + camada anticorrupção)
-
-O app não credita mais o saldo diretamente. O depósito é uma **cobrança** emitida no contexto de Pagamentos:
-
-1. `POST /api/pagamentos {valor, metodo: PIX | BOLETO | TED}` aciona a **fachada** `ProvedorDePagamentos`, que escolhe o provedor pelo método e devolve as instruções (Pix copia e cola, linha digitável do boleto ou dados para a TED).
-2. A conciliação (a cada 2 s) consulta os provedores pela mesma fachada. Quando a cobrança é paga, publica `pagamento.confirmado`. Quando expira, publica `pagamento.expirado`.
-3. **Contas** trava a conta e credita o depósito uma única vez por `pagamentoId`.
-
-Cada provedor tem um modelo próprio, e a camada anticorrupção (`pagamentos/.../acl`) traduz tudo para o modelo do OrbitaPay:
-
-| Provedor (simulado) | Formato do provedor | Tradução |
-|---|---|---|
-| PSP Pix | API Pix do Banco Central: `txid`, valor `"10.00"`, status `ATIVA`/`CONCLUIDA`/`REMOVIDA_PELO_PSP`, horários ISO-8601 | `Dinheiro`, `AGUARDANDO`/`PAGA`/`EXPIRADA`, `Instant` |
-| Banco emissor de boletos | valores em **centavos**, vencimento `yyyy-MM-dd`, liquidação em horário de Brasília **sem fuso**, situação `EM_ABERTO`/`LIQUIDADO`/`BAIXADO_POR_DECURSO_DE_PRAZO` | idem |
-| SPB (TED) | valor em texto brasileiro `"1.234,56"`, datas `dd/MM/yyyy HH:mm:ss`, situação numérica `0`/`1`/`9` | idem |
-
-Os provedores simulados pagam a cobrança depois de alguns segundos (Pix 3 s, TED 6 s, boleto 10 s). Valores terminados em **,99** nunca são pagos, para demonstrar a expiração.
-
-## Relatórios
-
-O contexto `relatorios` é um **modelo de leitura** (CQRS): assina `cliente.#`, `ordem.executada`, `ordem.rejeitada` e `pagamento.#` e grava cada mensagem como um fato, identificado pelo `eventoId` (a mesma mensagem entregue duas vezes não conta em dobro).
-
-- `GET /api/relatorios/gerencial?de=2026-09-01&ate=2026-09-30` (gerente): base de clientes, volume comprado e vendido, taxa de rejeição das ordens, depósitos por método, ativos mais negociados, maiores investidores e movimento diário.
-- `GET /api/relatorios/me?de=…&ate=…` (cliente): total depositado, comprado e vendido, resumo por ativo e últimos movimentos.
-
-Sem datas, o período padrão são os últimos 30 dias.
-
-## Compra de ações (saga + lock pessimista)
-
-1. O app pede uma **assinatura** com o PIN (`POST /api/autenticacao/assinaturas`) e envia a ordem com `X-Assinatura` para `POST /api/ordens`.
-2. A **Negociação** trava o ativo (lock pessimista), reserva as ações disponíveis e publica `ordem.compra-solicitada`. A resposta é `202 PENDENTE`.
-3. **Contas** trava a conta, confere o saldo e o bloqueio, debita e publica `conta.debito-aprovado` (ou `recusado`).
-4. A **Negociação** confirma a reserva (ou a devolve, como compensação) e publica `ordem.executada` ou `ordem.rejeitada`.
-5. **Carteira** trava a carteira e registra a posição com preço médio.
-6. O app consulta `GET /api/ordens/{id}` até a ordem sair de `PENDENTE`.
-
-O ativo `ORBT3` (Órbita Holding) foi emitido com apenas **10 ações** justamente para demonstrar a concorrência.
-
-## Testes com k6
-
-O teste usa o gateway, como o app. Sem k6 instalado, rode pelo container do compose:
+## Teste de concorrência (k6)
 
 ```bash
-docker compose run --rm k6 run concorrencia.js
-k6 run k6/concorrencia.js                                   # com o k6 instalado na máquina
-k6 run -e QTD_REQUISICOES=30 -e TICKER=ORBT3 k6/concorrencia.js
+k6 run k6/concorrencia.js                          # com o k6 instalado e o gateway em localhost:9000
+docker compose run --rm k6 run concorrencia.js     # pelo container do compose
 ```
 
-O [`concorrencia.js`](k6/concorrencia.js) dispara **20 compras simultâneas** de 1 `ORBT3` (que tem só 10 ações) e acompanha cada ordem consultando `GET /api/ordens/{id}` até ela sair de `PENDENTE`:
+O [`concorrencia.js`](k6/concorrencia.js) entra como o Bruno, lê o saldo e a cotação de `PETR4` em `GET /api/ativos/PETR4` e dispara **50 compras simultâneas** que, juntas, custam cerca de 4 vezes o saldo. Cada ordem cabe no saldo sozinha, mas não todas juntas. No fim, confere pelo extrato:
 
-1. `setup`: entra como a cliente Ana, gera a assinatura com o PIN e lê o estoque inicial em `GET /api/ofertas/ORBT3`;
-2. cada usuário virtual envia `POST /api/ordens`. A resposta é `202` (ordem aceita) ou `422` (sem oferta disponível);
-3. as ordens aceitas são consultadas até ficarem `EXECUTADA` ou `REJEITADA`;
-4. `teardown`: lê o estoque final e confere se bate com o esperado.
+- nenhuma compra passou do saldo e o saldo nunca ficou negativo;
+- nenhuma ordem foi debitada duas vezes;
+- o saldo final é o inicial menos o que foi debitado;
+- o estoque do ativo caiu exatamente o que foi executado.
 
-| Métrica | Esperado num ambiente novo |
-|---|---|
-| `ordens_executadas` | 10 (o estoque inicial) |
-| `ordens_rejeitadas` | 10 (requisições − estoque) |
-| `ordens_timeout_polling` | 0 (se não for, aumente `POLL_TENTATIVAS`) |
-| `estoque_inconsistente` | 0 (o estoque final nunca fica negativo nem diferente do esperado) |
-
-As variáveis `BASE_URL`, `EMAIL`, `PIN`, `TICKER`, `QTD_REQUISICOES`, `POLL_TENTATIVAS` e `POLL_INTERVALO` mudam os padrões. As ações compradas ficam na carteira da Ana, então a oferta diminui a cada execução: rode `scripts/rodar-tudo.sh --limpar` (ou `docker compose down -v`) para voltar às 10 ações.
+Resultado esperado: algumas ordens `EXECUTADA` (o que o saldo paga), as demais `REJEITADA` com "Saldo insuficiente…", e as métricas `erro_inesperado` e `saldo_inconsistente` em zero. As variáveis `BASE_URL`, `EMAIL`, `PIN`, `TICKER`, `QTD_REQUISICOES`, `VEZES_O_SALDO` e `QUANTIDADE` mudam os padrões.
 
 ## Endpoints do gateway
 
 | Método | Caminho | Acesso |
 |---|---|---|
-| POST | `/api/autenticacao/sessoes` (login de cliente, gerente e admin) | público |
-| POST | `/api/autenticacao/credenciais` (cria e-mail e PIN do novo cliente) | público |
+| POST | `/api/autenticacao/sessoes` (login) · GET/DELETE `/api/autenticacao/sessoes/atual` | público |
+| POST | `/api/autenticacao/credenciais` (e-mail e PIN do novo cliente) | público (o gerente recebe só o `clienteId`) |
 | POST | `/api/autenticacao/assinaturas` · PUT `/api/autenticacao/pin` · GET `/api/autenticacao/me` · DELETE `/api/autenticacao/credenciais/me` | cliente |
-| POST | `/api/autenticacao/me/gerente` (tornar-se gerente) | cliente + `X-Assinatura` |
-| POST | `/api/clientes` | qualquer sessão: o cliente usa o `X-Cliente-Id` da sessão; gerente e admin informam `clienteId` e `depositoInicial` |
+| POST | `/api/autenticacao/me/gerente` | cliente + `X-Assinatura` |
+| DELETE | `/api/autenticacao/credenciais/{clienteId}` | gerente ou admin |
+| POST | `/api/clientes` | qualquer sessão (gerente e admin informam `clienteId` e `depositoInicial`) |
 | GET/PUT/DELETE | `/api/clientes/me` · POST `/api/clientes/me/bloqueio` | cliente |
 | POST | `/api/clientes/me/desbloqueio` | cliente + `X-Assinatura` |
 | GET/PUT | `/api/clientes`, `/api/clientes/{id}` · POST `/bloqueio`, `/desbloqueio` | gerente ou admin |
@@ -279,9 +193,8 @@ As variáveis `BASE_URL`, `EMAIL`, `PIN`, `TICKER`, `QTD_REQUISICOES`, `POLL_TEN
 | POST | `/api/contas/me/saques` | cliente + `X-Assinatura` |
 | GET | `/api/contas` | gerente ou admin |
 | POST/GET | `/api/pagamentos` · GET `/api/pagamentos/{id}` | cliente |
-| GET | `/api/ativos`, `/api/ativos/{ticker}`, `/api/bolsas`, `/api/ofertas/{ticker}` | público |
+| GET | `/api/ativos`, `/api/ativos/{ticker}` (com `quantidadeDisponivel`), `/api/bolsas` | público |
 | POST/PUT/DELETE | `/api/ativos[/{ticker}]` | admin |
 | POST | `/api/ordens` | cliente + `X-Assinatura` |
 | GET | `/api/ordens`, `/api/ordens/{id}` | cliente |
 | GET | `/api/carteiras/me` · `/api/carteiras/{clienteId}` | cliente · gerente ou admin |
-| GET | `/api/relatorios/me` · `/api/relatorios/gerencial` | cliente · gerente ou admin |

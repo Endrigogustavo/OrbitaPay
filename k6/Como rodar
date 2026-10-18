@@ -1,0 +1,5 @@
+docker compose up -d --build --wait
+docker compose run --rm k6 run concorrencia.js
+
+k6 run concorrencia.js
+k6 run -e BASE_URL=http://localhost:9000 -e EMAIL=ana@orbita.com -e PIN=1234 concorrencia.js

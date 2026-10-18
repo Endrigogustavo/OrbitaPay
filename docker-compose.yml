@@ -4,7 +4,11 @@ x-servico: &servico
     RABBITMQ_HOST: rabbitmq
     RABBITMQ_USERNAME: orbita
     RABBITMQ_PASSWORD: orbita
-    ORBITA_TOKEN_SEGREDO: ${ORBITA_TOKEN_SEGREDO:-orbita-segredo-de-desenvolvimento-troque-em-producao}
+    AUTH_URL: http://auth:9001
+    CLIENTES_URL: http://clientes:9002
+    ATIVOS_URL: http://ativos:9003
+    NEGOCIACAO_URL: http://negociacao:9004
+    PAGAMENTOS_URL: http://pagamentos:9005
   healthcheck: &saude
     interval: 5s
     timeout: 3s
@@ -55,42 +59,27 @@ services:
     <<: *mongo
     volumes: [mongo-auth:/data/db]
     networks:
-      orbita: { ipv4_address: 172.30.0.186 }
+      orbita: { ipv4_address: 172.30.0.191 }
   mongo-clientes:
     <<: *mongo
     volumes: [mongo-clientes:/data/db]
     networks:
-      orbita: { ipv4_address: 172.30.0.181 }
-  mongo-contas:
-    <<: *mongo
-    volumes: [mongo-contas:/data/db]
-    networks:
-      orbita: { ipv4_address: 172.30.0.182 }
+      orbita: { ipv4_address: 172.30.0.192 }
   mongo-ativos:
     <<: *mongo
     volumes: [mongo-ativos:/data/db]
     networks:
-      orbita: { ipv4_address: 172.30.0.183 }
+      orbita: { ipv4_address: 172.30.0.193 }
   mongo-negociacao:
     <<: *mongo
     volumes: [mongo-negociacao:/data/db]
     networks:
-      orbita: { ipv4_address: 172.30.0.184 }
-  mongo-carteira:
-    <<: *mongo
-    volumes: [mongo-carteira:/data/db]
-    networks:
-      orbita: { ipv4_address: 172.30.0.185 }
+      orbita: { ipv4_address: 172.30.0.194 }
   mongo-pagamentos:
     <<: *mongo
     volumes: [mongo-pagamentos:/data/db]
     networks:
-      orbita: { ipv4_address: 172.30.0.187 }
-  mongo-relatorios:
-    <<: *mongo
-    volumes: [mongo-relatorios:/data/db]
-    networks:
-      orbita: { ipv4_address: 172.30.0.188 }
+      orbita: { ipv4_address: 172.30.0.195 }
 
   mongo-local:
     <<: *mongo
@@ -99,7 +88,7 @@ services:
       - "27018:27017"
     volumes: [mongo-local:/data/db]
     networks:
-      orbita: { ipv4_address: 172.30.0.189 }
+      orbita: { ipv4_address: 172.30.0.199 }
 
   auth:
     <<: *servico
@@ -107,115 +96,15 @@ services:
     environment:
       <<: *ambiente
       MONGODB_URI: mongodb://mongo-auth:27017/orbita_auth?directConnection=true
-    expose: ["8086"]
+    expose: ["9001"]
     networks:
-      orbita: { ipv4_address: 172.30.0.86 }
+      orbita: { ipv4_address: 172.30.0.91 }
     healthcheck:
       <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8086"]
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9001"]
     depends_on:
       rabbitmq: { condition: service_healthy }
       mongo-auth: { condition: service_healthy }
-
-  contas:
-    <<: *servico
-    build: ./backend/contas
-    environment:
-      <<: *ambiente
-      MONGODB_URI: mongodb://mongo-contas:27017/orbita_contas?directConnection=true
-    expose: ["8082"]
-    networks:
-      orbita: { ipv4_address: 172.30.0.82 }
-    healthcheck:
-      <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8082"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-      mongo-contas: { condition: service_healthy }
-
-  negociacao:
-    <<: *servico
-    build: ./backend/negociacao
-    environment:
-      <<: *ambiente
-      MONGODB_URI: mongodb://mongo-negociacao:27017/orbita_negociacao?directConnection=true
-    expose: ["8084"]
-    networks:
-      orbita: { ipv4_address: 172.30.0.84 }
-    healthcheck:
-      <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8084"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-      mongo-negociacao: { condition: service_healthy }
-
-  carteira:
-    <<: *servico
-    build: ./backend/carteira
-    environment:
-      <<: *ambiente
-      MONGODB_URI: mongodb://mongo-carteira:27017/orbita_carteira?directConnection=true
-    expose: ["8085"]
-    networks:
-      orbita: { ipv4_address: 172.30.0.85 }
-    healthcheck:
-      <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8085"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-      mongo-carteira: { condition: service_healthy }
-
-  relatorios:
-    <<: *servico
-    build: ./backend/relatorios
-    environment:
-      <<: *ambiente
-      MONGODB_URI: mongodb://mongo-relatorios:27017/orbita_relatorios?directConnection=true
-    expose: ["8088"]
-    networks:
-      orbita: { ipv4_address: 172.30.0.88 }
-    healthcheck:
-      <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8088"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-      mongo-relatorios: { condition: service_healthy }
-
-  pagamentos:
-    <<: *servico
-    build: ./backend/pagamentos
-    environment:
-      <<: *ambiente
-      MONGODB_URI: mongodb://mongo-pagamentos:27017/orbita_pagamentos?directConnection=true
-    expose: ["8087"]
-    networks:
-      orbita: { ipv4_address: 172.30.0.87 }
-    healthcheck:
-      <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8087"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-      mongo-pagamentos: { condition: service_healthy }
-      contas: { condition: service_healthy }
-      relatorios: { condition: service_healthy }
-
-  ativos:
-    <<: *servico
-    build: ./backend/ativos
-    environment:
-      <<: *ambiente
-      MONGODB_URI: mongodb://mongo-ativos:27017/orbita_ativos?directConnection=true
-    expose: ["8083"]
-    networks:
-      orbita: { ipv4_address: 172.30.0.83 }
-    healthcheck:
-      <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8083"]
-    depends_on:
-      rabbitmq: { condition: service_healthy }
-      mongo-ativos: { condition: service_healthy }
-      negociacao: { condition: service_healthy }
-      carteira: { condition: service_healthy }
 
   clientes:
     <<: *servico
@@ -223,56 +112,85 @@ services:
     environment:
       <<: *ambiente
       MONGODB_URI: mongodb://mongo-clientes:27017/orbita_clientes?directConnection=true
-    expose: ["8081"]
+    expose: ["9002"]
     networks:
-      orbita: { ipv4_address: 172.30.0.81 }
+      orbita: { ipv4_address: 172.30.0.92 }
     healthcheck:
       <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8081"]
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9002"]
     depends_on:
       rabbitmq: { condition: service_healthy }
       mongo-clientes: { condition: service_healthy }
-      auth: { condition: service_healthy }
-      contas: { condition: service_healthy }
-      negociacao: { condition: service_healthy }
-      carteira: { condition: service_healthy }
-      relatorios: { condition: service_healthy }
+
+  ativos:
+    <<: *servico
+    build: ./backend/ativos
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-ativos:27017/orbita_ativos?directConnection=true
+    expose: ["9003"]
+    networks:
+      orbita: { ipv4_address: 172.30.0.93 }
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9003"]
+    depends_on:
+      mongo-ativos: { condition: service_healthy }
+
+  negociacao:
+    <<: *servico
+    build: ./backend/negociacao
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-negociacao:27017/orbita_negociacao?directConnection=true
+    expose: ["9004"]
+    networks:
+      orbita: { ipv4_address: 172.30.0.94 }
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9004"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-negociacao: { condition: service_healthy }
+
+  pagamentos:
+    <<: *servico
+    build: ./backend/pagamentos
+    environment:
+      <<: *ambiente
+      MONGODB_URI: mongodb://mongo-pagamentos:27017/orbita_pagamentos?directConnection=true
+    expose: ["9005"]
+    networks:
+      orbita: { ipv4_address: 172.30.0.95 }
+    healthcheck:
+      <<: *saude
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9005"]
+    depends_on:
+      rabbitmq: { condition: service_healthy }
+      mongo-pagamentos: { condition: service_healthy }
 
   gateway:
     <<: *servico
     build: ./backend/gateway
-    environment:
-      ORBITA_TOKEN_SEGREDO: ${ORBITA_TOKEN_SEGREDO:-orbita-segredo-de-desenvolvimento-troque-em-producao}
-      AUTH_URL: http://auth:8086
-      CLIENTES_URL: http://clientes:8081
-      CONTAS_URL: http://contas:8082
-      ATIVOS_URL: http://ativos:8083
-      NEGOCIACAO_URL: http://negociacao:8084
-      CARTEIRA_URL: http://carteira:8085
-      PAGAMENTOS_URL: http://pagamentos:8087
-      RELATORIOS_URL: http://relatorios:8088
     ports:
-      - "8080:8080"
+      - "9000:9000"
     networks:
-      orbita: { ipv4_address: 172.30.0.80 }
+      orbita: { ipv4_address: 172.30.0.90 }
     healthcheck:
       <<: *saude
-      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/8080"]
+      test: ["CMD", "bash", "-c", "echo > /dev/tcp/localhost/9000"]
     depends_on:
       auth: { condition: service_healthy }
       clientes: { condition: service_healthy }
-      contas: { condition: service_healthy }
       ativos: { condition: service_healthy }
       negociacao: { condition: service_healthy }
-      carteira: { condition: service_healthy }
       pagamentos: { condition: service_healthy }
-      relatorios: { condition: service_healthy }
 
   k6:
     image: grafana/k6:latest
     profiles: ["testes"]
     environment:
-      BASE_URL: http://gateway:8080
+      BASE_URL: http://gateway:9000
     volumes:
       - ./k6:/scripts
     working_dir: /scripts
@@ -283,10 +201,7 @@ services:
 volumes:
   mongo-auth:
   mongo-clientes:
-  mongo-contas:
   mongo-ativos:
   mongo-negociacao:
-  mongo-carteira:
   mongo-pagamentos:
-  mongo-relatorios:
   mongo-local:

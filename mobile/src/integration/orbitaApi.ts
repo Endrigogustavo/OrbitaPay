@@ -1,24 +1,33 @@
 import type {
   AcessoDto, AtivoDto, AtivoRequestDto, AtualizacaoDeClienteDto, CadastroDeClienteDto, CarteiraDto, ClienteDto, ComprovanteDto,
-  ContaDto, CredencialDto, MetodoDeDeposito, MetodoDePagamentoDto, OrdemDto, OrdemRequestDto, PagamentoDto, SessaoDto,
+  ContaDto, CredencialCriadaDto, CredencialDto, MetodoDeDeposito, MetodoDePagamentoDto, OrdemDto, OrdemRequestDto, PagamentoDto, SessaoDto,
 } from '@/@types/api';
 import { URL_DO_GATEWAY } from './configuracao';
-import { criarClienteHttp, type LerToken } from './http';
+import { criarClienteHttp } from './http';
 
 const METODOS_DE_PAGAMENTO: Record<MetodoDeDeposito, MetodoDePagamentoDto> = { PIX: 'PIX', Boleto: 'BOLETO', TED: 'TED' };
 
-export function criarOrbitaApi(lerToken: LerToken) {
-  const http = criarClienteHttp(URL_DO_GATEWAY, lerToken);
+export function criarOrbitaApi() {
+  const http = criarClienteHttp(URL_DO_GATEWAY);
 
-  async function cadastrarCliente({ pin, ...dados }: CadastroDeClienteDto, pelaEquipe: boolean) {
+  async function cadastrarCliente({ pin, ...dados }: CadastroDeClienteDto) {
     const acesso = await http<SessaoDto>('POST', '/api/autenticacao/credenciais', { corpo: { email: dados.email, pin } });
     try {
-      const cliente = pelaEquipe
-        ? await http<ClienteDto>('POST', '/api/clientes', { corpo: { ...dados, clienteId: acesso.clienteId }, autenticado: true })
-        : await http<ClienteDto>('POST', '/api/clientes', { corpo: dados, token: acesso.token });
+      const cliente = await http<ClienteDto>('POST', '/api/clientes', { corpo: dados });
       return { cliente, acesso };
     } catch (erro) {
-      await http<void>('DELETE', '/api/autenticacao/credenciais/me', { token: acesso.token }).catch(() => {});
+      await http<void>('DELETE', '/api/autenticacao/credenciais/me').catch(() => {});
+      throw erro;
+    }
+  }
+
+  async function cadastrarClientePeloGerente({ pin, ...dados }: CadastroDeClienteDto) {
+    const { clienteId } = await http<CredencialCriadaDto>('POST', '/api/autenticacao/credenciais', { corpo: { email: dados.email, pin } });
+    try {
+      const cliente = await http<ClienteDto>('POST', '/api/clientes', { corpo: { ...dados, clienteId } });
+      return { cliente };
+    } catch (erro) {
+      await http<void>('DELETE', '/api/autenticacao/credenciais/' + clienteId).catch(() => {});
       throw erro;
     }
   }
@@ -26,53 +35,55 @@ export function criarOrbitaApi(lerToken: LerToken) {
   return {
     autenticacao: {
       entrar: (email: string, pin: string) => http<SessaoDto>('POST', '/api/autenticacao/sessoes', { corpo: { email, pin } }),
-      tornarGerente: (nome: string, assinatura: string) => http<SessaoDto>('POST', '/api/autenticacao/me/gerente', { corpo: { nome }, autenticado: true, assinatura }),
-      assinar: (pin: string) => http<CredencialDto>('POST', '/api/autenticacao/assinaturas', { corpo: { pin }, autenticado: true }),
-      alterarPin: (pinAtual: string, novoPin: string) => http<void>('PUT', '/api/autenticacao/pin', { corpo: { pinAtual, novoPin }, autenticado: true }),
-      meuAcesso: () => http<AcessoDto>('GET', '/api/autenticacao/me', { autenticado: true }),
+      sessaoAtual: () => http<SessaoDto>('GET', '/api/autenticacao/sessoes/atual'),
+      sair: () => http<void>('DELETE', '/api/autenticacao/sessoes/atual'),
+      tornarGerente: (nome: string, assinatura: string) => http<SessaoDto>('POST', '/api/autenticacao/me/gerente', { corpo: { nome }, assinatura }),
+      assinar: (pin: string) => http<CredencialDto>('POST', '/api/autenticacao/assinaturas', { corpo: { pin } }),
+      alterarPin: (pinAtual: string, novoPin: string) => http<void>('PUT', '/api/autenticacao/pin', { corpo: { pinAtual, novoPin } }),
+      meuAcesso: () => http<AcessoDto>('GET', '/api/autenticacao/me'),
     },
 
     clientes: {
-      cadastrar: (dados: CadastroDeClienteDto) => cadastrarCliente(dados, false),
-      cadastrarPeloGerente: (dados: CadastroDeClienteDto) => cadastrarCliente(dados, true),
-      meu: () => http<ClienteDto>('GET', '/api/clientes/me', { autenticado: true }),
-      atualizarMeu: (dados: AtualizacaoDeClienteDto) => http<ClienteDto>('PUT', '/api/clientes/me', { corpo: dados, autenticado: true }),
-      bloquearMinhaConta: () => http<ClienteDto>('POST', '/api/clientes/me/bloqueio', { autenticado: true }),
-      desbloquearMinhaConta: (assinatura: string) => http<ClienteDto>('POST', '/api/clientes/me/desbloqueio', { autenticado: true, assinatura }),
-      encerrarMinhaConta: () => http<void>('DELETE', '/api/clientes/me', { autenticado: true }),
-      listar: () => http<ClienteDto[]>('GET', '/api/clientes', { autenticado: true }),
-      atualizar: (id: string, dados: AtualizacaoDeClienteDto) => http<ClienteDto>('PUT', '/api/clientes/' + id, { corpo: dados, autenticado: true }),
-      bloquear: (id: string) => http<ClienteDto>('POST', '/api/clientes/' + id + '/bloqueio', { autenticado: true }),
-      desbloquear: (id: string) => http<ClienteDto>('POST', '/api/clientes/' + id + '/desbloqueio', { autenticado: true }),
-      remover: (id: string) => http<void>('DELETE', '/api/clientes/' + id, { autenticado: true }),
+      cadastrar: cadastrarCliente,
+      cadastrarPeloGerente: cadastrarClientePeloGerente,
+      meu: () => http<ClienteDto>('GET', '/api/clientes/me'),
+      atualizarMeu: (dados: AtualizacaoDeClienteDto) => http<ClienteDto>('PUT', '/api/clientes/me', { corpo: dados }),
+      bloquearMinhaConta: () => http<ClienteDto>('POST', '/api/clientes/me/bloqueio'),
+      desbloquearMinhaConta: (assinatura: string) => http<ClienteDto>('POST', '/api/clientes/me/desbloqueio', { assinatura }),
+      encerrarMinhaConta: () => http<void>('DELETE', '/api/clientes/me'),
+      listar: () => http<ClienteDto[]>('GET', '/api/clientes'),
+      atualizar: (id: string, dados: AtualizacaoDeClienteDto) => http<ClienteDto>('PUT', '/api/clientes/' + id, { corpo: dados }),
+      bloquear: (id: string) => http<ClienteDto>('POST', '/api/clientes/' + id + '/bloqueio'),
+      desbloquear: (id: string) => http<ClienteDto>('POST', '/api/clientes/' + id + '/desbloqueio'),
+      remover: (id: string) => http<void>('DELETE', '/api/clientes/' + id),
     },
 
     contas: {
-      minha: () => http<ContaDto>('GET', '/api/contas/me', { autenticado: true }),
-      sacar: (valor: number, assinatura: string) => http<ComprovanteDto>('POST', '/api/contas/me/saques', { corpo: { valor }, autenticado: true, assinatura }),
-      listar: () => http<ContaDto[]>('GET', '/api/contas', { autenticado: true }),
+      minha: () => http<ContaDto>('GET', '/api/contas/me'),
+      sacar: (valor: number, assinatura: string) => http<ComprovanteDto>('POST', '/api/contas/me/saques', { corpo: { valor }, assinatura }),
+      listar: () => http<ContaDto[]>('GET', '/api/contas'),
     },
 
     pagamentos: {
-      solicitar: (valor: number, metodo: MetodoDeDeposito) => http<PagamentoDto>('POST', '/api/pagamentos', { corpo: { valor, metodo: METODOS_DE_PAGAMENTO[metodo] }, autenticado: true }),
-      buscar: (id: string) => http<PagamentoDto>('GET', '/api/pagamentos/' + id, { autenticado: true }),
-      meus: () => http<PagamentoDto[]>('GET', '/api/pagamentos', { autenticado: true }),
+      solicitar: (valor: number, metodo: MetodoDeDeposito) => http<PagamentoDto>('POST', '/api/pagamentos', { corpo: { valor, metodo: METODOS_DE_PAGAMENTO[metodo] } }),
+      buscar: (id: string) => http<PagamentoDto>('GET', '/api/pagamentos/' + id),
+      meus: () => http<PagamentoDto[]>('GET', '/api/pagamentos'),
     },
 
     ativos: {
       listar: () => http<AtivoDto[]>('GET', '/api/ativos'),
-      listarNaBolsa: (dados: AtivoRequestDto) => http<AtivoDto>('POST', '/api/ativos', { corpo: dados, autenticado: true }),
-      atualizar: (ticker: string, dados: AtivoRequestDto) => http<AtivoDto>('PUT', '/api/ativos/' + ticker, { corpo: dados, autenticado: true }),
-      remover: (ticker: string) => http<void>('DELETE', '/api/ativos/' + ticker, { autenticado: true }),
+      listarNaBolsa: (dados: AtivoRequestDto) => http<AtivoDto>('POST', '/api/ativos', { corpo: dados }),
+      atualizar: (ticker: string, dados: AtivoRequestDto) => http<AtivoDto>('PUT', '/api/ativos/' + ticker, { corpo: dados }),
+      remover: (ticker: string) => http<void>('DELETE', '/api/ativos/' + ticker),
     },
 
     ordens: {
-      enviar: (ordem: OrdemRequestDto, assinatura: string) => http<OrdemDto>('POST', '/api/ordens', { corpo: ordem, autenticado: true, assinatura }),
-      buscar: (id: string) => http<OrdemDto>('GET', '/api/ordens/' + id, { autenticado: true }),
+      enviar: (ordem: OrdemRequestDto, assinatura: string) => http<OrdemDto>('POST', '/api/ordens', { corpo: ordem, assinatura }),
+      buscar: (id: string) => http<OrdemDto>('GET', '/api/ordens/' + id),
     },
 
     carteira: {
-      minha: () => http<CarteiraDto>('GET', '/api/carteiras/me', { autenticado: true }),
+      minha: () => http<CarteiraDto>('GET', '/api/carteiras/me'),
     },
   };
 }
